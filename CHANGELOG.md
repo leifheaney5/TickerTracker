@@ -16,9 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   time-limited tokens.
 - Passwords hashed with argon2; sessions via HTTP-only cookie (Flask-Login).
 - Login rate limiting: 5 failed attempts per 15-minute window triggers a lockout.
-- Per-user data scoping: watchlist, holdings, settings, and alerts are now
-  isolated per account and require login; every query is filtered by the
-  authenticated user's id.
+- Per-user data scoping: watchlist (including price targets and alerts),
+  holdings, and settings are now isolated per account and require login;
+  every query is filtered by the authenticated user's id.
 - Freemium moat: anonymous users get a read-only demo watchlist and are prompted
   to sign up when they attempt personalization actions.
 - New required env vars: `SECRET_KEY`, `APP_BASE_URL`; optional (feature-gated):

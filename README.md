@@ -85,8 +85,9 @@ watchlist, holdings, settings, price alerts).
 - **Password reset** via a single-use, time-limited token emailed with Resend.
 - Passwords hashed with argon2. Sessions via HTTP-only cookies (Flask-Login).
 - Login rate limiting: 5 failed attempts triggers a 15-minute lockout.
-- Per-user data scoping — watchlist / holdings / settings / alerts are isolated
-  per account. IDOR-safe: every DB query is filtered by the authenticated user's id.
+- Per-user data scoping — watchlist (including price targets and alerts),
+  holdings, and settings are isolated per account. IDOR-safe: every DB query
+  is filtered by the authenticated user's id.
 
 ### Auth env vars
 
