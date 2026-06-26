@@ -6,6 +6,8 @@ import { MoversRibbon } from '../components/MoversRibbon'
 import { StockHeader } from '../components/StockHeader'
 import { ChartControls } from '../components/ChartControls'
 import { StockChart } from '../charts/StockChart'
+import { KeyStats } from '../components/KeyStats'
+import { NewsCard } from '../components/NewsCard'
 
 // Dashboard view — the hero. Sidebar watchlist + main research column.
 // Main column (stock header, chart, stats, news, due-diligence) lands in the
@@ -31,7 +33,11 @@ export function Dashboard() {
         <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: 8, flex: '0 0 auto' }}>
           <StockChart />
         </div>
-        <div style={{ color: COLORS.tx3, fontSize: 12 }}>Key stats, news & due-diligence coming next.</div>
+        <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap', flex: '0 0 auto' }}>
+          <KeyStats />
+          <NewsCard />
+        </div>
+        <div style={{ color: COLORS.tx3, fontSize: 12 }}>Due-diligence coming next.</div>
       </main>
     </div>
   )
