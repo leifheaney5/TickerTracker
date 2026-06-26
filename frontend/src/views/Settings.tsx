@@ -21,7 +21,7 @@ export function Settings() {
         <div style={{ maxWidth: 480, margin: '48px auto 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
           <span style={{ fontSize: '21px', fontWeight: 800, color: COLORS.tx }}>Settings</span>
           <span style={{ fontSize: '13.5px', color: COLORS.tx2, lineHeight: 1.5 }}>Create a free account or sign in to manage your profile, connect a brokerage, and set preferences.</span>
-          <button onClick={openAuth} style={{ height: 40, padding: '0 20px', borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>Sign in / Sign up</button>
+          <button onClick={() => openAuth('login')} style={{ height: 40, padding: '0 20px', borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>Sign in / Sign up</button>
         </div>
       </div>
     )

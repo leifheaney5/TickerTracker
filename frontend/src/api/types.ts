@@ -11,6 +11,7 @@ export interface Quote {
   day_open: number
   day_high: number
   day_low: number
+  prev_close: number
   volume: number
 }
 

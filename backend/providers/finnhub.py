@@ -28,6 +28,7 @@ def fetch_quote(sym: str) -> dict:
         "day_open": round(float(j.get("o") or price), 2),
         "day_high": round(float(j.get("h") or price), 2),
         "day_low": round(float(j.get("l") or price), 2),
+        "prev_close": round(float(j.get("pc") or price), 2),
         "volume": 0,  # Finnhub /quote doesn't include volume; filled by fundamentals elsewhere
     }
 

@@ -219,7 +219,7 @@ export function Header() {
           </button>
         ) : (
           <button
-            onClick={openAuth}
+            onClick={() => openAuth('login')}
             title="Sign in"
             style={{ height: 34, padding: '0 16px', borderRadius: 10, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', flex: '0 0 auto' }}
           >

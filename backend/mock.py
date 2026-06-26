@@ -29,12 +29,14 @@ def mock_quote(sym: str) -> dict:
     r = rng(fnv1a(sym) + 1)
     price = round(6 + r() * 460, 2)
     change_pct = round((r() - 0.5) * 6, 2)
-    day_open = round(price / (1 + change_pct / 100), 2)
+    prev_close = round(price / (1 + change_pct / 100), 2)
+    day_open = round(prev_close * (1 + (r() - 0.5) * 0.01), 2)
     day_high = round(max(price, day_open) * (1 + r() * 0.01), 2)
     day_low = round(min(price, day_open) * (1 - r() * 0.01), 2)
     volume = int((1 + r() * 220) * 1e6)
     return {"price": price, "change_pct": change_pct, "day_open": day_open,
-            "day_high": day_high, "day_low": day_low, "volume": volume}
+            "day_high": day_high, "day_low": day_low, "prev_close": prev_close,
+            "volume": volume}
 
 
 def mock_fundamentals(sym: str) -> dict:

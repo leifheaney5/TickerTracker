@@ -1,7 +1,7 @@
 import { useStore } from '../state/store'
 import { COLORS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
-import { money, capStr } from '../lib/format'
+import { money, capStr, volStr } from '../lib/format'
 
 // Key Statistics grid — ported from the prototype template (lines 359-369).
 // Reads real fundamentals + quote where available, falls back to universe seed.
@@ -22,12 +22,12 @@ export function KeyStats() {
   const loading = '…'
   const stats: [string, string][] = [
     ['Open', q ? money(q.day_open) : loading],
-    ['Prev Close', q ? money(q.day_open) : loading],
+    ['Prev Close', q ? money(q.prev_close) : loading],
     ['Day High', q ? money(q.day_high) : loading],
     ['Day Low', q ? money(q.day_low) : loading],
     ['52W High', f ? money(f.week52_high) : loading],
     ['52W Low', f ? money(f.week52_low) : loading],
-    ['Volume', q ? (q.volume / 1e6).toFixed(1) + 'M' : u.vol || loading],
+    ['Volume', q && q.volume ? volStr(q.volume) : '—'],
     ['All-Time High', f ? money(f.all_time_high) : loading],
     ['Mkt Cap', f ? capStr(f.market_cap) : u.cap || loading],
     ['P/E', f && f.pe ? String(f.pe) : u.pe || loading],

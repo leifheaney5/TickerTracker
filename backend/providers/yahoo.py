@@ -21,6 +21,7 @@ def fetch_quote(sym: str) -> dict:
         "day_open": round(float(price_data.get("regularMarketOpen", price) or price), 2),
         "day_high": round(float(price_data.get("regularMarketDayHigh", price) or price), 2),
         "day_low": round(float(price_data.get("regularMarketDayLow", price) or price), 2),
+        "prev_close": round(float(price_data.get("regularMarketPreviousClose", price) or price), 2),
         "volume": int(price_data.get("regularMarketVolume", 0) or 0),
     }
 

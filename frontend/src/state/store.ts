@@ -78,7 +78,8 @@ interface StoreState {
 
   // ── auth modal ──
   authModal: boolean
-  openAuth: () => void
+  authIntent: 'login' | 'signup'
+  openAuth: (intent?: 'login' | 'signup') => void
   closeAuth: () => void
 
   // ── auth ──
@@ -123,7 +124,8 @@ export const useStore = create<StoreState>((set, get) => ({
   flash: {},
 
   authModal: false,
-  openAuth: () => set({ authModal: true }),
+  authIntent: 'login',
+  openAuth: (intent = 'login') => set({ authModal: true, authIntent: intent }),
   closeAuth: () => set({ authModal: false }),
 
   currentUser: null,
