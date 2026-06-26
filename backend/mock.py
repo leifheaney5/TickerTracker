@@ -96,3 +96,49 @@ def mock_fng() -> dict:
     label = ("Extreme Fear" if v < 25 else "Fear" if v < 45
              else "Neutral" if v < 55 else "Greed" if v < 75 else "Extreme Greed")
     return {"value": v, "label": label}
+
+
+_SOURCES = ["Reuters", "Bloomberg", "CNBC", "WSJ", "MarketWatch", "Barron's"]
+_SENTI = ["Bullish", "Bearish", "Neutral"]
+_HEADLINES = [
+    "{s} beats quarterly estimates on strong demand",
+    "Analysts raise {s} price target ahead of earnings",
+    "{s} unveils new product line, shares react",
+    "Regulators eye {s} amid sector scrutiny",
+    "{s} expands operations into new markets",
+    "Market volatility weighs on {s} outlook",
+]
+
+
+def mock_news(sym=None) -> list:
+    key = sym or "MARKET"
+    r = rng(fnv1a("NEWS_" + key) + 13)
+    out = []
+    for i in range(6):
+        label = sym or "the market"
+        out.append({
+            "source": _SOURCES[int(r() * len(_SOURCES)) % len(_SOURCES)],
+            "datetime": f"{1 + int(r() * 11)}h ago",
+            "sentiment": _SENTI[int(r() * 3) % 3],
+            "headline": _HEADLINES[i % len(_HEADLINES)].format(s=label),
+            "url": "https://example.com/news/" + key.lower() + str(i),
+            "symbol": sym or "MKT",
+        })
+    return out
+
+
+def mock_ratings(sym: str) -> dict:
+    r = rng(fnv1a("RATE_" + sym) + 17)
+    dist = {"strongBuy": int(2 + r() * 18), "buy": int(2 + r() * 16),
+            "hold": int(1 + r() * 12), "sell": int(r() * 5),
+            "strongSell": int(r() * 3)}
+    price = mock_quote(sym)["price"]
+    low = round(price * (0.8 + r() * 0.1), 2)
+    high = round(price * (1.1 + r() * 0.3), 2)
+    mean = round((low + high) / 2, 2)
+    score = (dist["strongBuy"] * 1 + dist["buy"] * 2 + dist["hold"] * 3
+             + dist["sell"] * 4 + dist["strongSell"] * 5) / max(1, sum(dist.values()))
+    consensus = ("Strong Buy" if score < 1.6 else "Buy" if score < 2.5
+                 else "Hold" if score < 3.5 else "Sell" if score < 4.5 else "Strong Sell")
+    return {"consensus": consensus, "distribution": dist,
+            "target": {"low": low, "high": high, "mean": mean, "current": price}}

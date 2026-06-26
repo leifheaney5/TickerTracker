@@ -69,6 +69,30 @@ def fng_route():
     return envelope(data, source=source)
 
 
+from services.news import get_news
+from services.ratings import get_ratings
+
+
+@app.route("/api/news")
+def news_route():
+    sym = request.args.get("sym")
+    if sym:
+        sym = sym.upper()
+        if not valid_symbol(sym):
+            return envelope({"error": "invalid symbol"}), 400
+    data, source = get_news(sym)  # sym None → market news
+    return envelope(data, source=source)
+
+
+@app.route("/api/ratings/<sym>")
+def ratings_route(sym):
+    sym = sym.upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    data, source = get_ratings(sym)
+    return envelope(data, source=source)
+
+
 # ─── Persistence (Postgres/SQLite via DATABASE_URL) ──────────────────────────
 import db as _db
 _db.init_db()
