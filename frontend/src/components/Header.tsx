@@ -4,6 +4,7 @@ import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { Logo } from './Logo'
 import { UNIVERSE } from '../data/universe'
 import { api } from '../api/client'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 // Header chrome — ported from the prototype template (lines 29-141): logo mark,
 // segmented view nav, centered LIVE wordmark, search popover, portfolio chip /
@@ -40,6 +41,14 @@ export function Header() {
   const authed = useStore(isAuthed)
   const currentUser = useStore((s) => s.currentUser)
   const openAuth = useStore((s) => s.openAuth)
+  const isMobile = useIsMobile()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Close hamburger menu when navigating
+  const navigate = (v: View) => {
+    setView(v)
+    setMenuOpen(false)
+  }
 
   // Portfolio value from holdings is wired later; show connect state per settings.
   const connected = settings?.broker_connected ?? false
@@ -83,6 +92,183 @@ export function Header() {
         : currentUser.email.slice(0, 2).toUpperCase())
     : 'JD'
 
+  if (isMobile) {
+    return (
+      <header
+        style={{
+          flex: '0 0 auto', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}`,
+          position: 'relative', zIndex: 30,
+        }}
+      >
+        {/* Mobile top bar */}
+        <div
+          style={{
+            height: '54px', display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '0 14px',
+          }}
+        >
+          {/* Logo mark */}
+          <div
+            title="Ticker Tracker"
+            style={{
+              width: 32, height: 32, borderRadius: 9, background: COLORS.card,
+              border: `1px solid ${COLORS.line2}`, position: 'relative', flex: '0 0 auto',
+            }}
+          >
+            <span style={{ position: 'absolute', left: 5, top: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: COLORS.up }}>T</span>
+            <span style={{ position: 'absolute', right: 5, bottom: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: COLORS.down }}>T</span>
+          </div>
+
+          {/* Hamburger */}
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            title="Navigation"
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 5, width: 34, height: 34, borderRadius: 9, background: menuOpen ? COLORS.cardHi : COLORS.card,
+              border: `1px solid ${COLORS.line}`, cursor: 'pointer', flex: '0 0 auto',
+            }}
+          >
+            {menuOpen ? (
+              <span style={{ fontSize: '16px', color: COLORS.tx2, lineHeight: 1 }}>✕</span>
+            ) : (
+              <>
+                <span style={{ display: 'block', width: 14, height: 2, background: COLORS.tx2, borderRadius: 1 }} />
+                <span style={{ display: 'block', width: 14, height: 2, background: COLORS.tx2, borderRadius: 1 }} />
+                <span style={{ display: 'block', width: 14, height: 2, background: COLORS.tx2, borderRadius: 1 }} />
+              </>
+            )}
+          </button>
+
+          {/* Current view label — fills space */}
+          <span style={{ flex: 1, fontSize: '13.5px', fontWeight: 700, color: COLORS.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {NAV.find((n) => n.view === view)?.label ?? 'Ticker Tracker'}
+          </span>
+
+          {/* Search */}
+          <div style={{ position: 'relative', flex: '0 0 auto' }}>
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
+              title="Search"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
+                borderRadius: 9, background: COLORS.card, border: `1px solid ${COLORS.line}`,
+                color: COLORS.tx2, cursor: 'pointer', fontSize: '15px',
+              }}
+            >
+              ⌕
+            </button>
+            {searchOpen && (
+              <div
+                style={{
+                  position: 'fixed', top: 54, left: 0, right: 0, background: COLORS.panel,
+                  borderBottom: `1px solid ${COLORS.line2}`,
+                  boxShadow: '0 18px 50px rgba(0,0,0,.55)', overflow: 'hidden', zIndex: 45,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderBottom: `1px solid ${COLORS.line}` }}>
+                  <span style={{ color: COLORS.tx3, fontSize: '15px' }}>⌕</span>
+                  <input
+                    autoFocus
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search ticker or company…"
+                    style={{ flex: 1, border: 'none', background: 'transparent', color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13.5px' }}
+                  />
+                  <button onClick={() => setSearchOpen(false)} style={{ background: 'none', border: 'none', color: COLORS.tx3, cursor: 'pointer', fontSize: '14px' }}>✕</button>
+                </div>
+                {q && (searching || matches.length === 0) && (
+                  <div style={{ padding: '14px', fontSize: '12.5px', color: COLORS.tx3 }}>
+                    {searching ? 'Searching…' : 'No matches'}
+                  </div>
+                )}
+                {matches.length > 0 && (
+                  <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                    {matches.map((m) => (
+                      <div
+                        key={m.symbol}
+                        onClick={() => { setSelected(m.symbol); setView('dashboard'); setSearch(''); setSearchOpen(false) }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', cursor: 'pointer', borderTop: `1px solid ${COLORS.line}` }}
+                      >
+                        <Logo symbol={m.symbol} size={26} />
+                        <span style={{ fontWeight: 700, fontSize: '13px', minWidth: 46, color: COLORS.tx }}>{m.symbol}</span>
+                        <span style={{ flex: 1, fontSize: '12.5px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sign in / Avatar */}
+          {authed ? (
+            <button
+              onClick={() => setView('settings')}
+              title="Account & settings"
+              style={{ width: 34, height: 34, borderRadius: '50%', background: COLORS.card, border: `1px solid ${COLORS.line2}`, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
+            >
+              {acctInitials}
+            </button>
+          ) : (
+            <button
+              onClick={openAuth}
+              title="Sign in"
+              style={{ height: 34, padding: '0 12px', borderRadius: 10, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
+            >
+              Sign in
+            </button>
+          )}
+        </div>
+
+        {/* Mobile nav dropdown */}
+        {menuOpen && (
+          <div
+            style={{
+              background: COLORS.panel, borderTop: `1px solid ${COLORS.line}`,
+              padding: '10px 12px 14px', display: 'flex', flexDirection: 'column', gap: 2,
+            }}
+          >
+            {NAV.map((n) => (
+              <button
+                key={n.view}
+                onClick={() => navigate(n.view)}
+                style={{
+                  padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  fontFamily: FONT_SANS, fontSize: '14px', textAlign: 'left',
+                  fontWeight: view === n.view ? 700 : 500,
+                  background: view === n.view ? 'var(--accent,#3ddc84)' : 'transparent',
+                  color: view === n.view ? COLORS.accentInk : COLORS.tx2,
+                }}
+              >
+                {n.label}
+              </button>
+            ))}
+            {/* Connect account in menu on mobile */}
+            <div style={{ marginTop: 6, borderTop: `1px solid ${COLORS.line}`, paddingTop: 10 }}>
+              {connected ? (
+                <button
+                  onClick={() => navigate('holdings')}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1px solid ${COLORS.line}`, background: COLORS.card, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  Portfolio
+                </button>
+              ) : (
+                <button
+                  onClick={() => { authed ? navigate('settings') : openAuth(); setMenuOpen(false) }}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1px dashed ${COLORS.accent}`, background: 'transparent', color: COLORS.accent, fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  ⊕ Connect account
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
+    )
+  }
+
+  // Desktop layout (unchanged)
   return (
     <header
       style={{

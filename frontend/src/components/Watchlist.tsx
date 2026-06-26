@@ -7,6 +7,7 @@ import { Logo } from './Logo'
 import { Sparkline } from '../charts/Sparkline'
 import { money, pct } from '../lib/format'
 import { useRequireAuth } from '../hooks/useRequireAuth'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 // Watchlist sidebar — ported from the prototype template (lines 148-216):
 // title + count + sort cycle, group folder tabs, draggable cards with sparkline
@@ -40,6 +41,8 @@ export function Watchlist() {
   const flash = useStore((s) => s.flash)
   const addWatch = useStore((s) => s.addWatch)
   const requireAuth = useRequireAuth()
+  const isMobile = useIsMobile()
+  const [mobileExpanded, setMobileExpanded] = useState(false)
 
   const [showAdd, setShowAdd] = useState(false)
   const [addSym, setAddSym] = useState('')
@@ -72,6 +75,152 @@ export function Watchlist() {
     setAddSym('')
     setAddTarget('')
     setShowAdd(false)
+  }
+
+  if (isMobile) {
+    return (
+      <aside
+        style={{
+          width: '100%', flex: '0 0 auto', borderBottom: `1px solid ${COLORS.line}`,
+          background: COLORS.panel, display: 'flex', flexDirection: 'column',
+        }}
+      >
+        {/* Mobile collapsible header */}
+        <div
+          onClick={() => setMobileExpanded((x) => !x)}
+          style={{
+            padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            cursor: 'pointer', userSelect: 'none',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: COLORS.tx }}>Watchlist</span>
+            <span style={{ fontSize: '11.5px', color: COLORS.tx3 }}>{base.length}</span>
+          </div>
+          <span style={{ fontSize: '13px', color: COLORS.tx3 }}>{mobileExpanded ? '▲ Hide' : '▼ Show'}</span>
+        </div>
+
+        {mobileExpanded && (
+          <>
+            <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div
+                  onClick={() => requireAuth(() => setView('managewatch'))}
+                  title="Manage your watchlist"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                >
+                  <span style={{ fontSize: '11px', color: COLORS.accent }}>⤢ Manage</span>
+                </div>
+                <button
+                  onClick={cycleSort}
+                  title="Change sort order"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', color: COLORS.tx3, fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  ⇅ {SORT_LABEL[sortBy]}
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                {GROUPS.map((g) => (
+                  <button key={g} onClick={() => setGroup(g)} style={groupTabStyle(g === group)}>
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ maxHeight: 340, overflowY: 'auto', padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 'var(--lgap,8px)' }}>
+              {base.map((sym) => {
+                const u = UNIVERSE[sym] || { name: sym, target: 0 } as typeof UNIVERSE[string]
+                const wl = watchlist.find((w) => w.symbol === sym)
+                const target = wl?.target ?? u.target ?? 0
+                const p = price(sym)
+                const c = chg(sym)
+                const up = c >= 0
+                const fl = flash[sym]
+                const hasT = target > 0
+                const near = hasT && p / target >= 0.92
+                const priceColor = fl === 'up' ? COLORS.up : fl === 'down' ? COLORS.down : COLORS.tx
+                return (
+                  <div
+                    key={sym}
+                    onClick={() => { setSelected(sym); setMobileExpanded(false) }}
+                    style={{
+                      padding: 'var(--cpad,12px 14px)', borderRadius: 13,
+                      border: `1px solid ${sym === selected ? COLORS.accent : COLORS.line}`,
+                      background: sym === selected ? COLORS.cardHi : COLORS.card,
+                      cursor: 'pointer', opacity: dragSym === sym ? 0.4 : 1,
+                      boxShadow: sym === selected ? `0 0 0 1px ${COLORS.accent}` : 'none',
+                      transition: 'border-color .15s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
+                      <Logo symbol={sym} size={30} />
+                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '-.01em', color: COLORS.tx }}>{sym}</span>
+                          {near && <span title="Near target" style={{ fontSize: '10px', color: COLORS.accent }}>◆</span>}
+                        </div>
+                        <span style={{ fontSize: '11.5px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{u.name}</span>
+                        <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 500, marginTop: 2, color: priceColor }}>{money(p)}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? COLORS.up : COLORS.down }}>{pct(c)}</span>
+                        <Sparkline symbol={sym} />
+                      </div>
+                    </div>
+                    {hasT && (
+                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: COLORS.tx3 }}>
+                        <span>Target {money(target)}</span>
+                        <span style={{ color: p >= target ? COLORS.up : COLORS.tx3, fontWeight: p >= target ? 600 : 400 }}>
+                          {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              {base.length === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, padding: '32px 18px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '26px', opacity: 0.7 }}>☆</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: COLORS.tx2 }}>No tickers here yet</span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ flex: '0 0 auto', padding: 12, borderTop: `1px solid ${COLORS.line}` }}>
+              {showAdd ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: 12, borderRadius: 12, background: COLORS.card, border: `1px solid ${COLORS.line2}` }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '.03em', color: COLORS.tx2 }}>ADD TICKER</span>
+                  <input
+                    value={addSym}
+                    onChange={(e) => setAddSym(e.target.value)}
+                    placeholder="Symbol  e.g. NVDA"
+                    style={{ height: 34, padding: '0 11px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13px', textTransform: 'uppercase' }}
+                  />
+                  <input
+                    value={addTarget}
+                    onChange={(e) => setAddTarget(e.target.value)}
+                    placeholder="Target price (optional)"
+                    style={{ height: 34, padding: '0 11px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '13px' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={submitAdd} style={{ flex: 1, height: 34, borderRadius: 8, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Add</button>
+                    <button onClick={() => setShowAdd(false)} style={{ height: 34, padding: '0 14px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12.5px', cursor: 'pointer' }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => requireAuth(() => setShowAdd(true))}
+                  style={{ width: '100%', height: 42, borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(61,220,132,.2)' }}
+                >
+                  <span style={{ fontSize: '17px', lineHeight: 1, marginTop: -1 }}>+</span>Add ticker
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </aside>
+    )
   }
 
   return (
