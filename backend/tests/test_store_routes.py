@@ -1,8 +1,25 @@
+import db
+import models
+from auth.passwords import hash_password
 from app import app
 
 
+def _verified_client(email="store_route_user@example.com"):
+    """Create a verified user and return a logged-in test client."""
+    c = app.test_client()
+    with db.get_session() as s:
+        s.add(models.User(
+            email=email,
+            password_hash=hash_password("password123"),
+            email_verified=True,
+        ))
+        s.commit()
+    c.post("/api/auth/login", json={"email": email, "password": "password123"})
+    return c
+
+
 def test_watchlist_crud_via_api():
-    client = app.test_client()
+    client = _verified_client()
     r = client.post("/api/watchlist", json={"symbol": "AAPL", "target": 230})
     assert r.status_code == 200 and r.get_json()["data"]["symbol"] == "AAPL"
     r = client.get("/api/watchlist")
@@ -14,19 +31,20 @@ def test_watchlist_crud_via_api():
 
 
 def test_settings_via_api():
-    client = app.test_client()
+    client = _verified_client("settings_user@example.com")
     r = client.patch("/api/settings", json={"hide_balances": True})
     assert r.get_json()["data"]["hide_balances"] is True
     assert client.get("/api/settings").get_json()["meta"]["source"] == "db"
 
 
 def test_holdings_via_api():
-    client = app.test_client()
+    client = _verified_client("holdings_user@example.com")
     client.post("/api/holdings", json={"symbol": "AAPL", "shares": 10, "avg_cost": 180})
     assert client.get("/api/holdings").get_json()["data"][0]["shares"] == 10
     assert client.delete("/api/holdings/AAPL").get_json()["data"]["removed"] is True
 
 
 def test_watchlist_post_rejects_invalid_symbol():
-    r = app.test_client().post("/api/watchlist", json={"symbol": "not a symbol!"})
+    client = _verified_client("invalid_sym_user@example.com")
+    r = client.post("/api/watchlist", json={"symbol": "not a symbol!"})
     assert r.status_code == 400
