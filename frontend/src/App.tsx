@@ -6,6 +6,7 @@ import { Dashboard } from './views/Dashboard'
 import { Settings } from './views/Settings'
 import { Alerts } from './views/Alerts'
 import { Holdings } from './views/Holdings'
+import { AtAGlance } from './views/AtAGlance'
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // Views are added unit by unit (Dashboard first).
@@ -42,7 +43,9 @@ export default function App() {
       {view === 'settings' && <Settings />}
       {view === 'alerts' && <Alerts />}
       {view === 'holdings' && <Holdings />}
-      {!['dashboard', 'settings', 'alerts', 'holdings'].includes(view) && (
+      {view === 'overview' && <AtAGlance initialSub="overview" />}
+      {view === 'deep' && <AtAGlance initialSub="deep" />}
+      {!['dashboard', 'settings', 'alerts', 'holdings', 'overview', 'deep'].includes(view) && (
         <div style={{ flex: 1, minHeight: 0, padding: 24, color: COLORS.tx2 }}>
           {view} view — coming next. {settings ? '' : 'loading…'}
         </div>
