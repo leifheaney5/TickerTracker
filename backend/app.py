@@ -12,6 +12,9 @@ app = Flask(__name__, static_folder=None)
 from auth import init_login
 init_login(app)
 
+from auth.routes import auth_bp
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
+
 # Input validation: bound attacker-controlled values so they cannot be used to
 # inflate the cache or hammer providers. Symbols are short alnum (+ . / -),
 # timeframes come from a fixed whitelist, and the per-request symbol count is capped.
