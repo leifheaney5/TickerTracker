@@ -1,0 +1,15 @@
+/* Global resets, fonts, and keyframes — transcribed from the prototype's
+   <helmet> block (Ticker Tracker.dc.html lines 14-24). */
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #0a0b0d; }
+#root { height: 100vh; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .09); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .18); }
+::-webkit-scrollbar-track { background: transparent; }
+input { outline: none; }
+@keyframes ttpulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@keyframes ttspin { to { transform: rotate(360deg); } }
