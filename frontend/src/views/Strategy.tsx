@@ -84,26 +84,30 @@ export function Strategy() {
         </div>
       </div>
 
-      <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10, flex: '0 0 auto' }}>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.tx }}>Active Positions</span>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {positions.map((sym) => {
-            const u = UNIVERSE[sym]
-            const p = price(sym)
-            const value = p * u.shares
-            const gain = value - u.cost * u.shares
-            const day = chg(sym)
-            return (
-              <div key={sym} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1.4fr) 80px 110px 110px 120px 100px', alignItems: 'center', gap: 10, padding: '11px 0', borderTop: `1px solid ${COLORS.line}`, cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}><Logo symbol={sym} size={26} /><span style={{ fontWeight: 700, fontSize: '13px', color: COLORS.tx }}>{sym}</span></div>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.up, background: 'rgba(61,220,132,.12)', padding: '2px 8px', borderRadius: 6, justifySelf: 'start' }}>LONG</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{money(u.cost)}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx }}>{money(value)}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: gain >= 0 ? COLORS.up : COLORS.down }}>{(gain >= 0 ? '+' : '') + money(gain)}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: day >= 0 ? COLORS.up : COLORS.down }}>{pct(day)}</span>
-              </div>
-            )
-          })}
+      <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, overflow: 'hidden', flex: '0 0 auto' }}>
+        <div style={{ padding: '18px 20px 10px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.tx }}>Active Positions</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 560 }}>
+            {positions.map((sym) => {
+              const u = UNIVERSE[sym]
+              const p = price(sym)
+              const value = p * u.shares
+              const gain = value - u.cost * u.shares
+              const day = chg(sym)
+              return (
+                <div key={sym} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1.4fr) 80px 110px 110px 120px 100px', alignItems: 'center', gap: 10, padding: '11px 20px', borderTop: `1px solid ${COLORS.line}`, cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}><Logo symbol={sym} size={26} /><span style={{ fontWeight: 700, fontSize: '13px', color: COLORS.tx }}>{sym}</span></div>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.up, background: 'rgba(61,220,132,.12)', padding: '2px 8px', borderRadius: 6, justifySelf: 'start' }}>LONG</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{money(u.cost)}</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx }}>{money(value)}</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: gain >= 0 ? COLORS.up : COLORS.down }}>{(gain >= 0 ? '+' : '') + money(gain)}</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: day >= 0 ? COLORS.up : COLORS.down }}>{pct(day)}</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
