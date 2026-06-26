@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-06-26
+
+### Security
+
+- **Prevent password-reset poisoning:** verification/reset email links and the
+  OAuth redirect are now built only from the configured `APP_BASE_URL`; `_base()`
+  raises if it's unset and never falls back to the request `Host` header (which an
+  attacker could forge to redirect reset tokens to their own domain).
+- **Close rate-limit bypass:** login lockout is now keyed on the account email
+  alone, so an attacker rotating a spoofed `X-Forwarded-For` header can no longer
+  multiply their attempt budget against a targeted account (the client IP is
+  still recorded for forensics).
+
 ## [1.1.0] — 2026-06-26
 
 ### Added
