@@ -7,7 +7,9 @@ import models
 from auth.passwords import hash_password, verify_password, valid_password
 from auth.tokens import create_token, consume_token
 from auth.rate_limit import record_attempt, is_locked
-from providers.email import send_verify_email, send_reset_email
+from providers.email import send_verify_email
+
+_DUMMY_HASH = hash_password("x" * 12)
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -62,12 +64,19 @@ def login():
     b = request.get_json(force=True) or {}
     email = (b.get("email") or "").strip().lower()
     password = b.get("password") or ""
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "")
+    xff = request.headers.get("X-Forwarded-For", "")
+    ip = (xff.split(",")[0].strip() if xff else "") or (request.remote_addr or "")
     if is_locked(email, ip):
         return jsonify({"error": "too many attempts, try again later"}), 423
     with db.get_session() as s:
         u = s.query(models.User).filter_by(email=email).first()
-        ok = bool(u and verify_password(password, u.password_hash or ""))
+        if u and u.password_hash:
+            ok = verify_password(password, u.password_hash)
+        else:
+            # constant-time-ish: still run an argon2 verify against a dummy hash so a
+            # missing user takes the same time as a wrong password (no enumeration).
+            verify_password(password, _DUMMY_HASH)
+            ok = False
         record_attempt(email, ip, ok)
         if not ok:
             return jsonify({"error": "invalid email or password"}), 401
