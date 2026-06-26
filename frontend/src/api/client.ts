@@ -4,7 +4,7 @@
 
 import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
-  NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe,
+  NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, AuthUser,
 } from './types'
 
 export interface Result<T> {
@@ -14,7 +14,7 @@ export interface Result<T> {
 }
 
 async function get<T>(path: string): Promise<Result<T>> {
-  const r = await fetch(path)
+  const r = await fetch(path, { credentials: 'include' })
   if (!r.ok) throw new Error(`${path} → ${r.status}`)
   const env = (await r.json()) as Envelope<T>
   return { data: env.data, source: env.meta.source, stale: env.meta.stale }
@@ -23,6 +23,7 @@ async function get<T>(path: string): Promise<Result<T>> {
 async function send<T>(path: string, method: string, body?: unknown): Promise<Result<T>> {
   const r = await fetch(path, {
     method,
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
@@ -58,4 +59,11 @@ export const api = {
     send<Holding>('/api/holdings', 'POST', b),
   removeHolding: (sym: string) =>
     send<{ removed: boolean }>(`/api/holdings/${encodeURIComponent(sym)}`, 'DELETE'),
+
+  me: () => get<{ user: AuthUser | null }>('/api/auth/me'),
+  login: (email: string, password: string) => send<{ user: AuthUser }>('/api/auth/login', 'POST', { email, password }),
+  signup: (email: string, password: string, name?: string) => send<{ message: string }>('/api/auth/signup', 'POST', { email, password, name }),
+  logout: () => send<{ message: string }>('/api/auth/logout', 'POST'),
+  forgot: (email: string) => send<{ message: string }>('/api/auth/forgot', 'POST', { email }),
+  reset: (token: string, password: string) => send<{ message: string }>('/api/auth/reset', 'POST', { token, password }),
 }
