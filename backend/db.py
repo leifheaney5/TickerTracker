@@ -42,20 +42,8 @@ def get_session():
 
 
 def init_db():
-    # Create tables + seed the singleton user. Wrapped so a DB hiccup at startup
-    # (e.g. Postgres not yet reachable) can never crash the web process — the app
-    # must still bind its port and pass the healthcheck. DB-backed routes recover
-    # once the connection is available; data routes already fall back to mock.
     try:
-        import models  # noqa: F401  (register models on Base)
+        import models  # noqa: F401
         Base.metadata.create_all(engine)
-        with get_session() as s:
-            if s.get(models.User, 1) is None:
-                s.add(models.User(id=1, email="you@example.com", name="Jordan Doe",
-                                  phone="+1 (555) 012-3344"))
-                s.commit()
-            if s.get(models.Settings, 1) is None:
-                s.add(models.Settings(user_id=1))
-                s.commit()
-    except Exception as e:  # pragma: no cover - startup resilience
+    except Exception as e:  # pragma: no cover
         logging.getLogger(__name__).error("init_db failed (continuing): %s", e)
