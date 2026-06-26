@@ -5,7 +5,7 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #0a0b0d; overflow-x: hidden; }
-#root { height: 100vh; overflow-x: hidden; }
+#root { height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .09); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .18); }
@@ -13,3 +13,9 @@ html, body { margin: 0; padding: 0; background: #0a0b0d; overflow-x: hidden; }
 input { outline: none; }
 @keyframes ttpulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 @keyframes ttspin { to { transform: rotate(360deg); } }
+
+/* Responsive padding tokens — views use var(--mpad) and var(--gap) */
+:root { --mpad: 22px 26px; --gap: 16px; }
+@media (max-width: 768px) {
+  :root { --mpad: 14px 14px; --gap: 12px; }
+}
