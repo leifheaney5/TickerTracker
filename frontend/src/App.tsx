@@ -1,16 +1,17 @@
 import { useEffect } from 'react'
 import { useStore } from './state/store'
 import { rootCssVars, COLORS, FONT_SANS } from './theme/tokens'
+import { Header } from './components/Header'
 
-// Placeholder app shell — verifies the scaffold, tokens, and store wiring.
-// The pixel-identical Dashboard and chrome arrive in Plan 5.
+// App root: mounts design tokens, the header chrome, and the active view body.
+// Views are added unit by unit (Dashboard first).
 export default function App() {
   const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadSettings = useStore((s) => s.loadSettings)
   const pollQuotes = useStore((s) => s.pollQuotes)
   const watchlist = useStore((s) => s.watchlist)
-  const marketStatus = useStore((s) => s.marketStatus)
-  const price = useStore((s) => s.price)
+  const settings = useStore((s) => s.settings)
+  const view = useStore((s) => s.view)
 
   useEffect(() => {
     loadWatchlist()
@@ -25,16 +26,18 @@ export default function App() {
   }, [watchlist.length, pollQuotes])
 
   return (
-    <div style={{ ...rootCssVars(), height: '100vh', background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_SANS, padding: 24 }}>
-      <h2 style={{ color: COLORS.up }}>Ticker Tracker — scaffold</h2>
-      <p style={{ color: COLORS.tx2 }}>Market status: {marketStatus}</p>
-      <ul style={{ fontFamily: "'JetBrains Mono', monospace", color: COLORS.tx }}>
-        {watchlist.map((w) => (
-          <li key={w.symbol}>
-            {w.symbol}: {price(w.symbol).toFixed(2)}
-          </li>
-        ))}
-      </ul>
+    <div
+      style={{
+        ...rootCssVars(),
+        position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', fontFamily: FONT_SANS, color: COLORS.tx, background: COLORS.bg,
+      }}
+    >
+      <Header />
+      <div style={{ flex: 1, minHeight: 0, padding: 24, color: COLORS.tx2 }}>
+        {/* View bodies land here; current view: {view} */}
+        Current view: {view} — {settings ? 'settings loaded' : 'loading…'}
+      </div>
     </div>
   )
 }
