@@ -1,9 +1,10 @@
 from sqlalchemy import (Column, Integer, String, Float, Boolean, DateTime,
                         ForeignKey, func, UniqueConstraint)
 from db import Base
+from flask_login import UserMixin
 
 
-class User(Base):
+class User(UserMixin, Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     email = Column(String, nullable=False, unique=True, index=True)

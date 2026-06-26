@@ -9,6 +9,9 @@ _FRONTEND_DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", 
 
 app = Flask(__name__, static_folder=None)
 
+from auth import init_login
+init_login(app)
+
 # Input validation: bound attacker-controlled values so they cannot be used to
 # inflate the cache or hammer providers. Symbols are short alnum (+ . / -),
 # timeframes come from a fixed whitelist, and the per-request symbol count is capped.

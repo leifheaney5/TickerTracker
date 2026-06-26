@@ -1,7 +1,33 @@
-# Auth package. `current_user_id` lives here so `from auth import current_user_id`
-# keeps working now that `auth` is a package (was previously backend/auth.py).
-# Task 6 replaces the body below with the Flask-Login session lookup.
+import os
+from flask_login import LoginManager, current_user
+
+login_manager = LoginManager()
 
 
-def current_user_id() -> int:
-    return 1
+def init_login(app):
+    if not app.config.get("SECRET_KEY"):
+        app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
+    login_manager.init_app(app)
+
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=bool(os.environ.get("APP_BASE_URL", "").startswith("https")),
+        REMEMBER_COOKIE_HTTPONLY=True,
+    )
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        import db, models
+        with db.get_session() as s:
+            return s.get(models.User, int(user_id))
+
+    # API: return 401 JSON instead of redirecting to a login page.
+    @login_manager.unauthorized_handler
+    def _unauth():
+        from flask import jsonify
+        return jsonify({"error": "authentication required"}), 401
+
+
+def current_user_id():
+    return int(current_user.id) if getattr(current_user, "is_authenticated", False) else None
