@@ -18,12 +18,13 @@ RUN npm run build
 FROM python:3.11-slim AS app
 WORKDIR /app
 
-# System deps kept minimal; gunicorn serves the Flask app.
+# Copy requirements + backend first: the root requirements.txt references
+# backend/requirements.txt via `-r`, so that file must exist before pip runs.
 COPY requirements.txt ./
+COPY backend/ ./backend/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Backend code + the built frontend from stage 1.
-COPY backend/ ./backend/
+# The built frontend from stage 1.
 COPY --from=frontend /app/frontend/dist ./frontend/dist
 
 # Railway provides $PORT at runtime.
