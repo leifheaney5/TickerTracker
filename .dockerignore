@@ -1,0 +1,13 @@
+# Keep the Docker build context small and avoid copying host-built artifacts
+# (the image builds its own).
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+frontend/dist
+.git
+.env
+.env.*
+*.db
+.playwright-mcp
+docs
