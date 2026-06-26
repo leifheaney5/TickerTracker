@@ -61,10 +61,19 @@ def remove_watch(symbol):
         return True
 
 
+def _get_or_create_settings(s, uid):
+    st = s.get(models.Settings, uid)
+    if st is None:
+        st = models.Settings(user_id=uid)
+        s.add(st)
+        s.commit()
+    return st
+
+
 def get_settings():
     uid = current_user_id()
     with db.get_session() as s:
-        st = s.get(models.Settings, uid)
+        st = _get_or_create_settings(s, uid)
         return {"broker_connected": st.broker_connected, "broker_name": st.broker_name,
                 "live_updates": st.live_updates, "alert_notifs": st.alert_notifs,
                 "news_digest": st.news_digest, "hide_balances": st.hide_balances,
@@ -74,7 +83,7 @@ def get_settings():
 def update_settings(**fields):
     uid = current_user_id()
     with db.get_session() as s:
-        st = s.get(models.Settings, uid)
+        st = _get_or_create_settings(s, uid)
         for k, v in fields.items():
             if hasattr(st, k) and v is not None:
                 setattr(st, k, v)
