@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] — 2026-06-26
+
+### Fixed
+
+- **Production startup crash (healthcheck failure):** SQLAlchemy was defaulting
+  the `postgresql://` URL to the psycopg2 driver, which isn't installed (we use
+  psycopg v3) — `create_engine` crashed at import, so gunicorn never bound the
+  port and Railway's healthcheck failed. Normalize Railway's URL to
+  `postgresql+psycopg://`.
+- **Startup resilience:** `init_db()` is now wrapped so a transient DB issue at
+  boot logs and continues instead of killing the web process; Postgres engine
+  uses a 10s connect timeout, `pool_pre_ping`, and connection recycling.
+- Verified locally: with an unreachable database the app still boots and
+  `/api/health` returns 200.
+
 ## [1.0.5] — 2026-06-26
 
 ### Changed
