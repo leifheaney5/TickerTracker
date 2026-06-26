@@ -8,21 +8,25 @@ import { Alerts } from './views/Alerts'
 import { Holdings } from './views/Holdings'
 import { AtAGlance } from './views/AtAGlance'
 import { Crypto } from './views/Crypto'
+import { MarketViews } from './views/MarketViews'
+import { Screener } from './views/Screener'
+import { Strategy } from './views/Strategy'
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // Views are added unit by unit (Dashboard first).
 export default function App() {
   const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadSettings = useStore((s) => s.loadSettings)
+  const loadHoldings = useStore((s) => s.loadHoldings)
   const pollQuotes = useStore((s) => s.pollQuotes)
   const watchlist = useStore((s) => s.watchlist)
-  const settings = useStore((s) => s.settings)
   const view = useStore((s) => s.view)
 
   useEffect(() => {
     loadWatchlist()
     loadSettings()
-  }, [loadWatchlist, loadSettings])
+    loadHoldings()
+  }, [loadWatchlist, loadSettings, loadHoldings])
 
   useEffect(() => {
     if (!watchlist.length) return
@@ -47,11 +51,11 @@ export default function App() {
       {view === 'overview' && <AtAGlance initialSub="overview" />}
       {view === 'deep' && <AtAGlance initialSub="deep" />}
       {view === 'crypto' && <Crypto />}
-      {!['dashboard', 'settings', 'alerts', 'holdings', 'overview', 'deep', 'crypto'].includes(view) && (
-        <div style={{ flex: 1, minHeight: 0, padding: 24, color: COLORS.tx2 }}>
-          {view} view — coming next. {settings ? '' : 'loading…'}
-        </div>
-      )}
+      {view === 'market' && <MarketViews sub="market" />}
+      {view === 'map' && <MarketViews sub="map" />}
+      {view === 'sectors' && <MarketViews sub="sectors" />}
+      {view === 'screener' && <Screener />}
+      {view === 'strategy' && <Strategy />}
     </div>
   )
 }
