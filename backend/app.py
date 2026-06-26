@@ -69,6 +69,77 @@ def fng_route():
     return envelope(data, source=source)
 
 
+# ─── Persistence (Postgres/SQLite via DATABASE_URL) ──────────────────────────
+import db as _db
+_db.init_db()
+
+from services.store import (get_watchlist, add_watch, update_watch, remove_watch,
+                            get_settings, update_settings,
+                            get_holdings, set_holding, remove_holding)
+
+
+@app.route("/api/watchlist", methods=["GET"])
+def watchlist_get():
+    return envelope(get_watchlist(), source="db")
+
+
+@app.route("/api/watchlist", methods=["POST"])
+def watchlist_post():
+    b = request.get_json(force=True) or {}
+    sym = (b.get("symbol") or "").upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    item = add_watch(sym, target=float(b.get("target", 0) or 0),
+                     alert_price=float(b.get("alert_price", 0) or 0),
+                     alert_dir=b.get("alert_dir", "above"))
+    return envelope(item, source="db")
+
+
+@app.route("/api/watchlist/<sym>", methods=["PATCH"])
+def watchlist_patch(sym):
+    b = request.get_json(force=True) or {}
+    item = update_watch(sym, **b)
+    if item is None:
+        return envelope({"error": "not found"}, source="db"), 404
+    return envelope(item, source="db")
+
+
+@app.route("/api/watchlist/<sym>", methods=["DELETE"])
+def watchlist_delete(sym):
+    return envelope({"removed": remove_watch(sym)}, source="db")
+
+
+@app.route("/api/settings", methods=["GET"])
+def settings_get():
+    return envelope(get_settings(), source="db")
+
+
+@app.route("/api/settings", methods=["PATCH"])
+def settings_patch():
+    b = request.get_json(force=True) or {}
+    return envelope(update_settings(**b), source="db")
+
+
+@app.route("/api/holdings", methods=["GET"])
+def holdings_get():
+    return envelope(get_holdings(), source="db")
+
+
+@app.route("/api/holdings", methods=["POST"])
+def holdings_post():
+    b = request.get_json(force=True) or {}
+    sym = (b.get("symbol") or "").upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    return envelope(set_holding(sym, float(b.get("shares", 0) or 0),
+                                float(b.get("avg_cost", 0) or 0)), source="db")
+
+
+@app.route("/api/holdings/<sym>", methods=["DELETE"])
+def holdings_delete(sym):
+    return envelope({"removed": remove_holding(sym)}, source="db")
+
+
 if __name__ == "__main__":
     import os
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
