@@ -53,3 +53,25 @@ def test_duplicate_signup_no_enumeration(monkeypatch):
     c.post("/api/auth/signup", json={"email": "d@b.com", "password": "password123"})
     r = c.post("/api/auth/signup", json={"email": "d@b.com", "password": "password123"})
     assert r.status_code == 200  # generic, no "already exists"
+
+
+def test_forgot_and_reset(monkeypatch):
+    sent = {}
+    monkeypatch.setattr(routes, "send_verify_email", lambda to, link: True)
+    monkeypatch.setattr(routes, "send_reset_email", lambda to, link: sent.update({"link": link}) or True)
+    c = _client()
+    c.post("/api/auth/signup", json={"email": "r@b.com", "password": "password123"})
+    import db, models
+    with db.get_session() as s:
+        u = s.query(models.User).filter_by(email="r@b.com").first(); u.email_verified = True; s.commit()
+    # forgot always 200, even unknown
+    assert c.post("/api/auth/forgot", json={"email": "nobody@b.com"}).status_code == 200
+    assert c.post("/api/auth/forgot", json={"email": "r@b.com"}).status_code == 200
+    raw = sent["link"].split("token=")[1]
+    # reset
+    assert c.post("/api/auth/reset", json={"token": raw, "password": "newpassword1"}).status_code == 200
+    # old password fails, new works
+    assert c.post("/api/auth/login", json={"email": "r@b.com", "password": "password123"}).status_code == 401
+    assert c.post("/api/auth/login", json={"email": "r@b.com", "password": "newpassword1"}).status_code == 200
+    # token single-use
+    assert c.post("/api/auth/reset", json={"token": raw, "password": "another12"}).status_code == 400

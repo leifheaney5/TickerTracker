@@ -7,7 +7,7 @@ import models
 from auth.passwords import hash_password, verify_password, valid_password
 from auth.tokens import create_token, consume_token
 from auth.rate_limit import record_attempt, is_locked
-from providers.email import send_verify_email
+from providers.email import send_verify_email, send_reset_email
 
 _DUMMY_HASH = hash_password("x" * 12)
 
@@ -97,3 +97,36 @@ def me():
     if getattr(current_user, "is_authenticated", False):
         return jsonify({"user": _public_user(current_user)}), 200
     return jsonify({"user": None}), 200
+
+
+@auth_bp.post("/forgot")
+def forgot():
+    b = request.get_json(force=True) or {}
+    email = (b.get("email") or "").strip().lower()
+    with db.get_session() as s:
+        u = s.query(models.User).filter_by(email=email).first()
+        uid = u.id if (u and u.password_hash) else None
+    if uid is not None:
+        raw = create_token(uid, "reset", 1)
+        send_reset_email(email, f"{_base()}/?reset_token={raw}")
+    return jsonify({"message": "If that email exists, a reset link was sent."}), 200
+
+
+@auth_bp.post("/reset")
+def reset():
+    b = request.get_json(force=True) or {}
+    raw = b.get("token") or ""
+    password = b.get("password") or ""
+    if not valid_password(password):
+        return jsonify({"error": "password too short (min 8)"}), 400
+    uid = consume_token(raw, "reset")
+    if uid is None:
+        return jsonify({"error": "invalid or expired token"}), 400
+    with db.get_session() as s:
+        u = s.get(models.User, uid)
+        if not u:
+            return jsonify({"error": "invalid token"}), 400
+        u.password_hash = hash_password(password)
+        u.email_verified = True  # proves email ownership
+        s.commit()
+    return jsonify({"message": "password updated"}), 200
