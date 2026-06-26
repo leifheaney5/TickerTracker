@@ -48,6 +48,11 @@ export function AuthScreen() {
       openAuth()
       setMode('reset')
     }
+    // Clean reset_token from URL after capturing it, same as verify does
+    if (resetToken) {
+      const clean = window.location.pathname
+      window.history.replaceState(null, '', clean)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Don't render at all when modal is closed and no reset token
