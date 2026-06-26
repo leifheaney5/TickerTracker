@@ -9,8 +9,16 @@ _FRONTEND_DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", 
 
 app = Flask(__name__, static_folder=None)
 
+from flask_login import current_user
 from auth import init_login
 init_login(app)
+
+
+def _require_user():
+    """Return the authenticated user's id (int), or None if anonymous."""
+    if not getattr(current_user, "is_authenticated", False):
+        return None
+    return int(current_user.id)
 
 from auth.routes import auth_bp
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -119,11 +127,15 @@ from services.store import (get_watchlist, add_watch, update_watch, remove_watch
 
 @app.route("/api/watchlist", methods=["GET"])
 def watchlist_get():
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     return envelope(get_watchlist(), source="db")
 
 
 @app.route("/api/watchlist", methods=["POST"])
 def watchlist_post():
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     sym = (b.get("symbol") or "").upper()
     if not valid_symbol(sym):
@@ -136,6 +148,8 @@ def watchlist_post():
 
 @app.route("/api/watchlist/<sym>", methods=["PATCH"])
 def watchlist_patch(sym):
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     item = update_watch(sym, **b)
     if item is None:
@@ -145,27 +159,37 @@ def watchlist_patch(sym):
 
 @app.route("/api/watchlist/<sym>", methods=["DELETE"])
 def watchlist_delete(sym):
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     return envelope({"removed": remove_watch(sym)}, source="db")
 
 
 @app.route("/api/settings", methods=["GET"])
 def settings_get():
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     return envelope(get_settings(), source="db")
 
 
 @app.route("/api/settings", methods=["PATCH"])
 def settings_patch():
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     return envelope(update_settings(**b), source="db")
 
 
 @app.route("/api/holdings", methods=["GET"])
 def holdings_get():
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     return envelope(get_holdings(), source="db")
 
 
 @app.route("/api/holdings", methods=["POST"])
 def holdings_post():
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     sym = (b.get("symbol") or "").upper()
     if not valid_symbol(sym):
@@ -176,6 +200,8 @@ def holdings_post():
 
 @app.route("/api/holdings/<sym>", methods=["DELETE"])
 def holdings_delete(sym):
+    if _require_user() is None:
+        return envelope({"error": "authentication required"}), 401
     return envelope({"removed": remove_holding(sym)}, source="db")
 
 
