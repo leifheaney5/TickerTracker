@@ -18,6 +18,12 @@ def test_anonymous_blocked_on_personalization():
     assert c.get("/api/watchlist").status_code == 401
     assert c.post("/api/watchlist", json={"symbol": "AAPL"}).status_code == 401
     assert c.get("/api/settings").status_code == 401
+    assert c.patch("/api/watchlist/AAPL", json={"target": 100}).status_code == 401
+    assert c.delete("/api/watchlist/AAPL").status_code == 401
+    assert c.patch("/api/settings", json={"hide_balances": True}).status_code == 401
+    assert c.get("/api/holdings").status_code == 401
+    assert c.post("/api/holdings", json={"symbol": "AAPL", "shares": 1, "avg_cost": 1}).status_code == 401
+    assert c.delete("/api/holdings/AAPL").status_code == 401
 
 
 def test_public_routes_open_when_anonymous(monkeypatch):
