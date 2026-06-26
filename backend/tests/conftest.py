@@ -1,5 +1,6 @@
 import os
 os.environ["DATABASE_URL"] = "sqlite://"  # in-memory, before db import
+os.environ.setdefault("APP_BASE_URL", "http://localhost:5000")  # required by _base() for email/oauth link building
 import pytest
 import sys
 

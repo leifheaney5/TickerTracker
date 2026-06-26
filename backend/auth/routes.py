@@ -20,7 +20,10 @@ def _public_user(u):
 
 
 def _base():
-    return os.environ.get("APP_BASE_URL", request.host_url.rstrip("/"))
+    base = os.environ.get("APP_BASE_URL")
+    if not base:
+        raise RuntimeError("APP_BASE_URL must be set (used to build verification/reset email links).")
+    return base.rstrip("/")
 
 
 @auth_bp.post("/signup")
@@ -66,7 +69,7 @@ def login():
     password = b.get("password") or ""
     xff = request.headers.get("X-Forwarded-For", "")
     ip = (xff.split(",")[0].strip() if xff else "") or (request.remote_addr or "")
-    if is_locked(email, ip):
+    if is_locked(email):
         return jsonify({"error": "too many attempts, try again later"}), 423
     with db.get_session() as s:
         u = s.query(models.User).filter_by(email=email).first()
