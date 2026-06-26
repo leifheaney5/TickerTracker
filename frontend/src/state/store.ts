@@ -75,6 +75,11 @@ interface StoreState {
   removeWatch: (sym: string) => Promise<void>
   updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
 
+  // ── auth modal ──
+  authModal: boolean
+  openAuth: () => void
+  closeAuth: () => void
+
   // ── auth ──
   currentUser: AuthUser | null
   authChecked: boolean
@@ -115,6 +120,10 @@ export const useStore = create<StoreState>((set, get) => ({
   crypto: null,
   fng: null,
   flash: {},
+
+  authModal: false,
+  openAuth: () => set({ authModal: true }),
+  closeAuth: () => set({ authModal: false }),
 
   currentUser: null,
   authChecked: false,

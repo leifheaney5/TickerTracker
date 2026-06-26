@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useStore, type SortBy } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { GROUPS, UNIVERSE } from '../data/universe'
+import { DEMO_WATCH } from '../data/demo'
 import { Logo } from './Logo'
 import { Sparkline } from '../charts/Sparkline'
 import { money, pct } from '../lib/format'
+import { useRequireAuth } from '../hooks/useRequireAuth'
 
 // Watchlist sidebar — ported from the prototype template (lines 148-216):
 // title + count + sort cycle, group folder tabs, draggable cards with sparkline
@@ -24,6 +26,7 @@ function groupTabStyle(active: boolean): React.CSSProperties {
 }
 
 export function Watchlist() {
+  const isAuthed = useStore((s) => s.currentUser !== null)
   const watchlist = useStore((s) => s.watchlist)
   const selected = useStore((s) => s.selected)
   const setSelected = useStore((s) => s.setSelected)
@@ -35,6 +38,7 @@ export function Watchlist() {
   const chg = useStore((s) => s.chg)
   const flash = useStore((s) => s.flash)
   const addWatch = useStore((s) => s.addWatch)
+  const requireAuth = useRequireAuth()
 
   const [showAdd, setShowAdd] = useState(false)
   const [addSym, setAddSym] = useState('')
@@ -46,12 +50,14 @@ export function Watchlist() {
     setSortBy(order[(order.indexOf(sortBy) + 1) % order.length])
   }
 
-  // base list filtered by group, then sorted by mode.
-  let base = watchlist
-    .slice()
-    .sort((a, b) => a.position - b.position)
-    .map((w) => w.symbol)
-    .filter((s) => group === 'All' || UNIVERSE[s]?.group === group)
+  // base list: use DB-backed watchlist when authed, otherwise show demo list read-only.
+  const sourceSymbols = isAuthed
+    ? watchlist
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map((w) => w.symbol)
+    : DEMO_WATCH.slice()
+  let base = sourceSymbols.filter((s) => group === 'All' || UNIVERSE[s]?.group === group)
   if (sortBy === 'change') base = base.slice().sort((a, b) => chg(b) - chg(a))
   else if (sortBy === 'price') base = base.slice().sort((a, b) => price(b) - price(a))
   else if (sortBy === 'az') base = base.slice().sort((a, b) => a.localeCompare(b))
@@ -114,8 +120,8 @@ export function Watchlist() {
             <div
               key={sym}
               onClick={() => setSelected(sym)}
-              draggable={dragOK}
-              onDragStart={() => setDragSym(sym)}
+              draggable={dragOK && isAuthed}
+              onDragStart={() => requireAuth(() => setDragSym(sym))}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault()
@@ -195,7 +201,7 @@ export function Watchlist() {
           </div>
         ) : (
           <button
-            onClick={() => setShowAdd(true)}
+            onClick={() => requireAuth(() => setShowAdd(true))}
             style={{ width: '100%', height: 42, borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(61,220,132,.2)' }}
           >
             <span style={{ fontSize: '17px', lineHeight: 1, marginTop: -1 }}>+</span>Add ticker
