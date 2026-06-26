@@ -1,7 +1,13 @@
+import os
 import re
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
-app = Flask(__name__)
+# Serve the built frontend (Vite emits to ../frontend/dist). In production a
+# single Flask service hosts both the SPA and the /api endpoints. We disable
+# Flask's auto static route so it can't shadow the SPA catch-all below.
+_FRONTEND_DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "dist")
+
+app = Flask(__name__, static_folder=None)
 
 # Input validation: bound attacker-controlled values so they cannot be used to
 # inflate the cache or hammer providers. Symbols are short alnum (+ . / -),
@@ -164,6 +170,22 @@ def holdings_delete(sym):
     return envelope({"removed": remove_holding(sym)}, source="db")
 
 
+# ─── SPA fallback ────────────────────────────────────────────────────────────
+# Serve the built index.html for any non-API path so client-side state-driven
+# navigation works on hard refresh. Unknown /api/* paths still 404 as JSON.
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def spa(path):
+    if path.startswith("api/"):
+        return jsonify({"error": "not found"}), 404
+    full = os.path.join(_FRONTEND_DIST, path)
+    if path and os.path.isfile(full):
+        return send_from_directory(_FRONTEND_DIST, path)
+    index = os.path.join(_FRONTEND_DIST, "index.html")
+    if os.path.isfile(index):
+        return send_from_directory(_FRONTEND_DIST, "index.html")
+    return jsonify({"error": "frontend not built", "hint": "run: cd frontend && npm run build"}), 503
+
+
 if __name__ == "__main__":
-    import os
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
