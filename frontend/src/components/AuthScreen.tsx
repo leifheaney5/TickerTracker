@@ -22,6 +22,7 @@ function labelStyle(): React.CSSProperties {
 
 export function AuthScreen() {
   const authModal = useStore((s) => s.authModal)
+  const authIntent = useStore((s) => s.authIntent)
   const openAuth = useStore((s) => s.openAuth)
   const closeAuth = useStore((s) => s.closeAuth)
   const login = useStore((s) => s.login)
@@ -54,6 +55,13 @@ export function AuthScreen() {
       window.history.replaceState(null, '', clean)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync the form to the caller's intent each time the modal opens (so the
+  // "Sign in" button shows Login and a "Sign up" CTA shows Sign Up), unless a
+  // reset-token flow is in progress.
+  useEffect(() => {
+    if (authModal && !resetToken) setMode(authIntent)
+  }, [authModal, authIntent, resetToken])
 
   // Don't render at all when modal is closed and no reset token
   if (!authModal && !resetToken) return null
@@ -156,11 +164,11 @@ export function AuthScreen() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <span style={labelStyle()}>EMAIL</span>
-            <input style={inputStyle()} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoFocus />
+            <input style={inputStyle()} type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoFocus />
           </div>
           <div>
             <span style={labelStyle()}>PASSWORD</span>
-            <input style={inputStyle()} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+            <input style={inputStyle()} type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
         </div>
         {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
@@ -205,11 +213,11 @@ export function AuthScreen() {
           </div>
           <div>
             <span style={labelStyle()}>EMAIL</span>
-            <input style={inputStyle()} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+            <input style={inputStyle()} type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
           </div>
           <div>
             <span style={labelStyle()}>PASSWORD</span>
-            <input style={inputStyle()} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+            <input style={inputStyle()} type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
         </div>
         {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
@@ -275,7 +283,7 @@ export function AuthScreen() {
       <form onSubmit={e => { e.preventDefault(); handleReset() }} style={{ display: 'contents' }}>
         <div>
           <span style={labelStyle()}>NEW PASSWORD</span>
-          <input style={inputStyle()} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoFocus />
+          <input style={inputStyle()} type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoFocus />
         </div>
         {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
         <button type="submit" style={primaryBtn} disabled={loading}>

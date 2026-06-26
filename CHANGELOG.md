@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-06-26
+
+### Fixed (QA report)
+
+- **Prev Close was showing the day's Open** — the quote now carries a real
+  `prev_close` (Finnhub `pc` / Yahoo previousClose) and Key Statistics uses it.
+- **Key Statistics intraday rows** (Open/Prev Close/High/Low) and **Volume** now
+  render real values (or "—" when a provider omits volume) instead of a stuck "…".
+- **"Sign in" now opens the Login form** (was opening Sign Up). `openAuth` takes
+  an explicit intent; auth CTAs pass login/signup deliberately.
+- Page title is now "Ticker Tracker — …" (was the default "frontend") + meta
+  description for SEO/sharing.
+- Password fields have proper `autocomplete` attributes (current-password /
+  new-password) for password managers; removes console warnings.
+
 ## [1.3.0] — 2026-06-26
 
 ### Added
