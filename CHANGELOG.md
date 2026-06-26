@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] — 2026-06-26
+
+### Fixed
+
+- Railway build: bump Nixpacks Node to 22 (vite@8 requires ^20.19 || >=22.12)
+  and use `npm install` instead of `npm ci` so the Windows-generated lockfile —
+  which omits Linux-only optional deps (`@rollup/rollup-linux-*`, `@emnapi/*`) —
+  doesn't fail the strict clean-install on Railway's Linux builder.
+
 ## [1.0.1] — 2026-06-26
 
 ### Fixed
