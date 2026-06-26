@@ -30,7 +30,8 @@ def test_public_routes_open_when_anonymous(monkeypatch):
     import cache
     cache.clear()
     import services.quotes as q
-    monkeypatch.setattr(q, "fetch_quote", lambda s: (_ for _ in ()).throw(RuntimeError("x")))
+    monkeypatch.setattr(q.finnhub, "fetch_quote", lambda s: (_ for _ in ()).throw(RuntimeError("x")))
+    monkeypatch.setattr(q, "yahoo_quote", lambda s: (_ for _ in ()).throw(RuntimeError("x")))
     c = app.test_client()
     assert c.get("/api/quotes?syms=AAPL").status_code == 200
     assert c.get("/api/health").status_code == 200

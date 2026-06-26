@@ -5,7 +5,8 @@ from app import app
 def test_quotes_route(monkeypatch):
     cache.clear()
     import services.quotes as q
-    monkeypatch.setattr(q, "fetch_quote", lambda s: (_ for _ in ()).throw(RuntimeError("down")))
+    monkeypatch.setattr(q.finnhub, "fetch_quote", lambda s: (_ for _ in ()).throw(RuntimeError("down")))
+    monkeypatch.setattr(q, "yahoo_quote", lambda s: (_ for _ in ()).throw(RuntimeError("down")))
     client = app.test_client()
     r = client.get("/api/quotes?syms=AAPL,MSFT")
     body = r.get_json()
@@ -37,7 +38,8 @@ def test_history_rejects_invalid_symbol():
 def test_quotes_drops_invalid_symbols(monkeypatch):
     cache.clear()
     import services.quotes as q
-    monkeypatch.setattr(q, "fetch_quote", lambda s: (_ for _ in ()).throw(RuntimeError("down")))
+    monkeypatch.setattr(q.finnhub, "fetch_quote", lambda s: (_ for _ in ()).throw(RuntimeError("down")))
+    monkeypatch.setattr(q, "yahoo_quote", lambda s: (_ for _ in ()).throw(RuntimeError("down")))
     r = app.test_client().get("/api/quotes?syms=AAPL,bad symbol!,MSFT")
     quotes = r.get_json()["data"]["quotes"]
     assert set(quotes.keys()) == {"AAPL", "MSFT"}

@@ -4,7 +4,7 @@
 
 import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
-  NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe,
+  NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
 } from './types'
 
 export interface Result<T> {
@@ -38,6 +38,7 @@ export const api = {
   history: (sym: string, tf: Timeframe) =>
     get<Bar[]>(`/api/history/${encodeURIComponent(sym)}?tf=${tf}`),
   fundamentals: (sym: string) => get<Fundamentals>(`/api/fundamentals/${encodeURIComponent(sym)}`),
+  search: (q: string) => get<SymbolHit[]>(`/api/search?q=${encodeURIComponent(q)}`),
   crypto: () => get<CryptoResponse>('/api/crypto'),
   fng: () => get<Fng>('/api/fng'),
   news: (sym?: string) => get<NewsItem[]>(sym ? `/api/news?sym=${encodeURIComponent(sym)}` : '/api/news?market=1'),

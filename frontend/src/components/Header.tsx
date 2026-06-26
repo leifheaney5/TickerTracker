@@ -1,8 +1,9 @@
+import { useState, useEffect } from 'react'
 import { useStore, type View, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { Logo } from './Logo'
-import { money, pct } from '../lib/format'
 import { UNIVERSE } from '../data/universe'
+import { api } from '../api/client'
 
 // Header chrome — ported from the prototype template (lines 29-141): logo mark,
 // segmented view nav, centered LIVE wordmark, search popover, portfolio chip /
@@ -39,19 +40,41 @@ export function Header() {
   const authed = useStore(isAuthed)
   const currentUser = useStore((s) => s.currentUser)
   const openAuth = useStore((s) => s.openAuth)
-  const price = useStore((s) => s.price)
-  const chg = useStore((s) => s.chg)
 
   // Portfolio value from holdings is wired later; show connect state per settings.
   const connected = settings?.broker_connected ?? false
 
-  // Search results across the known universe.
-  const q = search.trim().toUpperCase()
-  const matches = q
-    ? Object.keys(UNIVERSE)
-        .filter((s) => s.includes(q) || (UNIVERSE[s].name || '').toUpperCase().includes(q))
-        .slice(0, 12)
-    : []
+  // Live symbol search across the WHOLE market (Finnhub via /api/search),
+  // debounced — not limited to the static universe. Falls back to filtering the
+  // universe locally if the API returns nothing (e.g. offline).
+  const q = search.trim()
+  const [matches, setMatches] = useState<{ symbol: string; description: string }[]>([])
+  const [searching, setSearching] = useState(false)
+  useEffect(() => {
+    if (!q) { setMatches([]); return }
+    let cancelled = false
+    setSearching(true)
+    const id = setTimeout(async () => {
+      try {
+        const { data } = await api.search(q)
+        if (cancelled) return
+        if (data && data.length) {
+          setMatches(data.map((r) => ({ symbol: r.symbol, description: r.description })))
+        } else {
+          const up = q.toUpperCase()
+          setMatches(Object.keys(UNIVERSE)
+            .filter((s) => s.includes(up) || (UNIVERSE[s].name || '').toUpperCase().includes(up))
+            .slice(0, 12)
+            .map((s) => ({ symbol: s, description: UNIVERSE[s].name })))
+        }
+      } catch {
+        if (!cancelled) setMatches([])
+      } finally {
+        if (!cancelled) setSearching(false)
+      }
+    }, 250)
+    return () => { cancelled = true; clearTimeout(id) }
+  }, [q])
 
   // Avatar initials: use real user name/email when authed.
   const acctInitials = authed && currentUser
@@ -143,19 +166,22 @@ export function Header() {
                   style={{ flex: 1, border: 'none', background: 'transparent', color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13.5px' }}
                 />
               </div>
+              {q && (searching || matches.length === 0) && (
+                <div style={{ padding: '14px', fontSize: '12.5px', color: COLORS.tx3 }}>
+                  {searching ? 'Searching…' : 'No matches'}
+                </div>
+              )}
               {matches.length > 0 && (
                 <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                  {matches.map((s) => (
+                  {matches.map((m) => (
                     <div
-                      key={s}
-                      onClick={() => { setSelected(s); setView('dashboard'); setSearch(''); setSearchOpen(false) }}
+                      key={m.symbol}
+                      onClick={() => { setSelected(m.symbol); setView('dashboard'); setSearch(''); setSearchOpen(false) }}
                       style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', cursor: 'pointer', borderTop: `1px solid ${COLORS.line}` }}
                     >
-                      <Logo symbol={s} size={26} />
-                      <span style={{ fontWeight: 700, fontSize: '13px', width: 46, color: COLORS.tx }}>{s}</span>
-                      <span style={{ flex: 1, fontSize: '12.5px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{UNIVERSE[s].name}</span>
-                      <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: COLORS.tx }}>{money(price(s))}</span>
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: chg(s) >= 0 ? COLORS.up : COLORS.down }}>{pct(chg(s))}</span>
+                      <Logo symbol={m.symbol} size={26} />
+                      <span style={{ fontWeight: 700, fontSize: '13px', minWidth: 46, color: COLORS.tx }}>{m.symbol}</span>
+                      <span style={{ flex: 1, fontSize: '12.5px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.description}</span>
                     </div>
                   ))}
                 </div>

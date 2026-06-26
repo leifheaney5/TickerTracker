@@ -23,6 +23,32 @@ def _require_user():
 from auth.routes import auth_bp
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
+
+@app.after_request
+def _security_headers(resp):
+    # Baseline security headers (clickjacking, MIME-sniffing, referrer leakage,
+    # transport). Kept conservative so the SPA + CDN logos/fonts still work.
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault(
+        "Content-Security-Policy",
+        # SPA uses inline styles (design tokens) + external font/logo CDNs + the
+        # same-origin API. frame-ancestors 'none' backstops clickjacking.
+        "default-src 'self'; "
+        "img-src 'self' https: data:; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "script-src 'self'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'",
+    )
+    if os.environ.get("APP_BASE_URL", "").startswith("https"):
+        resp.headers.setdefault("Strict-Transport-Security",
+                                "max-age=31536000; includeSubDomains")
+    return resp
+
 from auth.google import register as register_google
 register_google(app)
 
@@ -78,6 +104,16 @@ def fundamentals_route(sym):
         return envelope({"error": "invalid symbol"}), 400
     data, source = get_fundamentals(sym)
     return envelope(data, source=source)
+
+
+@app.route("/api/search")
+def search_route():
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 1 or len(q) > 40:
+        return envelope([], source="finnhub")
+    from services.search import search
+    results, source = search(q)
+    return envelope(results, source=source)
 
 
 @app.route("/api/crypto")

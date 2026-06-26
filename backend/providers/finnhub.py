@@ -12,6 +12,46 @@ def _key():
     return k
 
 
+def fetch_quote(sym: str) -> dict:
+    """One fast Finnhub /quote call. Returns the standard quote shape, or raises."""
+    key = _key()
+    r = requests.get(f"{_BASE}/quote", params={"symbol": sym, "token": key}, timeout=8)
+    r.raise_for_status()
+    j = r.json()
+    price = j.get("c")
+    # Finnhub returns c=0 for unknown/invalid symbols.
+    if not price:
+        raise RuntimeError(f"no Finnhub quote for {sym}")
+    return {
+        "price": round(float(price), 2),
+        "change_pct": round(float(j.get("dp") or 0), 2),
+        "day_open": round(float(j.get("o") or price), 2),
+        "day_high": round(float(j.get("h") or price), 2),
+        "day_low": round(float(j.get("l") or price), 2),
+        "volume": 0,  # Finnhub /quote doesn't include volume; filled by fundamentals elsewhere
+    }
+
+
+def search_symbols(query: str) -> list:
+    """Symbol search across the market (not a fixed universe). Returns a list of
+    {symbol, description, type}. Raises without a key."""
+    key = _key()
+    r = requests.get(f"{_BASE}/search", params={"q": query, "token": key}, timeout=8)
+    r.raise_for_status()
+    rows = r.json().get("result", []) or []
+    out = []
+    for x in rows:
+        sym = x.get("symbol", "")
+        if not sym:
+            continue
+        out.append({
+            "symbol": sym,
+            "description": x.get("description", ""),
+            "type": x.get("type", ""),
+        })
+    return out[:20]
+
+
 def _ago(ts):
     try:
         delta = dt.datetime.now(dt.timezone.utc) - dt.datetime.fromtimestamp(ts, dt.timezone.utc)

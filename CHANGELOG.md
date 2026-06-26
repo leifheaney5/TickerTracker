@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-06-26
+
+### Fixed
+
+- **Accurate, reliable quotes:** quote fetching switched to Finnhub (primary)
+  with concurrent fetching and Yahoo/mock fallback. The full watchlist now loads
+  in ~2.5s instead of failing on Yahoo rate-limits (429), which had caused the UI
+  to silently show stale hardcoded seed prices (e.g. AAPL $214 vs real $283).
+- **Search any ticker:** the header search now queries a live market-wide symbol
+  search (`/api/search`, Finnhub) instead of filtering a hardcoded ~100-stock
+  universe — so tickers like Kraken Robotics or RKLB are now findable.
+
+### Security
+
+- Added baseline HTTP security headers (CSP with `frame-ancestors 'none'`,
+  X-Frame-Options, X-Content-Type-Options nosniff, Referrer-Policy, and HSTS on
+  https) to mitigate clickjacking and MIME-sniffing.
+
 ## [1.1.2] — 2026-06-26
 
 ### Fixed
