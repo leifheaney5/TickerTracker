@@ -31,3 +31,21 @@ def test_expired(monkeypatch):
     uid = _mk_user()
     raw = tk.create_token(uid, "verify", -1)  # already expired
     assert tk.consume_token(raw, "verify") is None
+
+
+def test_consume_token_is_single_use():
+    uid = _mk_user()
+    raw = tk.create_token(uid, "verify", 24)
+    assert tk.consume_token(raw, "verify") == uid
+    # second call must return None (single-use enforced atomically)
+    assert tk.consume_token(raw, "verify") is None
+
+
+def test_create_second_token_invalidates_first():
+    uid = _mk_user()
+    raw1 = tk.create_token(uid, "reset", 1)
+    raw2 = tk.create_token(uid, "reset", 1)  # should invalidate raw1
+    # raw1 is now used/invalidated; consuming it must fail
+    assert tk.consume_token(raw1, "reset") is None
+    # raw2 is still valid
+    assert tk.consume_token(raw2, "reset") == uid
