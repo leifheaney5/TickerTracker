@@ -7,14 +7,16 @@
 nixPkgs = ["nodejs_22", "python311"]
 
 [phases.install]
-# Reproducible install from the committed lockfile. The lockfile includes every
-# platform's optional native binaries (rolldown / rollup linux-x64-gnu etc.), so
-# `npm ci` installs the correct Linux binary on Railway. `--include=optional`
-# is explicit insurance that the platform .node files are not skipped.
+# The committed lockfile pins every platform's optional native binaries
+# (rolldown / rollup linux-x64-gnu). We use `npm install --include=optional`
+# rather than `npm ci`: Railway's builder ships an older npm (10.9) than the dev
+# machine (11.x), and `npm ci` rejects the newer lockfile format as out-of-sync.
+# `npm install` reconciles the version difference while still installing the
+# pinned Linux binaries the build needs.
 cmds = [
   "python -m venv /opt/venv",
   ". /opt/venv/bin/activate && pip install -r requirements.txt",
-  "cd frontend && npm ci --include=optional --no-audit --no-fund",
+  "cd frontend && npm install --include=optional --no-audit --no-fund",
 ]
 
 [phases.build]
