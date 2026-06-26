@@ -29,11 +29,13 @@ export default function App() {
   const [verifyBanner, setVerifyBanner] = useState<'ok' | 'failed' | null>(null)
 
   useEffect(() => {
-    // Load auth state first, then personalized data.
+    // Load auth state first; only fetch personalized data when authenticated.
     loadMe().then(() => {
-      loadWatchlist()
-      loadSettings()
-      loadHoldings()
+      if (useStore.getState().currentUser) {
+        loadWatchlist()
+        loadSettings()
+        loadHoldings()
+      }
     })
 
     // Handle URL query params on first mount.

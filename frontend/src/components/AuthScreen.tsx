@@ -152,7 +152,7 @@ export function AuthScreen() {
 
   function renderLogin() {
     return (
-      <>
+      <form onSubmit={e => { e.preventDefault(); handleLogin() }} style={{ display: 'contents' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <span style={labelStyle()}>EMAIL</span>
@@ -160,25 +160,25 @@ export function AuthScreen() {
           </div>
           <div>
             <span style={labelStyle()}>PASSWORD</span>
-            <input style={inputStyle()} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+            <input style={inputStyle()} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
         </div>
         {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
-        <button style={primaryBtn} disabled={loading} onClick={handleLogin}>
+        <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Logging in…' : 'Log in'}
         </button>
         <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>
-        <button style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
+        <button type="button" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
           <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
           <div style={{ fontSize: '12.5px', color: COLORS.tx3 }}>
             No account?{' '}
-            <button style={ghostBtn} onClick={() => switchMode('signup')}>Sign up</button>
+            <button type="button" style={ghostBtn} onClick={() => switchMode('signup')}>Sign up</button>
           </div>
-          <button style={{ ...ghostBtn, color: COLORS.tx3 }} onClick={() => switchMode('forgot')}>Forgot password?</button>
+          <button type="button" style={{ ...ghostBtn, color: COLORS.tx3 }} onClick={() => switchMode('forgot')}>Forgot password?</button>
         </div>
-      </>
+      </form>
     )
   }
 
@@ -197,7 +197,7 @@ export function AuthScreen() {
       )
     }
     return (
-      <>
+      <form onSubmit={e => { e.preventDefault(); handleSignup() }} style={{ display: 'contents' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <span style={labelStyle()}>NAME (optional)</span>
@@ -209,22 +209,22 @@ export function AuthScreen() {
           </div>
           <div>
             <span style={labelStyle()}>PASSWORD</span>
-            <input style={inputStyle()} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && handleSignup()} />
+            <input style={inputStyle()} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
         </div>
         {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
-        <button style={primaryBtn} disabled={loading} onClick={handleSignup}>
+        <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Creating account…' : 'Create account'}
         </button>
         <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>
-        <button style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
+        <button type="button" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
           <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
         </button>
         <div style={{ fontSize: '12.5px', color: COLORS.tx3, textAlign: 'center' }}>
           Already have an account?{' '}
-          <button style={ghostBtn} onClick={() => switchMode('login')}>Log in</button>
+          <button type="button" style={ghostBtn} onClick={() => switchMode('login')}>Log in</button>
         </div>
-      </>
+      </form>
     )
   }
 
@@ -242,19 +242,19 @@ export function AuthScreen() {
       )
     }
     return (
-      <>
+      <form onSubmit={e => { e.preventDefault(); handleForgot() }} style={{ display: 'contents' }}>
         <div>
           <span style={labelStyle()}>EMAIL</span>
-          <input style={inputStyle()} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoFocus onKeyDown={e => e.key === 'Enter' && handleForgot()} />
+          <input style={inputStyle()} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoFocus />
         </div>
         {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
-        <button style={primaryBtn} disabled={loading} onClick={handleForgot}>
+        <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Sending…' : 'Send reset link'}
         </button>
         <div style={{ fontSize: '12.5px', color: COLORS.tx3, textAlign: 'center' }}>
-          <button style={ghostBtn} onClick={() => switchMode('login')}>Back to log in</button>
+          <button type="button" style={ghostBtn} onClick={() => switchMode('login')}>Back to log in</button>
         </div>
-      </>
+      </form>
     )
   }
 
@@ -272,16 +272,16 @@ export function AuthScreen() {
       )
     }
     return (
-      <>
+      <form onSubmit={e => { e.preventDefault(); handleReset() }} style={{ display: 'contents' }}>
         <div>
           <span style={labelStyle()}>NEW PASSWORD</span>
-          <input style={inputStyle()} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoFocus onKeyDown={e => e.key === 'Enter' && handleReset()} />
+          <input style={inputStyle()} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoFocus />
         </div>
         {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
-        <button style={primaryBtn} disabled={loading} onClick={handleReset}>
+        <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Saving…' : 'Set new password'}
         </button>
-      </>
+      </form>
     )
   }
 
