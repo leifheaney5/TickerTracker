@@ -4,7 +4,7 @@ import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { GROUPS, UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { Sparkline } from '../charts/Sparkline'
-import { money, pct, capStr } from '../lib/format'
+import { money, pct, capStr, volStr } from '../lib/format'
 
 // At-a-Glance + Deep Dive — ported from the prototype templates (lines 455-533
 // and 662-671). One sortable table of the watchlist; a Watchlist/Fundamentals
@@ -29,6 +29,7 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
   const group = useStore((s) => s.group)
   const setGroup = useStore((s) => s.setGroup)
   const price = useStore((s) => s.price)
+  const quotes = useStore((s) => s.quotes)
   const chg = useStore((s) => s.chg)
   const fundamentals = useStore((s) => s.fundamentals)
   const loadFundamentals = useStore((s) => s.loadFundamentals)
@@ -55,7 +56,7 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
       case 'chg': return chg(sym)
       case 'cap': return f?.market_cap ?? 0
       case 'pe': return f?.pe ?? 0
-      case 'vol': return f ? f.market_cap : 0
+      case 'vol': return quotes[sym]?.volume ?? 0
       case 'sector': return (f?.sector && f.sector !== '—' ? f.sector : u.sector) || ''
       case 'industry': return u.industry || ''
       case 'target': return targetOf(sym)
@@ -137,7 +138,7 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                     <div style={{ padding: '13px 12px' }}><span style={{ fontFamily: FONT_MONO, fontSize: '11.5px', fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? COLORS.up : COLORS.down }}>{pct(c)}</span></div>
                     <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx }}>{f ? capStr(f.market_cap) : u.cap}</div>
                     <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{f && f.pe ? f.pe : u.pe}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{f ? (f.market_cap / 1e9).toFixed(0) + 'B' : u.vol}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{volStr(quotes[sym]?.volume ?? 0)}</div>
                     <div style={{ padding: '13px 12px', fontSize: '12px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sector}</div>
                     <div style={{ padding: '13px 12px', fontSize: '12px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.industry || '—'}</div>
                     <div style={{ padding: '13px 12px' }}><Sparkline symbol={sym} /></div>

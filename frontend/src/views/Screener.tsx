@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
-import { money, pct } from '../lib/format'
+import { money, pct, capStr } from '../lib/format'
+import { api } from '../api/client'
 
 // Screener — ported from the prototype template (lines 674-715): filter the full
 // universe by sector group / performance / market-cap tier, with a + Compare
@@ -15,6 +16,8 @@ const CAP_TABS = ['All', 'Mega', 'Large']
 export function Screener() {
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
+  const fundamentals = useStore((s) => s.fundamentals)
+  const loadFundamentals = useStore((s) => s.loadFundamentals)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
   const [grp, setGrp] = useState('All')
@@ -38,6 +41,24 @@ export function Screener() {
     return true
   })
   rows = rows.sort((a, b) => chg(b) - chg(a))
+
+  // Load LIVE quotes + real fundamentals for the visible rows so cap/P/E/price
+  // aren't stale seed values. Capped to respect the provider rate limit; the
+  // filtered list is usually well under this.
+  const visible = rows.slice(0, 30)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await api.quotes(visible)
+        if (cancelled) return
+        useStore.setState((st) => ({ quotes: { ...st.quotes, ...data.quotes } }))
+      } catch { /* keep seed */ }
+    })()
+    visible.forEach((s) => loadFundamentals(s))
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible.join(',')])
 
   const toggleCmp = (sym: string) => setCmp((c) => (c.includes(sym) ? c.filter((x) => x !== sym) : c.length >= 4 ? c : [...c, sym]))
 
@@ -88,8 +109,8 @@ export function Screener() {
                   <div style={{ padding: '12px 12px', fontSize: '12px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.sector}</div>
                   <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx }}>{money(price(sym))}</div>
                   <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: c >= 0 ? COLORS.up : COLORS.down }}>{pct(c)}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{u.cap}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{u.pe}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{fundamentals[sym] ? capStr(fundamentals[sym].market_cap) : u.cap}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{fundamentals[sym] && fundamentals[sym].pe ? String(fundamentals[sym].pe) : u.pe}</div>
                   <div style={{ padding: '12px 12px' }}>
                     <button onClick={() => toggleCmp(sym)} style={{ height: 28, padding: '0 11px', borderRadius: 7, cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, border: `1px solid ${inCmp ? COLORS.accent : COLORS.line2}`, background: inCmp ? 'rgba(61,220,132,.1)' : 'transparent', color: inCmp ? COLORS.accent : COLORS.tx2 }}>
                       {inCmp ? '✓ Added' : '+ Compare'}

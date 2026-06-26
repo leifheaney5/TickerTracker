@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-06-26
+
+### Added
+
+- **Dedicated "Manage Watchlist" screen** (click ⤢ Manage in the sidebar): a
+  full-screen editable list with inline target editing, remove, and a
+  **comma/space/newline-separated bulk add** box to add many tickers at once.
+  Requires an account (prompts sign-in for anonymous users).
+
+### Changed
+
+- **Decluttered watchlist cards:** removed the per-card target progress bars
+  (the wall of green); targets now show as a compact one-line "Target $X · Y% to
+  go" with a "✓ reached" highlight.
+
+### Fixed
+
+- **At-a-Glance volume** column showed market-cap mislabeled as volume; now shows
+  real share volume (or — when unavailable).
+- **Screener** showed stale seed market-cap/P/E; it now loads live quotes and
+  real fundamentals for the visible rows.
+
 ## [1.2.1] — 2026-06-26
 
 ### Fixed

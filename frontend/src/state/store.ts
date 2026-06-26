@@ -13,6 +13,7 @@ import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 export type View =
   | 'dashboard' | 'overview' | 'deep' | 'market' | 'map' | 'sectors'
   | 'crypto' | 'screener' | 'strategy' | 'holdings' | 'alerts' | 'settings'
+  | 'managewatch'
 
 export type ChartType = 'candles' | 'line' | 'area'
 export type SortBy = 'manual' | 'change' | 'price' | 'az'

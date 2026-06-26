@@ -23,3 +23,12 @@ export function capStr(v: number): string {
   if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M'
   return '$' + v.toLocaleString('en-US')
 }
+
+// Share-volume formatting (counts, not dollars). Returns '—' when unavailable.
+export function volStr(v: number): string {
+  if (!v) return '—'
+  if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B'
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M'
+  if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K'
+  return String(v)
+}
