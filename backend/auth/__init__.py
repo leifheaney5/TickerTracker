@@ -5,8 +5,17 @@ login_manager = LoginManager()
 
 
 def init_login(app):
-    if not app.config.get("SECRET_KEY"):
-        app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
+    secret = os.environ.get("SECRET_KEY")
+    is_prod = os.environ.get("APP_BASE_URL", "").startswith("https")
+    if secret:
+        app.config["SECRET_KEY"] = secret
+    elif is_prod:
+        raise RuntimeError(
+            "SECRET_KEY must be set in production (APP_BASE_URL is https). "
+            "Refusing to start with an insecure default."
+        )
+    else:
+        app.config["SECRET_KEY"] = "dev-insecure-change-me"
     login_manager.init_app(app)
 
     app.config.update(
