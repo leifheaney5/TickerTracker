@@ -52,6 +52,55 @@ def _security_headers(resp):
 from auth.google import register as register_google
 register_google(app)
 
+# ─── Lightweight IP-keyed rate limit for the public market proxy ─────────────
+# The unauthenticated /api market endpoints proxy upstream providers (Finnhub/
+# Yahoo). A caller rotating symbols can force cache-miss fetches and burn our
+# provider quota. This caps requests per client IP over a sliding window. In-
+# process (single gunicorn service); for multi-instance, swap for Redis.
+import time as _time
+from collections import deque, defaultdict
+import threading as _threading
+
+_RL_WINDOW = 60          # seconds
+_RL_MAX = 120            # max market-proxy requests per IP per window
+_rl_hits: dict = defaultdict(deque)
+_rl_lock = _threading.Lock()
+
+# Only throttle the public provider-proxy routes (read-only market data).
+_RL_PREFIXES = ("/api/quotes", "/api/history", "/api/fundamentals",
+                "/api/news", "/api/ratings", "/api/crypto", "/api/fng",
+                "/api/search")
+
+
+def _client_ip():
+    # Railway/Proxies set X-Forwarded-For; take the first hop. Falls back to
+    # remote_addr. (Used only for rate-limit bucketing, not for auth.)
+    xff = request.headers.get("X-Forwarded-For", "")
+    return xff.split(",")[0].strip() if xff else (request.remote_addr or "?")
+
+
+@app.before_request
+def _rate_limit_market():
+    path = request.path
+    if not any(path.startswith(p) for p in _RL_PREFIXES):
+        return None
+    ip = _client_ip()
+    now = _time.monotonic()
+    with _rl_lock:
+        dq = _rl_hits[ip]
+        cutoff = now - _RL_WINDOW
+        while dq and dq[0] < cutoff:
+            dq.popleft()
+        if len(dq) >= _RL_MAX:
+            retry = max(1, int(_RL_WINDOW - (now - dq[0])))
+            resp = jsonify({"data": {"error": "rate limit exceeded"},
+                            "meta": {"source": "ratelimit", "stale": False}})
+            resp.status_code = 429
+            resp.headers["Retry-After"] = str(retry)
+            return resp
+        dq.append(now)
+    return None
+
 # Input validation: bound attacker-controlled values so they cannot be used to
 # inflate the cache or hammer providers. Symbols are short alnum (+ . / -),
 # timeframes come from a fixed whitelist, and the per-request symbol count is capped.
@@ -187,7 +236,10 @@ def watchlist_patch(sym):
     if _require_user() is None:
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
-    item = update_watch(sym, **b)
+    # Explicit allowlist of client-patchable fields (avoid mass-assignment).
+    allowed = {"target", "alert_price", "alert_dir"}
+    fields = {k: v for k, v in b.items() if k in allowed}
+    item = update_watch(sym, **fields)
     if item is None:
         return envelope({"error": "not found"}, source="db"), 404
     return envelope(item, source="db")
@@ -212,7 +264,14 @@ def settings_patch():
     if _require_user() is None:
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
-    return envelope(update_settings(**b), source="db")
+    # Explicit allowlist of client-patchable settings (avoid mass-assignment).
+    # broker_connected/broker_name are intentionally included while the brokerage
+    # link is a self-scoped DEMO toggle; when a real broker OAuth flow exists,
+    # move those two to server-only control.
+    allowed = {"live_updates", "alert_notifs", "news_digest", "hide_balances",
+               "currency", "broker_connected", "broker_name"}
+    fields = {k: v for k, v in b.items() if k in allowed}
+    return envelope(update_settings(**fields), source="db")
 
 
 @app.route("/api/holdings", methods=["GET"])
