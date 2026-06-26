@@ -107,3 +107,5 @@ export interface Holding {
 export type Timeframe = '1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'
 
 export interface AuthUser { id: number; email: string; name: string; email_verified: boolean }
+
+export interface SymbolHit { symbol: string; description: string; type: string }
