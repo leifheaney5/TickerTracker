@@ -12,6 +12,20 @@ export function Settings() {
   const authed = useStore(isAuthed)
   const currentUser = useStore((s) => s.currentUser)
   const logout = useStore((s) => s.logout)
+  const openAuth = useStore((s) => s.openAuth)
+
+  // Anonymous users have no settings — prompt sign-in instead of a stuck spinner.
+  if (!authed) {
+    return (
+      <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
+        <div style={{ maxWidth: 480, margin: '48px auto 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
+          <span style={{ fontSize: '21px', fontWeight: 800, color: COLORS.tx }}>Settings</span>
+          <span style={{ fontSize: '13.5px', color: COLORS.tx2, lineHeight: 1.5 }}>Create a free account or sign in to manage your profile, connect a brokerage, and set preferences.</span>
+          <button onClick={openAuth} style={{ height: 40, padding: '0 20px', borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>Sign in / Sign up</button>
+        </div>
+      </div>
+    )
+  }
 
   if (!settings) return <div style={{ flex: 1, padding: 24, color: COLORS.tx3 }}>Loading…</div>
 

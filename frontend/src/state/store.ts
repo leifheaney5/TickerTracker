@@ -338,7 +338,17 @@ export const useStore = create<StoreState>((set, get) => ({
 
   price: (sym) => get().quotes[sym]?.price ?? UNIVERSE[sym]?.price ?? 0,
   chg: (sym) => get().quotes[sym]?.change_pct ?? UNIVERSE[sym]?.dchg ?? 0,
-  watchSymbols: () => get().watchlist.slice().sort((a, b) => a.position - b.position).map((w) => w.symbol),
+  // Effective symbols shown to the user: the authed user's saved watchlist, or
+  // the read-only demo list when anonymous. Used by the cards, quote polling,
+  // the movers ribbon, and At-a-Glance so anonymous users get LIVE prices too
+  // (not stale seed values).
+  watchSymbols: () => {
+    const st = get()
+    if (st.currentUser && st.watchlist.length) {
+      return st.watchlist.slice().sort((a, b) => a.position - b.position).map((w) => w.symbol)
+    }
+    return DEFAULT_WATCH.slice()
+  },
 }))
 
 export const isAuthed = (s: { currentUser: AuthUser | null }) => s.currentUser !== null
