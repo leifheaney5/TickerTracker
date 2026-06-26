@@ -22,6 +22,7 @@ export default function App() {
   const loadMe = useStore((s) => s.loadMe)
   const pollQuotes = useStore((s) => s.pollQuotes)
   const watchlist = useStore((s) => s.watchlist)
+  const currentUser = useStore((s) => s.currentUser)
   const view = useStore((s) => s.view)
   const openAuth = useStore((s) => s.openAuth)
 
@@ -53,12 +54,14 @@ export default function App() {
     }
   }, [loadMe, loadWatchlist, loadSettings, loadHoldings, openAuth])
 
+  // Poll quotes for the effective symbol list (the user's watchlist, or the
+  // demo list when anonymous) so cards/movers/At-a-Glance always show LIVE
+  // prices — not stale seed values. Re-runs when auth or watchlist changes.
   useEffect(() => {
-    if (!watchlist.length) return
     pollQuotes()
     const id = setInterval(pollQuotes, 60000)
     return () => clearInterval(id)
-  }, [watchlist.length, pollQuotes])
+  }, [watchlist.length, currentUser, pollQuotes])
 
   return (
     <div

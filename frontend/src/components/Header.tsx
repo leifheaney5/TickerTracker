@@ -202,7 +202,7 @@ export function Header() {
           </div>
         ) : (
           <button
-            onClick={() => setView('settings')}
+            onClick={() => (authed ? setView('settings') : openAuth())}
             style={{ display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 14px', borderRadius: 11, background: 'transparent', border: `1px dashed ${COLORS.accent}`, color: COLORS.accent, fontFamily: FONT_SANS, fontWeight: 600, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
           >
             ⊕ Connect account

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-06-26
+
+### Fixed
+
+- **Anonymous watchlist now shows LIVE prices** (was stale seed values like PLTR
+  $28 vs real $112). The demo watchlist, movers ribbon, and At-a-Glance now use
+  the effective symbol list (demo list when logged out) and poll live quotes.
+- **At-a-Glance no longer empty** for anonymous users ("0 tickers" → full table);
+  movers ribbon no longer stuck on "No movers".
+- **"Connect account" no longer freezes the app** — for anonymous users it opens
+  the sign-in modal instead of routing to a Settings page that couldn't load.
+- Settings shows a sign-in prompt for anonymous users instead of a perpetual
+  "Loading…" spinner.
+
 ## [1.2.0] — 2026-06-26
 
 ### Fixed
