@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] — 2026-06-26
+
+### Changed
+
+- **Switch Railway build from Nixpacks to a multi-stage Dockerfile** for a
+  robust, reproducible production build. Node 22 stage builds the frontend
+  (installing from `package.json` to sidestep npm's optional-dependency bug
+  npm/cli#4828 that skipped Vite 8 / rolldown's Linux native binary); Python
+  3.11 stage installs deps and runs gunicorn serving the built SPA + API.
+  Verified the lockfile-free frontend build locally before deploying. Removes
+  `nixpacks.toml`; adds `Dockerfile` + `.dockerignore`.
+
 ## [1.0.3] — 2026-06-26
 
 ### Fixed
