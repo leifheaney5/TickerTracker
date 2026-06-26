@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-06-26
+
+### Added
+
+- **All remaining views** ported pixel-faithfully and wired to the store/API:
+  - Settings (profile, brokerage connect/disconnect, notification & privacy
+    toggles) → `/api/settings`.
+  - Alerts (active price alerts with HIT detection, remove).
+  - Holdings (summary cards, allocation donut, positions table, balance masking)
+    → `/api/holdings`.
+  - At-a-Glance + Deep Dive (sortable watchlist table; fundamentals sub-toggle).
+  - Crypto (real CoinGecko stats, live Fear & Greed, Crypto Map treemap, coins
+    table) → `/api/crypto` + `/api/fng`.
+  - Market / Map / Sectors (index cards, sector bars, full-market treemap,
+    sector performance matrix + ranked bars) with sub-nav.
+  - Screener (filter the universe by sector/performance/cap, + Compare).
+  - Strategy (KPI banner, equity curve vs benchmark, risk panels, positions).
+- Reusable `Treemap`, `Donut`, `EquityCurve`, `Toggle` components.
+
 ## [0.5.0] — 2026-06-26
 
 ### Added

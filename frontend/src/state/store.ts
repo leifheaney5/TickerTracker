@@ -5,7 +5,8 @@
 import { create } from 'zustand'
 import { api } from '../api/client'
 import type {
-  Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Timeframe,
+  Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
+  CryptoResponse, Fng, Timeframe,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 
@@ -42,6 +43,9 @@ interface StoreState {
   ratings: Record<string, Ratings>
   watchlist: WatchlistItem[]
   settings: Settings | null
+  holdings: Holding[]
+  crypto: CryptoResponse | null
+  fng: Fng | null
   flash: Record<string, 'up' | 'down' | null>
 
   // ── actions ──
@@ -58,6 +62,10 @@ interface StoreState {
 
   loadWatchlist: () => Promise<void>
   loadSettings: () => Promise<void>
+  updateSettings: (fields: Partial<Settings>) => Promise<void>
+  loadHoldings: () => Promise<void>
+  loadCrypto: () => Promise<void>
+  loadFng: () => Promise<void>
   pollQuotes: () => Promise<void>
   loadHistory: (sym: string, tf: Timeframe) => Promise<void>
   loadFundamentals: (sym: string) => Promise<void>
@@ -93,6 +101,9 @@ export const useStore = create<StoreState>((set, get) => ({
   ratings: {},
   watchlist: [],
   settings: null,
+  holdings: [],
+  crypto: null,
+  fng: null,
   flash: {},
 
   setView: (v) => set({ view: v }),
@@ -152,6 +163,35 @@ export const useStore = create<StoreState>((set, get) => ({
         },
       })
     }
+  },
+
+  updateSettings: async (fields) => {
+    set((st) => ({ settings: st.settings ? { ...st.settings, ...fields } : st.settings }))
+    try {
+      const { data } = await api.updateSettings(fields)
+      set({ settings: data })
+    } catch { /* keep optimistic value offline */ }
+  },
+
+  loadHoldings: async () => {
+    try {
+      const { data } = await api.getHoldings()
+      set({ holdings: data })
+    } catch { /* leave empty */ }
+  },
+
+  loadCrypto: async () => {
+    try {
+      const { data } = await api.crypto()
+      set({ crypto: data })
+    } catch { /* leave null */ }
+  },
+
+  loadFng: async () => {
+    try {
+      const { data } = await api.fng()
+      set({ fng: data })
+    } catch { /* leave null */ }
   },
 
   pollQuotes: async () => {
