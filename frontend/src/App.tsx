@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useStore } from './state/store'
 import { rootCssVars, COLORS, FONT_SANS } from './theme/tokens'
 import { Header } from './components/Header'
+import { Dashboard } from './views/Dashboard'
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // Views are added unit by unit (Dashboard first).
@@ -34,10 +35,13 @@ export default function App() {
       }}
     >
       <Header />
-      <div style={{ flex: 1, minHeight: 0, padding: 24, color: COLORS.tx2 }}>
-        {/* View bodies land here; current view: {view} */}
-        Current view: {view} — {settings ? 'settings loaded' : 'loading…'}
-      </div>
+      {view === 'dashboard' ? (
+        <Dashboard />
+      ) : (
+        <div style={{ flex: 1, minHeight: 0, padding: 24, color: COLORS.tx2 }}>
+          {view} view — coming next. {settings ? '' : 'loading…'}
+        </div>
+      )}
     </div>
   )
 }
