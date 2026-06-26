@@ -14,7 +14,7 @@ export interface Result<T> {
 }
 
 async function get<T>(path: string): Promise<Result<T>> {
-  const r = await fetch(path)
+  const r = await fetch(path, { credentials: 'include' })
   if (!r.ok) throw new Error(`${path} → ${r.status}`)
   const env = (await r.json()) as Envelope<T>
   return { data: env.data, source: env.meta.source, stale: env.meta.stale }
@@ -23,6 +23,7 @@ async function get<T>(path: string): Promise<Result<T>> {
 async function send<T>(path: string, method: string, body?: unknown): Promise<Result<T>> {
   const r = await fetch(path, {
     method,
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })

@@ -3,7 +3,10 @@ import models
 from auth import current_user_id
 
 
-def test_singleton_user_seeded():
+def test_singleton_user_seeded(seed_user):
+    """With the opt-in seed_user fixture: user id=1 exists and current_user_id()
+    returns 1 (monkeypatched). Without the fixture, no user is seeded and
+    current_user_id() would return None (real anonymous behaviour)."""
     with db.get_session() as s:
         u = s.get(models.User, 1)
         assert u is not None
@@ -12,7 +15,7 @@ def test_singleton_user_seeded():
     assert current_user_id() == 1
 
 
-def test_watchlist_item_roundtrip():
+def test_watchlist_item_roundtrip(seed_user):
     with db.get_session() as s:
         s.add(models.WatchlistItem(user_id=1, symbol="AAPL", position=0, target=230.0))
         s.commit()

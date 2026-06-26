@@ -6,7 +6,7 @@ import { create } from 'zustand'
 import { api } from '../api/client'
 import type {
   Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
-  CryptoResponse, Fng, Timeframe,
+  CryptoResponse, Fng, Timeframe, AuthUser,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 
@@ -75,6 +75,21 @@ interface StoreState {
   removeWatch: (sym: string) => Promise<void>
   updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
 
+  // ── auth modal ──
+  authModal: boolean
+  openAuth: () => void
+  closeAuth: () => void
+
+  // ── auth ──
+  currentUser: AuthUser | null
+  authChecked: boolean
+  loadMe: () => Promise<void>
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  signup: (email: string, password: string, name?: string) => Promise<{ ok: boolean; error?: string }>
+  logout: () => Promise<void>
+  forgot: (email: string) => Promise<{ ok: boolean; error?: string }>
+  reset: (token: string, password: string) => Promise<{ ok: boolean; error?: string }>
+
   // ── selectors ──
   price: (sym: string) => number
   chg: (sym: string) => number
@@ -105,6 +120,50 @@ export const useStore = create<StoreState>((set, get) => ({
   crypto: null,
   fng: null,
   flash: {},
+
+  authModal: false,
+  openAuth: () => set({ authModal: true }),
+  closeAuth: () => set({ authModal: false }),
+
+  currentUser: null,
+  authChecked: false,
+  loadMe: async () => {
+    try {
+      const r = await fetch('/api/auth/me', { credentials: 'include' })
+      const j = await r.json()
+      set({ currentUser: j.user ?? null, authChecked: true })
+    } catch { set({ authChecked: true }) }
+  },
+  login: async (email, password) => {
+    const r = await fetch('/api/auth/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
+    if (!r.ok) { const j = await r.json().catch(() => ({})); return { ok: false, error: j.error || 'Login failed' } }
+    const j = await r.json(); set({ currentUser: j.user ?? null })
+    // Re-fetch personalized data so the newly-logged-in user sees their own
+    // watchlist/settings/holdings without a page reload.
+    await get().loadWatchlist(); await get().loadSettings(); await get().loadHoldings()
+    return { ok: true }
+  },
+  signup: async (email, password, name) => {
+    const r = await fetch('/api/auth/signup', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name }) })
+    const j = await r.json().catch(() => ({}))
+    // Intentionally does NOT set currentUser — email verification is required
+    // before login. The backend signup route does not create a session.
+    return r.ok ? { ok: true } : { ok: false, error: j.error || 'Signup failed' }
+  },
+  logout: async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    set({ currentUser: null, watchlist: [], holdings: [], settings: null })
+  },
+  forgot: async (email) => {
+    const r = await fetch('/api/auth/forgot', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) })
+    // Backend is enumeration-safe and always returns 200; treat any 200 as ok.
+    return r.ok ? { ok: true } : { ok: false, error: 'Request failed' }
+  },
+  reset: async (token, password) => {
+    const r = await fetch('/api/auth/reset', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, password }) })
+    if (!r.ok) { const j = await r.json().catch(() => ({})); return { ok: false, error: j.error || 'Reset failed' } }
+    return { ok: true }
+  },
 
   setView: (v) => set({ view: v }),
   setSelected: (s) => set({ selected: s, hover: null, compare: [] }),
@@ -281,3 +340,5 @@ export const useStore = create<StoreState>((set, get) => ({
   chg: (sym) => get().quotes[sym]?.change_pct ?? UNIVERSE[sym]?.dchg ?? 0,
   watchSymbols: () => get().watchlist.slice().sort((a, b) => a.position - b.position).map((w) => w.symbol),
 }))
+
+export const isAuthed = (s: { currentUser: AuthUser | null }) => s.currentUser !== null

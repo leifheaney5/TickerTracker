@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useStore } from '../state/store'
+import { useStore, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO, COMPARE_COLORS } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
@@ -16,12 +16,13 @@ export function Holdings() {
   const settings = useStore((s) => s.settings)
   const holdings = useStore((s) => s.holdings)
   const loadHoldings = useStore((s) => s.loadHoldings)
+  const authed = useStore(isAuthed)
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
 
-  useEffect(() => { loadHoldings() }, [loadHoldings])
+  useEffect(() => { if (authed) loadHoldings() }, [authed, loadHoldings])
 
   const connected = settings?.broker_connected ?? false
   const hide = settings?.hide_balances ?? false

@@ -1,15 +1,18 @@
 from sqlalchemy import (Column, Integer, String, Float, Boolean, DateTime,
-                        ForeignKey, func)
+                        ForeignKey, func, UniqueConstraint)
 from db import Base
+from flask_login import UserMixin
 
 
-class User(Base):
+class User(UserMixin, Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
-    email = Column(String, nullable=False)
+    email = Column(String, nullable=False, unique=True, index=True)
     name = Column(String, default="")
     phone = Column(String, default="")
     created_at = Column(DateTime, server_default=func.now())
+    password_hash = Column(String, nullable=True)
+    email_verified = Column(Boolean, default=False)
 
 
 class WatchlistItem(Base):
@@ -63,3 +66,31 @@ class CustomSymbol(Base):
     sector = Column(String, default="—")
     group = Column(String, default="Tech")
     exch = Column(String, default="—")
+
+
+class OAuthIdentity(Base):
+    __tablename__ = "oauth_identities"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    provider = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    __table_args__ = (UniqueConstraint("provider", "subject", name="uq_provider_subject"),)
+
+
+class EmailToken(Base):
+    __tablename__ = "email_tokens"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    kind = Column(String, nullable=False)            # 'verify' | 'reset'
+    token_hash = Column(String, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+
+
+class LoginAttempt(Base):
+    __tablename__ = "login_attempts"
+    id = Column(Integer, primary_key=True)
+    email = Column(String, nullable=False, index=True)
+    ip = Column(String, default="")
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    success = Column(Boolean, default=False)

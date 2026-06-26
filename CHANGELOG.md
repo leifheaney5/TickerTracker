@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-06-26
+
+### Added
+
+- **Multi-user authentication**: email + password signup with email verification
+  (via Resend), Google OAuth (Authlib), and password reset via single-use
+  time-limited tokens.
+- Passwords hashed with argon2; sessions via HTTP-only cookie (Flask-Login).
+- Login rate limiting: 5 failed attempts per 15-minute window triggers a lockout.
+- Per-user data scoping: watchlist (including price targets and alerts),
+  holdings, and settings are now isolated per account and require login;
+  every query is filtered by the authenticated user's id.
+- Freemium moat: anonymous users get a read-only demo watchlist and are prompted
+  to sign up when they attempt personalization actions.
+- New required env vars: `SECRET_KEY`, `APP_BASE_URL`; optional (feature-gated):
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, `MAIL_FROM`.
+  See `.env.example` and the Authentication section of `README.md` for setup
+  instructions.
+
 ## [1.0.7] — 2026-06-26
 
 ### Fixed

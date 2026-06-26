@@ -1,4 +1,8 @@
+import pytest
 import services.store as store
+
+
+pytestmark = pytest.mark.usefixtures("seed_user")
 
 
 def test_add_and_get_watchlist():

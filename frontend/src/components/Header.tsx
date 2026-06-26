@@ -1,4 +1,4 @@
-import { useStore, type View } from '../state/store'
+import { useStore, type View, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { Logo } from './Logo'
 import { money, pct } from '../lib/format'
@@ -36,6 +36,9 @@ export function Header() {
   const setSearch = useStore((s) => s.setSearch)
   const setSelected = useStore((s) => s.setSelected)
   const settings = useStore((s) => s.settings)
+  const authed = useStore(isAuthed)
+  const currentUser = useStore((s) => s.currentUser)
+  const openAuth = useStore((s) => s.openAuth)
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
 
@@ -50,7 +53,12 @@ export function Header() {
         .slice(0, 12)
     : []
 
-  const acctInitials = (settings ? 'JD' : 'JD')
+  // Avatar initials: use real user name/email when authed.
+  const acctInitials = authed && currentUser
+    ? (currentUser.name
+        ? currentUser.name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
+        : currentUser.email.slice(0, 2).toUpperCase())
+    : 'JD'
 
   return (
     <header
@@ -175,13 +183,23 @@ export function Header() {
           </button>
         )}
 
-        <button
-          onClick={() => setView('settings')}
-          title="Account & settings"
-          style={{ width: 34, height: 34, borderRadius: '50%', background: COLORS.card, border: `1px solid ${COLORS.line2}`, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
-        >
-          {acctInitials}
-        </button>
+        {authed ? (
+          <button
+            onClick={() => setView('settings')}
+            title="Account & settings"
+            style={{ width: 34, height: 34, borderRadius: '50%', background: COLORS.card, border: `1px solid ${COLORS.line2}`, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
+          >
+            {acctInitials}
+          </button>
+        ) : (
+          <button
+            onClick={openAuth}
+            title="Sign in"
+            style={{ height: 34, padding: '0 16px', borderRadius: 10, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', flex: '0 0 auto' }}
+          >
+            Sign in
+          </button>
+        )}
       </div>
     </header>
   )

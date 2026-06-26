@@ -70,6 +70,63 @@ Copy `.env.example` to `.env`. The only key needed for full real data is
 `FINNHUB_API_KEY` (news + analyst ratings); everything else works keyless.
 `DATABASE_URL` selects Postgres (production) or defaults to SQLite locally.
 
+For auth, set the variables in the [Auth env vars](#authentication) section below.
+
+## Authentication
+
+Ticker Tracker uses a freemium auth model: **anonymous users can browse the
+demo watchlist freely**; an account is required for personalization (saved
+watchlist, holdings, settings, price alerts).
+
+### Auth features
+
+- **Email + password** signup with email verification via [Resend](https://resend.com).
+- **Google OAuth** (openid / email / profile scopes) via Authlib.
+- **Password reset** via a single-use, time-limited token emailed with Resend.
+- Passwords hashed with argon2. Sessions via HTTP-only cookies (Flask-Login).
+- Login rate limiting: 5 failed attempts triggers a 15-minute lockout.
+- Per-user data scoping — watchlist (including price targets and alerts),
+  holdings, and settings are isolated per account. IDOR-safe: every DB query
+  is filtered by the authenticated user's id.
+
+### Auth env vars
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `SECRET_KEY` | yes | Signs sessions and tokens. Generate with `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+| `GOOGLE_CLIENT_ID` | for Google login | OAuth client ID from Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | for Google login | OAuth client secret from Google Cloud Console |
+| `RESEND_API_KEY` | for email | API key from resend.com |
+| `MAIL_FROM` | for email | Verified sender address, e.g. `noreply@yourdomain.com` |
+| `APP_BASE_URL` | yes | Public base URL, e.g. `https://tickertracker.info` — used for OAuth redirect URIs, email links, and the Secure cookie flag |
+
+### Setting up auth
+
+#### (a) Generate `SECRET_KEY`
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+#### (b) Register a Google OAuth app
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials → Create OAuth 2.0 Client ID.
+2. Set the authorized redirect URI to `<APP_BASE_URL>/api/auth/google/callback`.
+3. Scopes: `openid`, `email`, `profile`.
+4. Copy the client ID and secret into `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+
+#### (c) Set up Resend
+
+1. Create an account at [resend.com](https://resend.com) and get an API key.
+2. Verify your sender domain and set `MAIL_FROM` to an address on that domain.
+
+#### (d) Set Railway variables
+
+In the Railway dashboard, add all six auth variables as service variables.
+`DATABASE_URL` is injected automatically by the Postgres plugin; run the
+Alembic migration (`alembic upgrade head`) to create the `users` table and
+auth columns on first deploy.
+
 ## Tests
 
 ```bash
