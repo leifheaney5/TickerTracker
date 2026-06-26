@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] — 2026-06-26
+
+### Fixed
+
+- **Production auth schema drift:** the pre-auth Postgres database was missing the
+  `password_hash`/`email_verified` columns and auth tables (SQLAlchemy
+  `create_all` never ALTERs existing tables), so auth endpoints returned 500.
+  `init_db()` now detects a stale pre-auth `users` table and rebuilds the
+  user/personalization tables to the current schema on boot (idempotent; safe at
+  launch with no real data). Keeps schema in sync on future deploys.
+
 ## [1.1.1] — 2026-06-26
 
 ### Security

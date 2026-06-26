@@ -41,9 +41,40 @@ def get_session():
         s.close()
 
 
+def _auth_schema_is_stale() -> bool:
+    """True if the users table exists but lacks the auth columns (i.e. a
+    pre-auth database that create_all can't upgrade, since create_all never
+    ALTERs existing tables). Used to trigger a one-time rebuild."""
+    try:
+        from sqlalchemy import inspect
+        insp = inspect(engine)
+        if "users" not in insp.get_table_names():
+            return False  # fresh DB; create_all will build it correctly
+        cols = {c["name"] for c in insp.get_columns("users")}
+        return "password_hash" not in cols
+    except Exception:
+        return False
+
+
 def init_db():
+    # create_all builds any MISSING tables but never alters existing ones, so a
+    # database created before the auth feature keeps an old `users` table without
+    # password_hash/email_verified. When we detect that drift, drop the
+    # auth-affected tables so create_all rebuilds them with the current schema.
+    # Guarded by the staleness check, so this is a no-op once the schema is
+    # current and on a fresh DB. (Safe because launch starts with no real data.)
     try:
         import models  # noqa: F401
+        from sqlalchemy import text
+        if _auth_schema_is_stale():
+            logging.getLogger(__name__).warning(
+                "Pre-auth schema detected; rebuilding user/personalization tables.")
+            cascade = "" if _is_sqlite else " CASCADE"
+            with engine.begin() as conn:
+                for tbl in ("watchlist_items", "holdings", "alert_log",
+                            "custom_symbols", "settings", "oauth_identities",
+                            "email_tokens", "login_attempts", "users"):
+                    conn.execute(text(f"DROP TABLE IF EXISTS {tbl}{cascade}"))
         Base.metadata.create_all(engine)
     except Exception as e:  # pragma: no cover
         logging.getLogger(__name__).error("init_db failed (continuing): %s", e)
