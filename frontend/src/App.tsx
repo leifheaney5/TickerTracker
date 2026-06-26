@@ -7,6 +7,7 @@ import { Settings } from './views/Settings'
 import { Alerts } from './views/Alerts'
 import { Holdings } from './views/Holdings'
 import { AtAGlance } from './views/AtAGlance'
+import { Crypto } from './views/Crypto'
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // Views are added unit by unit (Dashboard first).
@@ -45,7 +46,8 @@ export default function App() {
       {view === 'holdings' && <Holdings />}
       {view === 'overview' && <AtAGlance initialSub="overview" />}
       {view === 'deep' && <AtAGlance initialSub="deep" />}
-      {!['dashboard', 'settings', 'alerts', 'holdings', 'overview', 'deep'].includes(view) && (
+      {view === 'crypto' && <Crypto />}
+      {!['dashboard', 'settings', 'alerts', 'holdings', 'overview', 'deep', 'crypto'].includes(view) && (
         <div style={{ flex: 1, minHeight: 0, padding: 24, color: COLORS.tx2 }}>
           {view} view — coming next. {settings ? '' : 'loading…'}
         </div>
