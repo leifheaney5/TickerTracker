@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-06-26
+
+### Fixed
+
+- Selecting a symbol now fetches its quote immediately instead of waiting for
+  the next 60s poll, so Key Statistics (Open/Day High/Low, etc.) populate right
+  away instead of briefly showing placeholders.
+- Key Statistics shows a loading ellipsis (`…`) while quote/fundamentals are in
+  flight, rather than a bare em-dash that read as "no data".
+- Analyst Ratings no longer fabricates "1 analysts / Hold" before data loads — it
+  shows a loading state, then the true analyst count and consensus.
+
 ## [1.0.0] — 2026-06-26
 
 ### Added
