@@ -65,6 +65,7 @@ interface StoreState {
   loadRatings: (sym: string) => Promise<void>
   addWatch: (sym: string, target?: number) => Promise<void>
   removeWatch: (sym: string) => Promise<void>
+  updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
 
   // ── selectors ──
   price: (sym: string) => number
@@ -224,6 +225,16 @@ export const useStore = create<StoreState>((set, get) => ({
       await api.removeWatch(sym)
       set((st) => ({ watchlist: st.watchlist.filter((w) => w.symbol !== sym) }))
     } catch { /* ignore */ }
+  },
+
+  updateWatch: async (sym, fields) => {
+    // Optimistic local update, then persist.
+    set((st) => ({
+      watchlist: st.watchlist.map((w) => (w.symbol === sym ? { ...w, ...fields } : w)),
+    }))
+    try {
+      await api.updateWatch(sym, fields)
+    } catch { /* keep optimistic value offline */ }
   },
 
   price: (sym) => get().quotes[sym]?.price ?? UNIVERSE[sym]?.price ?? 0,
