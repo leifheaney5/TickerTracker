@@ -30,6 +30,7 @@ export function Watchlist() {
   const watchlist = useStore((s) => s.watchlist)
   const selected = useStore((s) => s.selected)
   const setSelected = useStore((s) => s.setSelected)
+  const setView = useStore((s) => s.setView)
   const group = useStore((s) => s.group)
   const setGroup = useStore((s) => s.setGroup)
   const sortBy = useStore((s) => s.sortBy)
@@ -82,9 +83,14 @@ export function Watchlist() {
     >
       <div style={{ padding: '16px 16px 10px', display: 'flex', flexDirection: 'column', gap: 12, flex: '0 0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <div
+            onClick={() => requireAuth(() => setView('managewatch'))}
+            title="Manage your watchlist"
+            style={{ display: 'flex', alignItems: 'baseline', gap: 8, cursor: 'pointer' }}
+          >
             <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '-.01em', color: COLORS.tx }}>Watchlist</span>
             <span style={{ fontSize: '11.5px', color: COLORS.tx3 }}>{base.length}</span>
+            <span style={{ fontSize: '11px', color: COLORS.accent }}>⤢ Manage</span>
           </div>
           <button
             onClick={cycleSort}
@@ -113,8 +119,7 @@ export function Watchlist() {
           const up = c >= 0
           const fl = flash[sym]
           const hasT = target > 0
-          const prog = hasT ? Math.max(2, Math.min(100, (p / target) * 100)) : 0
-          const near = hasT && prog >= 92
+          const near = hasT && p / target >= 0.92
           const priceColor = fl === 'up' ? COLORS.up : fl === 'down' ? COLORS.down : COLORS.tx
           return (
             <div
@@ -154,14 +159,13 @@ export function Watchlist() {
                 </div>
               </div>
               {hasT && (
-                <div style={{ marginTop: 11, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: COLORS.tx3 }}>
-                    <span>Target {money(target)}</span>
-                    <span>{p >= target ? 'reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}</span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 3, background: COLORS.line, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 3, background: p >= target ? COLORS.up : COLORS.accent, width: prog.toFixed(0) + '%' }} />
-                  </div>
+                // Compact one-line target (progress BAR removed to declutter the
+                // list / cut the wall of green). "reached" highlights in accent.
+                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: COLORS.tx3 }}>
+                  <span>Target {money(target)}</span>
+                  <span style={{ color: p >= target ? COLORS.up : COLORS.tx3, fontWeight: p >= target ? 600 : 400 }}>
+                    {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
+                  </span>
                 </div>
               )}
             </div>

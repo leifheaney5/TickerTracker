@@ -12,6 +12,7 @@ import { Crypto } from './views/Crypto'
 import { MarketViews } from './views/MarketViews'
 import { Screener } from './views/Screener'
 import { Strategy } from './views/Strategy'
+import { ManageWatchlist } from './views/ManageWatchlist'
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // Views are added unit by unit (Dashboard first).
@@ -107,6 +108,7 @@ export default function App() {
       {view === 'sectors' && <MarketViews sub="sectors" />}
       {view === 'screener' && <Screener />}
       {view === 'strategy' && <Strategy />}
+      {view === 'managewatch' && <ManageWatchlist />}
     </div>
   )
 }
