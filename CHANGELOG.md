@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-06-26
+
+### Added
+
+- **Mobile-responsive layout** (fixes QA blocker on phones). At ≤768px the header
+  collapses to a compact bar with a hamburger nav + search; the Dashboard stacks
+  (collapsible watchlist on top, full-width content below); wide tables scroll
+  inside their card; global `overflow-x:hidden` prevents full-page horizontal
+  scroll. Desktop layout is unchanged. New `useIsMobile()` hook + responsive
+  padding tokens.
+
 ## [1.3.1] — 2026-06-26
 
 ### Fixed (QA report)

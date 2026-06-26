@@ -9,6 +9,7 @@ import { StockChart } from '../charts/StockChart'
 import { KeyStats } from '../components/KeyStats'
 import { NewsCard } from '../components/NewsCard'
 import { DueDiligence } from '../components/DueDiligence'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 // Dashboard view — the hero. Sidebar watchlist + main research column:
 // movers ribbon, stock header, chart controls + interactive chart, key stats,
@@ -19,6 +20,7 @@ export function Dashboard() {
   const loadHistory = useStore((s) => s.loadHistory)
   const loadFundamentals = useStore((s) => s.loadFundamentals)
   const pollQuotes = useStore((s) => s.pollQuotes)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     loadHistory(selected, timeframe)
@@ -29,9 +31,11 @@ export function Dashboard() {
   }, [selected, timeframe, loadHistory, loadFundamentals, pollQuotes])
 
   return (
-    <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+    // On mobile: stack vertically (Watchlist collapses, main goes full-width).
+    // On desktop: side-by-side flex ROW as before.
+    <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: 0, overflow: isMobile ? 'auto' : undefined }}>
       <Watchlist />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 'var(--gap,16px)' }}>
+      <main style={{ flex: 1, minWidth: 0, overflowY: isMobile ? undefined : 'auto', padding: isMobile ? '14px 14px' : 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 'var(--gap,16px)' }}>
         <MoversRibbon />
         <StockHeader />
         <ChartControls />

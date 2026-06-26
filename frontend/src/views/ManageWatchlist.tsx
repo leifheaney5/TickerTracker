@@ -103,49 +103,53 @@ export function ManageWatchlist() {
 
         {/* Editable list */}
         <div style={{ ...card, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 90px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
-            {['TICKER', 'PRICE', '24H', 'TARGET', ''].map((h, i) => (
-              <div key={i} style={{ padding: '12px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>
-            ))}
-          </div>
-          {items.map((w) => {
-            const u = UNIVERSE[w.symbol] || ({ name: w.symbol } as typeof UNIVERSE[string])
-            const c = chg(w.symbol)
-            const up = c >= 0
-            return (
-              <div key={w.symbol} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 90px', alignItems: 'center', borderTop: `1px solid ${COLORS.line}` }}>
-                <div onClick={() => { setSelected(w.symbol); setView('dashboard') }} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', cursor: 'pointer', minWidth: 0 }}>
-                  <Logo symbol={w.symbol} size={28} />
-                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <span style={{ fontWeight: 700, fontSize: '13.5px', color: COLORS.tx }}>{w.symbol}</span>
-                    <span style={{ fontSize: '11px', color: COLORS.tx3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
-                  </div>
-                </div>
-                <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '13px', color: COLORS.tx }}>{money(price(w.symbol))}</div>
-                <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: up ? COLORS.up : COLORS.down }}>{pct(c)}</div>
-                <div style={{ padding: '10px 14px' }}>
-                  {editSym === w.symbol ? (
-                    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                      <input autoFocus value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveTarget(w.symbol)} placeholder="$" style={{ width: 70, height: 30, padding: '0 8px', borderRadius: 7, border: `1px solid ${COLORS.accent}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '12.5px' }} />
-                      <button onClick={() => saveTarget(w.symbol)} style={{ height: 30, padding: '0 10px', borderRadius: 7, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontWeight: 700, cursor: 'pointer' }}>✓</button>
-                    </div>
-                  ) : (
-                    <span onClick={() => { setEditVal(w.target ? String(w.target) : ''); setEditSym(w.symbol) }} style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: w.target ? COLORS.tx : COLORS.tx3, cursor: 'pointer' }}>
-                      {w.target ? money(w.target) : 'set target ✎'}
-                    </span>
-                  )}
-                </div>
-                <div style={{ padding: '12px 14px' }}>
-                  <button onClick={() => removeWatch(w.symbol)} title="Remove" style={{ height: 30, padding: '0 12px', borderRadius: 7, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12px', cursor: 'pointer' }}>Remove</button>
-                </div>
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: 560 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 90px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
+                {['TICKER', 'PRICE', '24H', 'TARGET', ''].map((h, i) => (
+                  <div key={i} style={{ padding: '12px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>
+                ))}
               </div>
-            )
-          })}
-          {items.length === 0 && (
-            <div style={{ padding: '40px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
-              Your watchlist is empty — add some tickers above to get started.
+              {items.map((w) => {
+                const u = UNIVERSE[w.symbol] || ({ name: w.symbol } as typeof UNIVERSE[string])
+                const c = chg(w.symbol)
+                const up = c >= 0
+                return (
+                  <div key={w.symbol} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 90px', alignItems: 'center', borderTop: `1px solid ${COLORS.line}` }}>
+                    <div onClick={() => { setSelected(w.symbol); setView('dashboard') }} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', cursor: 'pointer', minWidth: 0 }}>
+                      <Logo symbol={w.symbol} size={28} />
+                      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <span style={{ fontWeight: 700, fontSize: '13.5px', color: COLORS.tx }}>{w.symbol}</span>
+                        <span style={{ fontSize: '11px', color: COLORS.tx3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                      </div>
+                    </div>
+                    <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '13px', color: COLORS.tx }}>{money(price(w.symbol))}</div>
+                    <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: up ? COLORS.up : COLORS.down }}>{pct(c)}</div>
+                    <div style={{ padding: '10px 14px' }}>
+                      {editSym === w.symbol ? (
+                        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                          <input autoFocus value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveTarget(w.symbol)} placeholder="$" style={{ width: 70, height: 30, padding: '0 8px', borderRadius: 7, border: `1px solid ${COLORS.accent}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '12.5px' }} />
+                          <button onClick={() => saveTarget(w.symbol)} style={{ height: 30, padding: '0 10px', borderRadius: 7, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontWeight: 700, cursor: 'pointer' }}>✓</button>
+                        </div>
+                      ) : (
+                        <span onClick={() => { setEditVal(w.target ? String(w.target) : ''); setEditSym(w.symbol) }} style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: w.target ? COLORS.tx : COLORS.tx3, cursor: 'pointer' }}>
+                          {w.target ? money(w.target) : 'set target ✎'}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ padding: '12px 14px' }}>
+                      <button onClick={() => removeWatch(w.symbol)} title="Remove" style={{ height: 30, padding: '0 12px', borderRadius: 7, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12px', cursor: 'pointer' }}>Remove</button>
+                    </div>
+                  </div>
+                )
+              })}
+              {items.length === 0 && (
+                <div style={{ padding: '40px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+                  Your watchlist is empty — add some tickers above to get started.
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
