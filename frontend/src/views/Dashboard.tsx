@@ -18,11 +18,15 @@ export function Dashboard() {
   const timeframe = useStore((s) => s.timeframe)
   const loadHistory = useStore((s) => s.loadHistory)
   const loadFundamentals = useStore((s) => s.loadFundamentals)
+  const pollQuotes = useStore((s) => s.pollQuotes)
 
   useEffect(() => {
     loadHistory(selected, timeframe)
     loadFundamentals(selected)
-  }, [selected, timeframe, loadHistory, loadFundamentals])
+    // Fetch a fresh quote for the newly selected symbol immediately rather than
+    // waiting for the next 60s poll tick (otherwise stats briefly show seed/—).
+    pollQuotes()
+  }, [selected, timeframe, loadHistory, loadFundamentals, pollQuotes])
 
   return (
     <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
