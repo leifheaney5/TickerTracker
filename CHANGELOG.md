@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-06-26
+
+### Security
+
+- **Rate-limited the public market endpoints** (M-1): an in-process IP-keyed
+  sliding window (120 req/60s) on `/api/quotes|history|fundamentals|news|ratings|
+  crypto|fng|search` prevents anonymous callers from rotating symbols to burn the
+  upstream provider quota. Returns 429 + Retry-After when exceeded.
+- **Explicit field allowlists on settings/watchlist PATCH** (M-2): replaced
+  `**body` mass-assignment with per-endpoint allowlists so only intended fields
+  are client-writable.
+
 ## [1.4.0] — 2026-06-26
 
 ### Added
