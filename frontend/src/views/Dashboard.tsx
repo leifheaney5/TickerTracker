@@ -8,10 +8,11 @@ import { ChartControls } from '../components/ChartControls'
 import { StockChart } from '../charts/StockChart'
 import { KeyStats } from '../components/KeyStats'
 import { NewsCard } from '../components/NewsCard'
+import { DueDiligence } from '../components/DueDiligence'
 
-// Dashboard view — the hero. Sidebar watchlist + main research column.
-// Main column (stock header, chart, stats, news, due-diligence) lands in the
-// next units; this composes the sidebar and loads data for the selected symbol.
+// Dashboard view — the hero. Sidebar watchlist + main research column:
+// movers ribbon, stock header, chart controls + interactive chart, key stats,
+// news, and due-diligence. Loads data for the selected symbol on change.
 export function Dashboard() {
   const selected = useStore((s) => s.selected)
   const timeframe = useStore((s) => s.timeframe)
@@ -37,7 +38,7 @@ export function Dashboard() {
           <KeyStats />
           <NewsCard />
         </div>
-        <div style={{ color: COLORS.tx3, fontSize: 12 }}>Due-diligence coming next.</div>
+        <DueDiligence />
       </main>
     </div>
   )
