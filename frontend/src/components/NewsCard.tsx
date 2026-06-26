@@ -13,6 +13,17 @@ const SENT_STYLE: Record<Sentiment, { bg: string; color: string }> = {
   Neutral: { bg: 'rgba(154,161,171,.12)', color: COLORS.tx2 },
 }
 
+// Only allow http(s) URLs into the anchor href — blocks javascript:/data: XSS
+// vectors from the (externally sourced) news URL field.
+function safeHref(url: string): string | undefined {
+  try {
+    const u = new URL(url)
+    return u.protocol === 'http:' || u.protocol === 'https:' ? url : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function NewsCard() {
   const selected = useStore((s) => s.selected)
   const news = useStore((s) => s.news)
@@ -47,9 +58,9 @@ export function NewsCard() {
           return (
             <a
               key={i}
-              href={n.url || undefined}
+              href={safeHref(n.url)}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '13px 4px', borderTop: `1px solid ${COLORS.line}`, cursor: 'pointer', textDecoration: 'none' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>

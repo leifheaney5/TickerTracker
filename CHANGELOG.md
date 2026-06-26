@@ -7,18 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-26
+
 ### Added
 
-- **Dashboard (in progress)**: pixel-identical header chrome (logo, view nav,
-  LIVE wordmark, search, connect/portfolio chip, avatar) and the watchlist
-  sidebar (group tabs, sort cycle, draggable cards with live price/%/sparkline
-  and target-progress bars, add-ticker form), wired to live backend data.
-- Reusable `Logo` (monogram + CDN) and `Sparkline` chart components.
+- **Dashboard hero view (complete)**, pixel-identical to the prototype and wired
+  to live backend data:
+  - Header chrome: logo mark, view nav, LIVE wordmark, search popover,
+    connect/portfolio chip, avatar.
+  - Watchlist sidebar: group tabs, sort cycle, draggable cards with live
+    price/%/sparkline and target-progress bars, add-ticker form.
+  - Movers ribbon (gainers/losers) and stock header (track toggle, live price,
+    editable price target).
+  - Interactive SVG chart: candles/line/area + volume, axis labels, last-price
+    tag, crosshair + OHLC tooltip, drag-to-zoom, and compare (normalized %).
+  - Key Statistics grid, News card (per-symbol/market + sentiment), and
+    Due-Diligence (analyst ratings, earnings & events, about).
+- Reusable `Logo`, `Sparkline`, and `StockChart` chart components.
 
 ### Fixed
 
 - Guard first-run watchlist seeding against React StrictMode double-invocation
   (no more duplicate watchlist rows).
+
+### Security
+
+- News links validate the URL protocol (http/https only) before use as an
+  anchor href, blocking `javascript:`/`data:` XSS; external links use
+  `rel="noopener noreferrer"`.
 
 ## [0.4.0] — 2026-06-26
 
