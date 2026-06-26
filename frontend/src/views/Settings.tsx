@@ -1,4 +1,4 @@
-import { useStore } from '../state/store'
+import { useStore, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS } from '../theme/tokens'
 import { Toggle } from '../components/Toggle'
 
@@ -9,6 +9,9 @@ export function Settings() {
   const settings = useStore((s) => s.settings)
   const updateSettings = useStore((s) => s.updateSettings)
   const holdings = useStore((s) => s.holdings)
+  const authed = useStore(isAuthed)
+  const currentUser = useStore((s) => s.currentUser)
+  const logout = useStore((s) => s.logout)
 
   if (!settings) return <div style={{ flex: 1, padding: 24, color: COLORS.tx3 }}>Loading…</div>
 
@@ -34,10 +37,25 @@ export function Settings() {
         </div>
 
         <div style={{ ...card, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#2a2f38,#171a1f)', border: `1px solid ${COLORS.line2}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', fontWeight: 700, color: COLORS.tx, flex: '0 0 auto' }}>JD</div>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#2a2f38,#171a1f)', border: `1px solid ${COLORS.line2}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', fontWeight: 700, color: COLORS.tx, flex: '0 0 auto' }}>
+            {authed && currentUser
+              ? (currentUser.name
+                  ? currentUser.name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
+                  : currentUser.email.slice(0, 2).toUpperCase())
+              : 'JD'}
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-            <span style={{ fontSize: '17px', fontWeight: 700, color: COLORS.tx }}>Jordan Doe</span>
-            <span style={{ fontSize: '13px', color: COLORS.tx2 }}>jordan.doe@email.com</span>
+            <span style={{ fontSize: '17px', fontWeight: 700, color: COLORS.tx }}>
+              {authed && currentUser ? (currentUser.name || currentUser.email) : 'Jordan Doe'}
+            </span>
+            <span style={{ fontSize: '13px', color: COLORS.tx2 }}>
+              {authed && currentUser ? currentUser.email : 'jordan.doe@email.com'}
+            </span>
+            {authed && currentUser && (
+              <span style={{ fontSize: '11.5px', fontWeight: 600, color: currentUser.email_verified ? COLORS.up : COLORS.warn }}>
+                {currentUser.email_verified ? '✓ Email verified' : '⚠ Email not verified'}
+              </span>
+            )}
           </div>
           <div style={{ flex: 1 }} />
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: 'rgba(61,220,132,.1)', fontSize: '12px', fontWeight: 600, color: COLORS.accent }}>◆ Pro plan</span>
@@ -79,7 +97,14 @@ export function Settings() {
           {toggleRow('Hide balances', 'Mask your portfolio value across the app', 'hide_balances')}
         </div>
 
-        <button style={{ alignSelf: 'flex-start', height: 40, padding: '0 18px', borderRadius: 11, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginBottom: 8 }}>Sign out</button>
+        {authed && (
+          <button
+            onClick={() => logout()}
+            style={{ alignSelf: 'flex-start', height: 40, padding: '0 18px', borderRadius: 11, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginBottom: 8 }}
+          >
+            Sign out
+          </button>
+        )}
       </div>
     </div>
   )
