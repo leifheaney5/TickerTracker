@@ -5,6 +5,7 @@ import db
 import models
 
 oauth = OAuth()
+_google_enabled = False
 
 
 def register(app):
@@ -18,6 +19,12 @@ def register(app):
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
         client_kwargs={"scope": "openid email profile"},
     )
+    global _google_enabled
+    _google_enabled = True
+
+
+def is_enabled() -> bool:
+    return _google_enabled
 
 
 def upsert_google_user(subject: str, email: str, name: str):

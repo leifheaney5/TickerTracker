@@ -132,13 +132,14 @@ def reset():
     return jsonify({"message": "password updated"}), 200
 
 
+from flask import current_app
 from authlib.integrations.flask_client import OAuthError
-from auth.google import oauth, upsert_google_user
+from auth.google import oauth, upsert_google_user, is_enabled
 
 
 @auth_bp.get("/google")
 def google_login():
-    if "google" not in getattr(oauth, "_clients", {}):
+    if not is_enabled():
         return jsonify({"error": "google oauth not configured"}), 503
     return oauth.google.authorize_redirect(f"{_base()}/api/auth/google/callback")
 
@@ -149,10 +150,11 @@ def google_callback():
         token = oauth.google.authorize_access_token()
         info = token.get("userinfo") or {}
         sub, email, name = info.get("sub"), info.get("email"), info.get("name", "")
-        if not sub or not email:
+        if not sub or not email or not info.get("email_verified"):
             return redirect(f"{_base()}/?auth=failed")
         u = upsert_google_user(sub, email, name)
         login_user(u)
         return redirect(f"{_base()}/?auth=ok")
-    except OAuthError:
+    except OAuthError as e:
+        current_app.logger.warning("google oauth callback failed: %s", e)
         return redirect(f"{_base()}/?auth=failed")
