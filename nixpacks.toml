@@ -3,13 +3,17 @@
 # which also serves the built frontend/dist.
 
 [phases.setup]
-nixPkgs = ["nodejs_20", "python311"]
+# Node 22 satisfies vite@8 (needs ^20.19 || >=22.12); python311 for the backend.
+nixPkgs = ["nodejs_22", "python311"]
 
 [phases.install]
+# Use `npm install` (not `npm ci`): the committed lockfile is generated on
+# Windows and omits Linux-only optional deps (@rollup/rollup-linux-*,
+# @emnapi/*), which makes the strict `npm ci` fail on Railway's Linux builder.
 cmds = [
   "python -m venv /opt/venv",
   ". /opt/venv/bin/activate && pip install -r requirements.txt",
-  "cd frontend && npm ci",
+  "cd frontend && npm install --no-audit --no-fund",
 ]
 
 [phases.build]

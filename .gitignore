@@ -8,3 +8,4 @@ alembic_tmp.db
 # screenshots / playwright artifacts
 .playwright-mcp/
 *.png
+.env.railway.local
