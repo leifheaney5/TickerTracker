@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] — 2026-06-26
+
+### Fixed
+
+- Railway build: regenerate `package-lock.json` so it pins every platform's
+  optional native binaries (rolldown / rollup `linux-x64-gnu`), then install via
+  reproducible `npm ci --include=optional`. Fixes the
+  `Cannot find module '../rolldown-binding.linux-x64-gnu.node'` build crash
+  without sacrificing supply-chain reproducibility (no lockfile deletion).
+
 ## [1.0.2] — 2026-06-26
 
 ### Fixed
