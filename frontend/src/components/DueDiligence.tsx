@@ -29,14 +29,15 @@ export function DueDiligence() {
   const f = fundamentals[selected]
   const sector = f?.sector && f.sector !== '—' ? f.sector : u.sector
   const r = ratings[selected]
+  const loaded = !!r
   const p = price(selected)
 
   // distribution + consensus (from API or zeros while loading)
   const dist = r?.distribution || { strongBuy: 0, buy: 0, hold: 0, sell: 0, strongSell: 0 }
   const counts = [dist.strongBuy, dist.buy, dist.hold, dist.sell, dist.strongSell]
-  const total = counts.reduce((a, b) => a + b, 0) || 1
-  const consensus = r?.consensus || 'Hold'
-  const score = (dist.strongBuy + dist.buy * 2 + dist.hold * 3 + dist.sell * 4 + dist.strongSell * 5) / total
+  const total = counts.reduce((a, b) => a + b, 0)
+  const consensus = r?.consensus || '…'
+  const score = (dist.strongBuy + dist.buy * 2 + dist.hold * 3 + dist.sell * 4 + dist.strongSell * 5) / (total || 1)
   const consColor = score < 2.5 ? COLORS.up : score < 3.5 ? COLORS.warn : COLORS.down
 
   // price target (from API; fall back to a band around current price)
@@ -76,7 +77,7 @@ export function DueDiligence() {
       <div style={{ ...card, flex: '1.15 1 320px', minWidth: 300, gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.tx }}>Analyst Ratings</span>
-          <span style={{ fontSize: '11.5px', color: COLORS.tx3 }}>{total} analysts</span>
+          <span style={{ fontSize: '11.5px', color: COLORS.tx3 }}>{loaded ? `${total} analysts` : '…'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
           <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-.01em', color: consColor }}>{consensus}</span>
@@ -84,7 +85,7 @@ export function DueDiligence() {
         </div>
         <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', gap: 2 }}>
           {counts.map((cnt, i) => (
-            <div key={i} style={{ width: `${(cnt / total) * 100}%`, height: '100%', background: SEG_COLORS[i] }} />
+            <div key={i} style={{ width: `${(cnt / (total || 1)) * 100}%`, height: '100%', background: SEG_COLORS[i] }} />
           ))}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>

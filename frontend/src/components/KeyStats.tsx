@@ -16,20 +16,23 @@ export function KeyStats() {
   const f = fundamentals[selected]
   const bars = history[`${selected}:3M`] || history[`${selected}:1M`]
 
-  const dash = '—'
+  // While a quote/fundamentals fetch is in flight (e.g. just after selecting a
+  // symbol), show a loading ellipsis rather than a bare em-dash so the panel
+  // reads as "fetching" instead of "no data / broken".
+  const loading = '…'
   const stats: [string, string][] = [
-    ['Open', q ? money(q.day_open) : dash],
-    ['Prev Close', q ? money(q.day_open) : dash],
-    ['Day High', q ? money(q.day_high) : dash],
-    ['Day Low', q ? money(q.day_low) : dash],
-    ['52W High', f ? money(f.week52_high) : dash],
-    ['52W Low', f ? money(f.week52_low) : dash],
-    ['Volume', q ? (q.volume / 1e6).toFixed(1) + 'M' : u.vol || dash],
-    ['All-Time High', f ? money(f.all_time_high) : dash],
-    ['Mkt Cap', f ? capStr(f.market_cap) : u.cap || dash],
-    ['P/E', f && f.pe ? String(f.pe) : u.pe || dash],
-    ['Div Yield', f ? (f.dividend_yield ? f.dividend_yield.toFixed(2) + '%' : '—') : u.div || dash],
-    ['Beta', f ? String(f.beta) : dash],
+    ['Open', q ? money(q.day_open) : loading],
+    ['Prev Close', q ? money(q.day_open) : loading],
+    ['Day High', q ? money(q.day_high) : loading],
+    ['Day Low', q ? money(q.day_low) : loading],
+    ['52W High', f ? money(f.week52_high) : loading],
+    ['52W Low', f ? money(f.week52_low) : loading],
+    ['Volume', q ? (q.volume / 1e6).toFixed(1) + 'M' : u.vol || loading],
+    ['All-Time High', f ? money(f.all_time_high) : loading],
+    ['Mkt Cap', f ? capStr(f.market_cap) : u.cap || loading],
+    ['P/E', f && f.pe ? String(f.pe) : u.pe || loading],
+    ['Div Yield', f ? (f.dividend_yield ? f.dividend_yield.toFixed(2) + '%' : '—') : u.div || loading],
+    ['Beta', f ? String(f.beta) : loading],
   ]
   void bars
 
