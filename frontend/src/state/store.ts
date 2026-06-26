@@ -16,6 +16,10 @@ export type View =
 export type ChartType = 'candles' | 'line' | 'area'
 export type SortBy = 'manual' | 'change' | 'price' | 'az'
 
+// Module-level guard so the first-run watchlist seed runs at most once even if
+// loadWatchlist is invoked twice (React StrictMode double-invokes effects).
+let seedInFlight = false
+
 interface StoreState {
   // ── UI state (mirrors prototype state) ──
   view: View
@@ -61,6 +65,7 @@ interface StoreState {
   loadRatings: (sym: string) => Promise<void>
   addWatch: (sym: string, target?: number) => Promise<void>
   removeWatch: (sym: string) => Promise<void>
+  updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
 
   // ── selectors ──
   price: (sym: string) => number
@@ -107,10 +112,15 @@ export const useStore = create<StoreState>((set, get) => ({
     }),
 
   loadWatchlist: async () => {
+    // Guard against concurrent/double invocation (React StrictMode) so the
+    // first-run seed can't run twice.
+    if (seedInFlight) return
+    seedInFlight = true
     try {
       const { data } = await api.getWatchlist()
       if (data.length === 0) {
-        // First run: seed the server with the default watchlist.
+        // First run: seed the server with the default watchlist (sequentially;
+        // add_watch upserts by symbol so this is idempotent).
         for (let i = 0; i < DEFAULT_WATCH.length; i++) {
           await api.addWatch({ symbol: DEFAULT_WATCH[i], target: UNIVERSE[DEFAULT_WATCH[i]]?.target ?? 0 })
         }
@@ -215,6 +225,16 @@ export const useStore = create<StoreState>((set, get) => ({
       await api.removeWatch(sym)
       set((st) => ({ watchlist: st.watchlist.filter((w) => w.symbol !== sym) }))
     } catch { /* ignore */ }
+  },
+
+  updateWatch: async (sym, fields) => {
+    // Optimistic local update, then persist.
+    set((st) => ({
+      watchlist: st.watchlist.map((w) => (w.symbol === sym ? { ...w, ...fields } : w)),
+    }))
+    try {
+      await api.updateWatch(sym, fields)
+    } catch { /* keep optimistic value offline */ }
   },
 
   price: (sym) => get().quotes[sym]?.price ?? UNIVERSE[sym]?.price ?? 0,

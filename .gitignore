@@ -4,3 +4,7 @@ __pycache__/
 ticker.db
 alembic_tmp.db
 *.db
+
+# screenshots / playwright artifacts
+.playwright-mcp/
+*.png
