@@ -1,0 +1,19 @@
+# Railway/Nixpacks build: install Node + Python, build the frontend, install
+# Python deps. The start command (Procfile) runs gunicorn serving backend/app.py,
+# which also serves the built frontend/dist.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "python311"]
+
+[phases.install]
+cmds = [
+  "python -m venv /opt/venv",
+  ". /opt/venv/bin/activate && pip install -r requirements.txt",
+  "cd frontend && npm ci",
+]
+
+[phases.build]
+cmds = ["cd frontend && npm run build"]
+
+[start]
+cmd = ". /opt/venv/bin/activate && gunicorn --chdir backend app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 90"

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-06-26
+
+### Added
+
+- **Single-service deploy**: Flask serves the built frontend (`frontend/dist`)
+  plus the `/api/*` endpoints from one process, with an SPA catch-all so client
+  navigation survives hard refresh.
+- **Railway/Nixpacks config**: `nixpacks.toml` (Node + Python build → vite build
+  → gunicorn), root `requirements.txt` (+ gunicorn), `Procfile`, `railway.json`
+  with `/api/health` healthcheck, and `.env.example`.
+- Production `README.md` documenting architecture, local dev, data sources, and
+  Railway deployment. Original prototype handoff preserved in
+  `docs/PROTOTYPE_HANDOFF.md`.
+
+### Notes
+
+- **1.0.0** marks the prototype fully operational: the high-fidelity UI recreated
+  pixel-faithfully in React, backed by real market data (yfinance/yahooquery,
+  CoinGecko, alternative.me, Finnhub) with deterministic mock fallback,
+  Postgres-ready persistence, and one-command Railway deploy.
+
 ## [0.6.0] — 2026-06-26
 
 ### Added
