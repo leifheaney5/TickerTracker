@@ -4,7 +4,7 @@
 
 import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
-  NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, AuthUser,
+  NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe,
 } from './types'
 
 export interface Result<T> {
@@ -59,11 +59,4 @@ export const api = {
     send<Holding>('/api/holdings', 'POST', b),
   removeHolding: (sym: string) =>
     send<{ removed: boolean }>(`/api/holdings/${encodeURIComponent(sym)}`, 'DELETE'),
-
-  me: () => get<{ user: AuthUser | null }>('/api/auth/me'),
-  login: (email: string, password: string) => send<{ user: AuthUser }>('/api/auth/login', 'POST', { email, password }),
-  signup: (email: string, password: string, name?: string) => send<{ message: string }>('/api/auth/signup', 'POST', { email, password, name }),
-  logout: () => send<{ message: string }>('/api/auth/logout', 'POST'),
-  forgot: (email: string) => send<{ message: string }>('/api/auth/forgot', 'POST', { email }),
-  reset: (token: string, password: string) => send<{ message: string }>('/api/auth/reset', 'POST', { token, password }),
 }
