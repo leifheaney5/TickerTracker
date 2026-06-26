@@ -130,3 +130,29 @@ def reset():
         u.email_verified = True  # proves email ownership
         s.commit()
     return jsonify({"message": "password updated"}), 200
+
+
+from authlib.integrations.flask_client import OAuthError
+from auth.google import oauth, upsert_google_user
+
+
+@auth_bp.get("/google")
+def google_login():
+    if "google" not in getattr(oauth, "_clients", {}):
+        return jsonify({"error": "google oauth not configured"}), 503
+    return oauth.google.authorize_redirect(f"{_base()}/api/auth/google/callback")
+
+
+@auth_bp.get("/google/callback")
+def google_callback():
+    try:
+        token = oauth.google.authorize_access_token()
+        info = token.get("userinfo") or {}
+        sub, email, name = info.get("sub"), info.get("email"), info.get("name", "")
+        if not sub or not email:
+            return redirect(f"{_base()}/?auth=failed")
+        u = upsert_google_user(sub, email, name)
+        login_user(u)
+        return redirect(f"{_base()}/?auth=ok")
+    except OAuthError:
+        return redirect(f"{_base()}/?auth=failed")
