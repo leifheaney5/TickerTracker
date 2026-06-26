@@ -24,6 +24,25 @@ def test_history_route(monkeypatch):
     assert len(body["data"]) == 22
 
 
+def test_history_rejects_invalid_tf():
+    r = app.test_client().get("/api/history/AAPL?tf=BOGUS")
+    assert r.status_code == 400
+
+
+def test_history_rejects_invalid_symbol():
+    r = app.test_client().get("/api/history/THIS_IS_WAY_TOO_LONG?tf=1M")
+    assert r.status_code == 400
+
+
+def test_quotes_drops_invalid_symbols(monkeypatch):
+    cache.clear()
+    import services.quotes as q
+    monkeypatch.setattr(q, "fetch_quote", lambda s: (_ for _ in ()).throw(RuntimeError("down")))
+    r = app.test_client().get("/api/quotes?syms=AAPL,bad symbol!,MSFT")
+    quotes = r.get_json()["data"]["quotes"]
+    assert set(quotes.keys()) == {"AAPL", "MSFT"}
+
+
 def test_crypto_and_fng_routes(monkeypatch):
     cache.clear()
     import services.crypto as c

@@ -40,3 +40,13 @@ def test_serves_stale_on_producer_error():
     v, stale = cache.cached("k", 0, boom)
     assert v == "good"
     assert stale is True
+
+
+def test_cache_is_bounded_lru(monkeypatch):
+    # Cap entries so attacker-controlled keys cannot grow memory unbounded.
+    monkeypatch.setattr(cache, "MAX_ENTRIES", 5)
+    for i in range(20):
+        cache.cached(f"k{i}", 60, lambda i=i: i)
+    assert len(cache._store) == 5
+    # Only the most-recent 5 keys survive.
+    assert set(cache._store.keys()) == {f"k{i}" for i in range(15, 20)}
