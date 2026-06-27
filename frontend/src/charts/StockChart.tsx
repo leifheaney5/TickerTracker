@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../state/store'
-import { COLORS, COMPARE_COLORS, FONT_MONO, FONT_SANS } from '../theme/tokens'
+import { COMPARE_COLORS, FONT_MONO, FONT_SANS } from '../theme/tokens'
 import { fallbackSeries } from '../data/series'
 import type { Bar, Timeframe } from '../api/types'
 
@@ -63,7 +63,7 @@ export function StockChart() {
   const seriesOf = (sym: string): Bar[] => history[`${sym}:${timeframe}`] || fallbackSeries(sym, timeframe)
 
   const compareActive = compare.length > 0
-  const ACC = COLORS.accent
+  const ACC = 'var(--accent)'
   const W = Math.max(360, Math.round(width))
   const H = 366
   const padL = 8
@@ -85,8 +85,8 @@ export function StockChart() {
   if (!ser.length) return <div ref={elRef} style={{ width: '100%', height: 366 }} />
 
   const kids: React.ReactNode[] = []
-  const grid = (y: number, key: string) => <line key={key} x1={padL} y1={y} x2={W - padR} y2={y} stroke={COLORS.line} strokeWidth={1} />
-  const lab = (x: number, y: number, t: string, key: string, anchor: 'start' | 'middle' | 'end' = 'start', col: string = COLORS.tx3, sz = 11) => (
+  const grid = (y: number, key: string) => <line key={key} x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--line)" strokeWidth={1} />
+  const lab = (x: number, y: number, t: string, key: string, anchor: 'start' | 'middle' | 'end' = 'start', col: string = 'var(--tx3)', sz = 11) => (
     <text key={key} x={x} y={y} fill={col} fontSize={sz} fontFamily={FONT_MONO} textAnchor={anchor}>{t}</text>
   )
 
@@ -106,14 +106,14 @@ export function StockChart() {
     geomRef.current = { n, padL, plotW }
     for (let t = 0; t <= 4; t++) { const val = pmin + (t / 4) * (pmax - pmin); const y = yP(val); kids.push(grid(y, 'g' + t)); kids.push(lab(W - padR + 6, y + 3, (val >= 0 ? '+' : '') + val.toFixed(1) + '%', 'l' + t)) }
     const z = yP(0)
-    kids.push(<line key="zero" x1={padL} y1={z} x2={W - padR} y2={z} stroke={COLORS.line2} strokeWidth={1} strokeDasharray="3 3" />)
+    kids.push(<line key="zero" x1={padL} y1={z} x2={W - padR} y2={z} stroke="var(--line2)" strokeWidth={1} strokeDasharray="3 3" />)
     for (let t = 0; t < 6; t++) { const i = Math.round((t / 5) * (n - 1)); kids.push(lab(X(i), H - 14, axisLabel(ser[i].date, timeframe), 'x' + t, 'middle')) }
     norm.forEach((arr, si) => {
       const d = arr.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + yP(p).toFixed(1)).join(' ')
       kids.push(<path key={'p' + si} d={d} fill="none" stroke={cols[si]} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />)
       kids.push(<circle key={'c' + si} cx={X(n - 1)} cy={yP(arr[arr.length - 1])} r={3} fill={cols[si]} />)
     })
-    if (hover != null && ser[hover]) { const x = X(hover); kids.push(<line key="hl" x1={x} y1={padT} x2={x} y2={padT + priceH} stroke={COLORS.line2} strokeWidth={1} />); kids.push(lab(x, padT - 2, axisLabel(ser[hover].date, timeframe), 'hlab', 'middle', COLORS.tx2, 10)) }
+    if (hover != null && ser[hover]) { const x = X(hover); kids.push(<line key="hl" x1={x} y1={padT} x2={x} y2={padT + priceH} stroke="var(--line2)" strokeWidth={1} />); kids.push(lab(x, padT - 2, axisLabel(ser[hover].date, timeframe), 'hlab', 'middle', 'var(--tx2)', 10)) }
   } else {
     const lows = ser.map((x) => x.l)
     const highs = ser.map((x) => x.h)
@@ -130,11 +130,11 @@ export function StockChart() {
     const volY0 = padT + priceH + 8
     for (let t = 0; t <= 4; t++) { const val = min + (t / 4) * (max - min); const y = yP(val); kids.push(grid(y, 'g' + t)); kids.push(lab(W - padR + 6, y + 3, '$' + val.toFixed(val > 500 ? 0 : 1), 'l' + t)) }
     for (let t = 0; t < 6; t++) { const i = Math.round((t / 5) * (n - 1)); kids.push(lab(X(i), H - 14, axisLabel(ser[i].date, timeframe), 'x' + t, 'middle')) }
-    ser.forEach((c, i) => { const up = c.c >= c.o; const h = Math.max(1, (c.v / (maxV || 1)) * volH); kids.push(<rect key={'v' + i} x={X(i) - cw * 0.3} y={volY0 + volH - h} width={cw * 0.6} height={h} fill={up ? COLORS.up : COLORS.down} opacity={0.32} />) })
+    ser.forEach((c, i) => { const up = c.c >= c.o; const h = Math.max(1, (c.v / (maxV || 1)) * volH); kids.push(<rect key={'v' + i} x={X(i) - cw * 0.3} y={volY0 + volH - h} width={cw * 0.6} height={h} fill={up ? 'var(--up)' : 'var(--down)'} opacity={0.32} />) })
     if (chartType === 'candles') {
       ser.forEach((c, i) => {
         const up = c.c >= c.o
-        const col = up ? COLORS.up : COLORS.down
+        const col = up ? 'var(--up)' : 'var(--down)'
         const x = X(i)
         const yo = yP(c.o)
         const yc = yP(c.c)
@@ -161,18 +161,18 @@ export function StockChart() {
     const last = ser[ser.length - 1]
     const ly = yP(last.c)
     const lastUp = last.c >= last.o
-    const lcol = lastUp ? COLORS.up : COLORS.down
+    const lcol = lastUp ? 'var(--up)' : 'var(--down)'
     kids.push(<line key="lastline" x1={padL} y1={ly} x2={W - padR} y2={ly} stroke={lcol} strokeWidth={1} strokeDasharray="2 3" opacity={0.55} />)
     kids.push(<rect key="lasttag" x={W - padR + 1} y={ly - 9} width={padR - 2} height={18} rx={3} fill={lcol} />)
-    kids.push(<text key="lasttxt" x={W - padR / 2} y={ly + 3} fill={COLORS.accentInk} fontSize={11} fontWeight={700} fontFamily={FONT_MONO} textAnchor="middle">{'$' + last.c.toFixed(last.c > 500 ? 0 : 1)}</text>)
-    if (brush) { const xa = X(Math.min(brush.a, brush.b)); const xb = X(Math.max(brush.a, brush.b)); kids.push(<rect key="brush" x={Math.min(xa, xb) - cw / 2} y={padT} width={Math.abs(xb - xa) + cw} height={priceH} fill={COLORS.accent} opacity={0.13} />) }
+    kids.push(<text key="lasttxt" x={W - padR / 2} y={ly + 3} fill="var(--accentInk)" fontSize={11} fontWeight={700} fontFamily={FONT_MONO} textAnchor="middle">{'$' + last.c.toFixed(last.c > 500 ? 0 : 1)}</text>)
+    if (brush) { const xa = X(Math.min(brush.a, brush.b)); const xb = X(Math.max(brush.a, brush.b)); kids.push(<rect key="brush" x={Math.min(xa, xb) - cw / 2} y={padT} width={Math.abs(xb - xa) + cw} height={priceH} fill="var(--accent)" opacity={0.13} />) }
     if (hover != null && ser[hover]) {
       const c = ser[hover]
       const x = X(hover)
       const y = yP(c.c)
       const up = c.c >= c.o
-      kids.push(<line key="cross" x1={x} y1={padT} x2={x} y2={padT + priceH} stroke={COLORS.line2} strokeWidth={1} />)
-      kids.push(<circle key="dot" cx={x} cy={y} r={3.5} fill={up ? COLORS.up : COLORS.down} stroke={COLORS.bg} strokeWidth={1.5} />)
+      kids.push(<line key="cross" x1={x} y1={padT} x2={x} y2={padT + priceH} stroke="var(--line2)" strokeWidth={1} />)
+      kids.push(<circle key="dot" cx={x} cy={y} r={3.5} fill={up ? 'var(--up)' : 'var(--down)'} stroke="var(--bg)" strokeWidth={1.5} />)
       const chgFromStart = (c.c / ser[0].c - 1) * 100
       const chgPos = chgFromStart >= 0
       const tw = 136
@@ -183,11 +183,11 @@ export function StockChart() {
         ['Date', axisLabel(c.date, timeframe)], ['Open', '$' + c.o.toFixed(2)], ['High', '$' + c.h.toFixed(2)],
         ['Low', '$' + c.l.toFixed(2)], ['Close', '$' + c.c.toFixed(2)], ['Chg', (chgPos ? '+' : '') + chgFromStart.toFixed(2) + '%'],
       ]
-      kids.push(<rect key="ttbg" x={tx} y={ty} width={tw} height={th} rx={8} fill={COLORS.panel} stroke={COLORS.line2} strokeWidth={1} />)
+      kids.push(<rect key="ttbg" x={tx} y={ty} width={tw} height={th} rx={8} fill="var(--panel)" stroke="var(--line2)" strokeWidth={1} />)
       rows.forEach((rw, ri) => {
         const yy = ty + 18 + ri * 15
-        kids.push(<text key={'tk' + ri} x={tx + 10} y={yy} fill={COLORS.tx3} fontSize={10.5} fontFamily={FONT_SANS}>{rw[0]}</text>)
-        const vcol = ri === 4 ? (up ? COLORS.up : COLORS.down) : ri === 5 ? (chgPos ? COLORS.up : COLORS.down) : COLORS.tx
+        kids.push(<text key={'tk' + ri} x={tx + 10} y={yy} fill="var(--tx3)" fontSize={10.5} fontFamily={FONT_SANS}>{rw[0]}</text>)
+        const vcol = ri === 4 ? (up ? 'var(--up)' : 'var(--down)') : ri === 5 ? (chgPos ? 'var(--up)' : 'var(--down)') : 'var(--tx)'
         kids.push(<text key={'tv' + ri} x={tx + tw - 10} y={yy} fill={vcol} fontSize={10.5} fontWeight={600} fontFamily={FONT_MONO} textAnchor="end">{rw[1]}</text>)
       })
     }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { Logo } from './Logo'
 import { money, pct } from '../lib/format'
 
@@ -22,8 +22,8 @@ export function MoversRibbon() {
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '7px 11px', borderRadius: 8, border: 'none', cursor: 'pointer',
     fontFamily: FONT_SANS, fontSize: '12px', fontWeight: active ? 700 : 500,
-    background: active ? COLORS.cardHi : 'transparent',
-    color: active ? COLORS.tx : COLORS.tx3,
+    background: active ? 'var(--cardHi)' : 'transparent',
+    color: active ? 'var(--tx)' : 'var(--tx3)',
   })
 
   return (
@@ -39,20 +39,20 @@ export function MoversRibbon() {
             <div
               key={sym}
               onClick={() => setSelected(sym)}
-              style={{ flex: '0 0 auto', minWidth: 120, padding: '8px 11px', borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.line}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+              style={{ flex: '0 0 auto', minWidth: 120, padding: '8px 11px', borderRadius: 10, background: 'var(--card)', border: '1px solid var(--line)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <Logo symbol={sym} size={18} />
-                <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.tx }}>{sym}</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--tx)' }}>{sym}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '11px', color: COLORS.tx2 }}>{money(price(sym))}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '11px', fontWeight: 600, color: c >= 0 ? COLORS.up : COLORS.down }}>{pct(c)}</span>
+                <span style={{ fontFamily: FONT_MONO, fontSize: '11px', color: 'var(--tx2)' }}>{money(price(sym))}</span>
+                <span style={{ fontFamily: FONT_MONO, fontSize: '11px', fontWeight: 600, color: c >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
               </div>
             </div>
           )
         })}
-        {ranked.length === 0 && <span style={{ color: COLORS.tx3, fontSize: 12, fontFamily: FONT_SANS }}>No movers</span>}
+        {ranked.length === 0 && <span style={{ color: 'var(--tx3)', fontSize: 12, fontFamily: FONT_SANS }}>No movers</span>}
       </div>
     </div>
   )

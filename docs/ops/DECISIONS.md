@@ -79,3 +79,12 @@ first (emit --accentInk/--warn/--warn2); (3) deploy the migration ONLY if its
 green-gate + review come back clean — otherwise leave on-branch for morning human
 visual QA (automated tests can't see a dark-mode color regression). This honors
 auto-deploy-when-green without risking the default UI on an unattended big sweep.
+
+## P4.T6 light migration — verified + a minor body-bg note — 2026-06-27
+Visual verify (vite preview + headless): DARK mode pixel-correct (--bg #0a0b0d,
+--card #14171c, --tx #e9ebee = original); gap-fill landed (--accentInk/--warn/
+--warn2 now emit). LIGHT mode flips correctly (--bg #f7f8fa, --card #fff, --tx
+#11151b). MINOR (morning): index.css sets a static dark <body> background, so in
+light mode the body edge behind the app root stays dark (app itself is light).
+Cosmetic; fix = make body bg use var(--bg) or move the bg to the root. Logged,
+not blocking — dark default unaffected.

@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { useStore } from '../state/store'
-import { COLORS } from '../theme/tokens'
 import { Watchlist } from '../components/Watchlist'
 import { MoversRibbon } from '../components/MoversRibbon'
 import { StockHeader } from '../components/StockHeader'
@@ -39,7 +38,7 @@ export function Dashboard() {
         <MoversRibbon />
         <StockHeader />
         <ChartControls />
-        <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: 8, flex: '0 0 auto' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: 8, flex: '0 0 auto' }}>
           <StockChart />
         </div>
         <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap', flex: '0 0 auto' }}>

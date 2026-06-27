@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] — 2026-06-27
+
+### Changed
+
+- **Full light theme:** every component now reads theme-reactive CSS variables,
+  so the light/dark toggle restyles the entire UI (previously only partial). Dark
+  remains the default and is visually unchanged. (Known minor: the page body edge
+  behind the app stays dark in light mode — tracked for a follow-up.)
+
 ## [1.8.0] — 2026-06-27
 
 ### Changed

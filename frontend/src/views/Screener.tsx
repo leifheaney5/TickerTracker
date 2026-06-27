@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStore, isAuthed } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { money, pct, capStr } from '../lib/format'
@@ -107,12 +107,12 @@ export function Screener() {
 
   const tab = (active: boolean): React.CSSProperties => ({
     padding: '6px 11px', borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '12px',
-    fontWeight: active ? 700 : 500, background: active ? COLORS.accent : 'transparent', color: active ? COLORS.accentInk : COLORS.tx2,
+    fontWeight: active ? 700 : 500, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accentInk)' : 'var(--tx2)',
   })
   const filterGroup = (label: string, opts: string[], val: string, set: (v: string) => void) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-      <span style={{ fontSize: '11px', letterSpacing: '.04em', color: COLORS.tx3, fontWeight: 600 }}>{label}</span>
-      <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 9, background: COLORS.bg }}>
+      <span style={{ fontSize: '11px', letterSpacing: '.04em', color: 'var(--tx3)', fontWeight: 600 }}>{label}</span>
+      <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 9, background: 'var(--bg)' }}>
         {opts.map((o) => <button key={o} onClick={() => set(o)} style={tab(o === val)}>{o}</button>)}
       </div>
     </div>
@@ -121,17 +121,17 @@ export function Screener() {
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Screener</span>
-        <span style={{ fontSize: '13px', color: COLORS.tx2 }}>{rows.length} matches · tap "+ Compare" on up to 4 stocks{cmp.length ? ` · comparing ${cmp.length}` : ''}</span>
+        <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Screener</span>
+        <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{rows.length} matches · tap "+ Compare" on up to 4 stocks{cmp.length ? ` · comparing ${cmp.length}` : ''}</span>
       </div>
-      <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '16px 18px', display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-end', flex: '0 0 auto' }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '16px 18px', display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-end', flex: '0 0 auto' }}>
         {filterGroup('SECTOR', GROUP_TABS, grp, setGrp)}
         {filterGroup('PERFORMANCE', PERF_TABS, perf, setPerf)}
         {filterGroup('MARKET CAP', CAP_TABS, cap, setCap)}
 
         {/* ── Save / Load screens ─────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginLeft: 'auto' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '.04em', color: COLORS.tx3, fontWeight: 600 }}>SAVED SCREENS</span>
+          <span style={{ fontSize: '11px', letterSpacing: '.04em', color: 'var(--tx3)', fontWeight: 600 }}>SAVED SCREENS</span>
           {authed ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {/* Save current filters */}
@@ -142,8 +142,8 @@ export function Screener() {
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
                   placeholder="Name this screen…"
                   style={{
-                    height: 28, padding: '0 9px', borderRadius: 7, border: `1px solid ${COLORS.line2}`,
-                    background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '12px',
+                    height: 28, padding: '0 9px', borderRadius: 7, border: '1px solid var(--line2)',
+                    background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '12px',
                     outline: 'none', width: 156,
                   }}
                 />
@@ -153,7 +153,7 @@ export function Screener() {
                   style={{
                     height: 28, padding: '0 11px', borderRadius: 7, border: 'none', cursor: 'pointer',
                     fontFamily: FONT_SANS, fontSize: '12px', fontWeight: 600,
-                    background: COLORS.accent, color: COLORS.accentInk,
+                    background: 'var(--accent)', color: 'var(--accentInk)',
                     opacity: saving || !saveName.trim() ? 0.5 : 1,
                   }}
                 >
@@ -167,7 +167,7 @@ export function Screener() {
                       style={{
                         height: 28, padding: '0 11px', borderRadius: 7, cursor: 'pointer',
                         fontFamily: FONT_SANS, fontSize: '12px', fontWeight: 600,
-                        border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2,
+                        border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)',
                       }}
                     >
                       Load ▾
@@ -175,7 +175,7 @@ export function Screener() {
                     {screensOpen && (
                       <div style={{
                         position: 'absolute', top: 32, right: 0, zIndex: 100, minWidth: 200,
-                        background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 10,
+                        background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 10,
                         boxShadow: '0 8px 24px rgba(0,0,0,.25)', overflow: 'hidden',
                       }}>
                         {savedScreens.map((sc) => (
@@ -184,19 +184,19 @@ export function Screener() {
                             onClick={() => handleLoadScreen(sc)}
                             style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                              padding: '9px 12px', cursor: 'pointer', borderBottom: `1px solid ${COLORS.line}`,
+                              padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid var(--line)',
                               gap: 8,
                             }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = COLORS.panel }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--panel)' }}
                             onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
                           >
-                            <span style={{ fontSize: '13px', color: COLORS.tx, fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}</span>
+                            <span style={{ fontSize: '13px', color: 'var(--tx)', fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}</span>
                             <button
                               onClick={(e) => handleDeleteScreen(sc.id, e)}
                               title="Delete"
                               style={{
                                 width: 20, height: 20, borderRadius: 4, border: 'none', cursor: 'pointer',
-                                background: 'transparent', color: COLORS.tx3, fontFamily: FONT_SANS,
+                                background: 'transparent', color: 'var(--tx3)', fontFamily: FONT_SANS,
                                 fontSize: '13px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 flexShrink: 0,
                               }}
@@ -213,8 +213,8 @@ export function Screener() {
             <button
               onClick={() => openAuth('login')}
               style={{
-                height: 28, padding: '0 11px', borderRadius: 7, border: `1px solid ${COLORS.line2}`,
-                background: 'transparent', color: COLORS.tx3, fontFamily: FONT_SANS, fontSize: '12px',
+                height: 28, padding: '0 11px', borderRadius: 7, border: '1px solid var(--line2)',
+                background: 'transparent', color: 'var(--tx3)', fontFamily: FONT_SANS, fontSize: '12px',
                 cursor: 'pointer',
               }}
             >
@@ -224,14 +224,14 @@ export function Screener() {
         </div>
       </div>
 
-      <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, overflow: 'hidden', flex: '0 0 auto' }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden', flex: '0 0 auto' }}>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 820 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.4fr) 130px 96px 78px 96px 60px 124px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
-              {['TICKER', 'SECTOR', 'PRICE', '24H', 'MKT CAP', 'P/E', ''].map((h, i) => <div key={i} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>)}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.4fr) 130px 96px 78px 96px 60px 124px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
+              {['TICKER', 'SECTOR', 'PRICE', '24H', 'MKT CAP', 'P/E', ''].map((h, i) => <div key={i} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>)}
             </div>
             {rows.length === 0 && (
-              <div style={{ padding: '36px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+              <div style={{ padding: '36px 18px', textAlign: 'center', color: 'var(--tx3)', fontSize: '13px' }}>
                 No tickers match these filters.
               </div>
             )}
@@ -240,21 +240,21 @@ export function Screener() {
               const c = chg(sym)
               const inCmp = cmp.includes(sym)
               return (
-                <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.4fr) 130px 96px 78px 96px 60px 124px', alignItems: 'center', borderTop: `1px solid ${COLORS.line}` }}>
+                <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.4fr) 130px 96px 78px 96px 60px 124px', alignItems: 'center', borderTop: '1px solid var(--line)' }}>
                   <div onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 12px', cursor: 'pointer', minWidth: 0 }}>
                     <Logo symbol={sym} size={26} />
                     <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <span style={{ fontWeight: 700, fontSize: '13px', color: COLORS.tx }}>{sym}</span>
-                      <span style={{ fontSize: '11px', color: COLORS.tx3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                      <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--tx)' }}>{sym}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--tx3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
                     </div>
                   </div>
-                  <div style={{ padding: '12px 12px', fontSize: '12px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.sector}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx }}>{money(price(sym))}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: c >= 0 ? COLORS.up : COLORS.down }}>{pct(c)}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{fundamentals[sym] ? capStr(fundamentals[sym].market_cap) : u.cap}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{fundamentals[sym] && fundamentals[sym].pe ? String(fundamentals[sym].pe) : u.pe}</div>
+                  <div style={{ padding: '12px 12px', fontSize: '12px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.sector}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{money(price(sym))}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: c >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{fundamentals[sym] ? capStr(fundamentals[sym].market_cap) : u.cap}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{fundamentals[sym] && fundamentals[sym].pe ? String(fundamentals[sym].pe) : u.pe}</div>
                   <div style={{ padding: '12px 12px' }}>
-                    <button onClick={() => toggleCmp(sym)} style={{ height: 28, padding: '0 11px', borderRadius: 7, cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, border: `1px solid ${inCmp ? COLORS.accent : COLORS.line2}`, background: inCmp ? 'rgba(61,220,132,.1)' : 'transparent', color: inCmp ? COLORS.accent : COLORS.tx2 }}>
+                    <button onClick={() => toggleCmp(sym)} style={{ height: 28, padding: '0 11px', borderRadius: 7, cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, border: `1px solid ${inCmp ? 'var(--accent)' : 'var(--line2)'}`, background: inCmp ? 'rgba(61,220,132,.1)' : 'transparent', color: inCmp ? 'var(--accent)' : 'var(--tx2)' }}>
                       {inCmp ? '✓ Added' : '+ Compare'}
                     </button>
                   </div>

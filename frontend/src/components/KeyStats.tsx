@@ -1,5 +1,5 @@
 import { useStore } from '../state/store'
-import { COLORS, FONT_MONO } from '../theme/tokens'
+import { FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { money, capStr, volStr, asOf } from '../lib/format'
 
@@ -38,16 +38,16 @@ export function KeyStats() {
   void bars
 
   return (
-    <div style={{ flex: 1, minWidth: 300, background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ flex: 1, minWidth: 300, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-.01em', color: COLORS.tx }}>Key Statistics</span>
-        {quotesFetchedAt && <span style={{ fontSize: '11px', color: COLORS.tx3 }}>{asOf(quotesFetchedAt)}</span>}
+        <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-.01em', color: 'var(--tx)' }}>Key Statistics</span>
+        {quotesFetchedAt && <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>{asOf(quotesFetchedAt)}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: COLORS.line, borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--line)', borderRadius: 10, overflow: 'hidden' }}>
         {stats.map(([label, value]) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '11px 13px', background: COLORS.card }}>
-            <span style={{ fontSize: '12px', color: COLORS.tx3 }}>{label}</span>
-            <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 500, color: COLORS.tx }}>{value}</span>
+          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '11px 13px', background: 'var(--card)' }}>
+            <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>{label}</span>
+            <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 500, color: 'var(--tx)' }}>{value}</span>
           </div>
         ))}
       </div>
