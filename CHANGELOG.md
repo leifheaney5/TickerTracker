@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.0] — 2026-06-27
+
+### Added
+
+- **Branded, colorful HTML emails** — alerts, weekly digest, signup verification,
+  and password reset now use a shared template with the Ticker Tracker logo mark,
+  brand colors, a big price card (alerts) / per-ticker table (digest), and a
+  footer with the © Ticker Tracker™ trademark and disclaimer. All wrapped in a
+  proper UTF-8 document so characters render correctly in every mail client.
+- **Price-target alerts** — you now get an email when a watchlist ticker reaches
+  the **price target** you set on its card (previously only the separately-armed
+  alert price triggered). Either a target or an armed alert will notify you.
+
 ## [1.12.0] — 2026-06-27
 
 ### Added

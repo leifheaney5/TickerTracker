@@ -38,16 +38,53 @@ def unsubscribe(token: str) -> bool:
         return True
 
 
-def build_digest_html(name: str, rows: list[dict]) -> str:
-    greeting = f"<p>Hi {name or 'there'}, here's your watchlist this week:</p>"
-    items = "".join(
-        f"<li><b>{r['symbol']}</b>: ${r['price']:,.2f} "
-        f"({'+' if r['change_pct'] >= 0 else ''}{r['change_pct']:.2f}%)</li>"
-        for r in rows
+def build_digest_html(name: str, rows: list[dict], unsub_url: str = "") -> str:
+    from providers import email_templates as t
+
+    greeting = (
+        f'<p style="margin:0 0 16px">Hi {name or "there"}, here\'s how the tickers '
+        'on your watchlist moved this week.</p>'
     )
-    body = f"<ul>{items}</ul>" if rows else "<p>Your watchlist is empty.</p>"
-    return (greeting + body +
-            '<p><a href="https://tickertracker.info">Open Ticker Tracker</a></p>')
+
+    if rows:
+        cells = []
+        for r in rows:
+            up = r["change_pct"] >= 0
+            color = t.UP if up else t.DOWN
+            arrow = "&#9650;" if up else "&#9660;"
+            sign = "+" if up else ""
+            cells.append(
+                '<tr>'
+                f'<td style="padding:11px 0;border-top:1px solid #f0f2f4;font-weight:700;'
+                f'color:#11151b">{r["symbol"]}</td>'
+                f'<td align="right" style="padding:11px 0;border-top:1px solid #f0f2f4;'
+                f'font-weight:600">${r["price"]:,.2f}</td>'
+                f'<td align="right" style="padding:11px 0;border-top:1px solid #f0f2f4;'
+                f'color:{color};font-weight:700">{arrow} {sign}{r["change_pct"]:.2f}%</td>'
+                '</tr>'
+            )
+        table = (
+            '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" '
+            'style="font-size:14px;color:#33383f">'
+            '<tr><td style="padding:0 0 4px;font-size:11px;color:#8b93a0;'
+            'text-transform:uppercase;letter-spacing:.04em">Ticker</td>'
+            '<td align="right" style="padding:0 0 4px;font-size:11px;color:#8b93a0;'
+            'text-transform:uppercase;letter-spacing:.04em">Price</td>'
+            '<td align="right" style="padding:0 0 4px;font-size:11px;color:#8b93a0;'
+            'text-transform:uppercase;letter-spacing:.04em">Week</td></tr>'
+            + "".join(cells) + '</table>'
+        )
+    else:
+        table = '<p style="color:#8b93a0">Your watchlist is empty — add some tickers to get started.</p>'
+
+    cta = t.button("Open Ticker Tracker", t.APP_URL)
+    unsub = (
+        f'<p style="margin:18px 0 0;font-size:11.5px;color:#8b93a0">'
+        f'<a href="{unsub_url}" style="color:#8b93a0">Unsubscribe from the weekly digest</a></p>'
+        if unsub_url else ""
+    )
+    return t.shell("Your week on the watchlist", greeting + table + cta + unsub,
+                   preheader="Here's how your watchlist moved this week.")
 
 
 def send_weekly_digest(quote_fn=None, send_fn=None) -> int:
@@ -72,11 +109,7 @@ def send_weekly_digest(quote_fn=None, send_fn=None) -> int:
                     for w in items]
             unsub_token = get_or_create_unsub_token(st.user_id)
             unsub_url = f"{APP_BASE_URL}/api/unsubscribe/{unsub_token}"
-            unsub_footer = (
-                f'<p style="font-size:11px;color:#888">'
-                f'<a href="{unsub_url}">Unsubscribe from these emails</a></p>'
-            )
-            html = build_digest_html(user.name, rows) + unsub_footer
+            html = build_digest_html(user.name, rows, unsub_url=unsub_url)
             if send_fn(user.email, "Your Ticker Tracker weekly digest", html):
                 emailed += 1
     return emailed

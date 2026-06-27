@@ -26,15 +26,30 @@ def _send(to: str, subject: str, html: str) -> bool:
 
 
 def send_verify_email(to: str, link: str) -> bool:
-    html = (f'<p>Welcome to Ticker Tracker. Confirm your email to finish '
-            f'signing up:</p><p><a href="{link}">Verify my email</a></p>'
-            f'<p>This link expires in 24 hours.</p>')
+    from providers import email_templates as t
+    body = (
+        '<p style="margin:0 0 14px">Welcome to Ticker Tracker — one quick step to '
+        'finish creating your account.</p>'
+        f'{t.button("Verify my email", link)}'
+        '<p style="margin:14px 0 0;font-size:12.5px;color:#8b93a0">'
+        'This link expires in 24 hours. If you didn\'t sign up, you can ignore '
+        'this email.</p>'
+    )
+    html = t.shell("Confirm your email", body,
+                   preheader="Verify your email to finish signing up.")
     return _send(to, "Verify your Ticker Tracker email", html)
 
 
 def send_reset_email(to: str, link: str) -> bool:
-    html = (f'<p>Reset your Ticker Tracker password:</p>'
-            f'<p><a href="{link}">Reset password</a></p>'
-            f'<p>This link expires in 1 hour. If you did not request this, '
-            f'ignore this email.</p>')
+    from providers import email_templates as t
+    body = (
+        '<p style="margin:0 0 14px">We received a request to reset your Ticker '
+        'Tracker password. Click below to choose a new one.</p>'
+        f'{t.button("Reset my password", link)}'
+        '<p style="margin:14px 0 0;font-size:12.5px;color:#8b93a0">'
+        'This link expires in 1 hour. If you didn\'t request this, ignore this '
+        'email — your password won\'t change.</p>'
+    )
+    html = t.shell("Reset your password", body,
+                   preheader="Reset your Ticker Tracker password.")
     return _send(to, "Reset your Ticker Tracker password", html)
