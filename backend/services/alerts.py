@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 import db
 import models
+import services.billing as billing
 from services.quotes import get_quotes
 from providers.email import _send
 
@@ -134,6 +135,8 @@ def check_alerts(now=None, quote_fn=None, send_fn=None) -> int:
                 continue
             if settings is not None and not settings.alert_notifs:
                 continue
+            if not billing.is_pro(w.user_id):
+                continue  # price-hit alert emails are a Pro feature
             label = "price target" if kind == "target" else "alert price"
             ok = send_fn(user.email,
                          f"{w.symbol} hit your {label}",
@@ -156,4 +159,5 @@ def _seed_for_test(user_email, symbol, alert_price=0, alert_dir="above",
         s.add(models.WatchlistItem(user_id=u.id, symbol=symbol,
                                    alert_price=alert_price, alert_dir=alert_dir,
                                    alert_active=alert_active, target=target))
+        s.add(models.BillingSubscription(user_id=u.id, status="active", plan="pro"))
         s.commit()

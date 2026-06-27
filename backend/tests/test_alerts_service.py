@@ -50,3 +50,26 @@ def test_target_not_hit_does_not_fire(monkeypatch):
     al._seed_for_test(user_email="n@e.com", symbol="NVDA", target=200)
     fired = al.check_alerts(quote_fn=fake_quote, send_fn=lambda *a: True)
     assert fired == 0
+
+
+def test_price_hit_email_only_for_pro_users():
+    import services.billing as billing  # noqa: F401
+    # Free + Pro user, both with an armed alert that should fire at price 200.
+    with db.get_session() as s:
+        free = models.User(email="free_al@example.com", name="F", email_verified=True)
+        pro = models.User(email="pro_al@example.com", name="P", email_verified=True)
+        s.add(free); s.add(pro); s.flush()
+        s.add(models.Settings(user_id=free.id, alert_notifs=True))
+        s.add(models.Settings(user_id=pro.id, alert_notifs=True))
+        s.add(models.WatchlistItem(user_id=free.id, symbol="AAPL",
+                                   alert_price=150, alert_dir="above", alert_active=True))
+        s.add(models.WatchlistItem(user_id=pro.id, symbol="AAPL",
+                                   alert_price=150, alert_dir="above", alert_active=True))
+        s.add(models.BillingSubscription(user_id=pro.id, status="active", plan="pro"))
+        s.commit()
+    sent = []
+    n = al.check_alerts(
+        quote_fn=lambda syms: ({s: {"price": 200.0} for s in syms}, "mock"),
+        send_fn=lambda to, subj, html: sent.append(to) or True,
+    )
+    assert n == 1 and sent == ["pro_al@example.com"]
