@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-06-27
+
+### Added
+
+- **Earnings calendar** — a new Earnings view showing upcoming earnings dates
+  (next 30 days) for your watchlist symbols, via Finnhub (cached 6h).
+- **Saved screener filters** — name and save a Screener configuration, then
+  re-apply or delete saved screens (per-account, requires sign-in).
+- **Watchlist sentiment summary** — an aggregate "watchlist mood" chip
+  (Bullish/Bearish/Neutral) derived from recent news sentiment across your list.
+
 ## [1.6.0] — 2026-06-27
 
 ### Added
