@@ -1,4 +1,4 @@
-import { useStore } from '../state/store'
+import { useStore, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS } from '../theme/tokens'
 import { Logo } from '../components/Logo'
 import { money } from '../lib/format'
@@ -12,6 +12,8 @@ export function Alerts() {
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
   const updateWatch = useStore((s) => s.updateWatch)
+  const authed = useStore(isAuthed)
+  const openAuth = useStore((s) => s.openAuth)
 
   const active = watchlist.filter((w) => w.alert_price > 0)
   const open = (sym: string) => { setSelected(sym); setView('dashboard') }
@@ -55,8 +57,15 @@ export function Alerts() {
             )
           })}
           {active.length === 0 && (
-            <div style={{ padding: '24px 8px', textAlign: 'center', color: COLORS.tx3, fontSize: '12.5px' }}>
-              No active alerts. Open any stock and set a price alert to get notified.
+            <div style={{ padding: '24px 8px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              {authed ? (
+                <span>No alerts yet — set a price target on a watchlist ticker to get notified.</span>
+              ) : (
+                <>
+                  <span>Sign in to save alerts across devices.</span>
+                  <button onClick={() => openAuth('login')} style={{ height: 32, padding: '0 14px', borderRadius: 8, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
+                </>
+              )}
             </div>
           )}
         </div>
