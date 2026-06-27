@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
 import { api } from '../api/client'
 import type { EarningsRow } from '../api/types'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { Logo } from '../components/Logo'
 
 // Earnings Calendar — shows upcoming earnings for the user's watchlist symbols
@@ -43,10 +43,10 @@ export function Earnings() {
     >
       {/* Header */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '0 0 auto' }}>
-        <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>
+        <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>
           Earnings Calendar
         </span>
-        <span style={{ fontSize: '13px', color: COLORS.tx2 }}>
+        <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>
           Upcoming earnings reports for your watchlist — next 30 days
         </span>
       </div>
@@ -54,8 +54,8 @@ export function Earnings() {
       {/* Table */}
       <div
         style={{
-          border: `1px solid ${COLORS.line}`, borderRadius: 16,
-          overflow: 'hidden', background: COLORS.card, flex: '0 0 auto',
+          border: '1px solid var(--line)', borderRadius: 16,
+          overflow: 'hidden', background: 'var(--card)', flex: '0 0 auto',
         }}
       >
         <div style={{ overflowX: 'auto' }}>
@@ -64,7 +64,7 @@ export function Earnings() {
             <div
               style={{
                 display: 'grid', gridTemplateColumns: '140px 1fr 160px 140px',
-                background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}`,
+                background: 'var(--panel)', borderBottom: '1px solid var(--line)',
               }}
             >
               {['Date', 'Symbol', 'Time', 'EPS Est.'].map((h) => (
@@ -72,7 +72,7 @@ export function Earnings() {
                   key={h}
                   style={{
                     padding: '12px 14px', fontSize: '11px', fontWeight: 600,
-                    letterSpacing: '.04em', color: COLORS.tx3,
+                    letterSpacing: '.04em', color: 'var(--tx3)',
                   }}
                 >
                   {h}
@@ -82,14 +82,14 @@ export function Earnings() {
 
             {/* Loading state */}
             {loading && (
-              <div style={{ padding: '28px 18px', fontSize: '13px', color: COLORS.tx3, fontFamily: FONT_SANS }}>
+              <div style={{ padding: '28px 18px', fontSize: '13px', color: 'var(--tx3)', fontFamily: FONT_SANS }}>
                 Loading…
               </div>
             )}
 
             {/* Empty state */}
             {!loading && rows.length === 0 && (
-              <div style={{ padding: '36px 18px', textAlign: 'center', color: COLORS.tx3, fontFamily: FONT_SANS, fontSize: '13.5px' }}>
+              <div style={{ padding: '36px 18px', textAlign: 'center', color: 'var(--tx3)', fontFamily: FONT_SANS, fontSize: '13.5px' }}>
                 No upcoming earnings in the next 30 days
               </div>
             )}
@@ -100,14 +100,14 @@ export function Earnings() {
                 key={`${row.symbol}:${row.date}`}
                 style={{
                   display: 'grid', gridTemplateColumns: '140px 1fr 160px 140px',
-                  alignItems: 'center', borderTop: `1px solid ${COLORS.line}`,
+                  alignItems: 'center', borderTop: '1px solid var(--line)',
                 }}
               >
                 {/* Date */}
                 <div
                   style={{
                     padding: '13px 14px', fontFamily: FONT_MONO, fontSize: '12.5px',
-                    color: COLORS.tx2,
+                    color: 'var(--tx2)',
                   }}
                 >
                   {row.date}
@@ -121,7 +121,7 @@ export function Earnings() {
                   }}
                 >
                   <Logo symbol={row.symbol} size={26} />
-                  <span style={{ fontWeight: 700, fontSize: '13.5px', color: COLORS.tx }}>
+                  <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--tx)' }}>
                     {row.symbol}
                   </span>
                 </div>
@@ -130,7 +130,7 @@ export function Earnings() {
                 <div
                   style={{
                     padding: '13px 14px', fontSize: '12px',
-                    color: COLORS.tx2, fontFamily: FONT_SANS,
+                    color: 'var(--tx2)', fontFamily: FONT_SANS,
                   }}
                 >
                   {hourLabel(row.hour)}
@@ -140,7 +140,7 @@ export function Earnings() {
                 <div
                   style={{
                     padding: '13px 14px', fontFamily: FONT_MONO, fontSize: '12.5px',
-                    color: row.epsEstimate !== null ? COLORS.tx : COLORS.tx3,
+                    color: row.epsEstimate !== null ? 'var(--tx)' : 'var(--tx3)',
                   }}
                 >
                   {row.epsEstimate !== null ? `$${row.epsEstimate.toFixed(2)}` : '—'}

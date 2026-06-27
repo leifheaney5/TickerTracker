@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStore, type View, isAuthed } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { Logo } from './Logo'
 import { UNIVERSE } from '../data/universe'
 import { api } from '../api/client'
@@ -26,7 +26,7 @@ function navBtnStyle(active: boolean): React.CSSProperties {
     fontFamily: FONT_SANS, fontSize: '12.5px', whiteSpace: 'nowrap',
     fontWeight: active ? 700 : 500,
     background: active ? 'var(--accent,#3ddc84)' : 'transparent',
-    color: active ? COLORS.accentInk : COLORS.tx2,
+    color: active ? 'var(--accentInk)' : 'var(--tx2)',
   }
 }
 
@@ -99,7 +99,7 @@ export function Header() {
     return (
       <header
         style={{
-          flex: '0 0 auto', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}`,
+          flex: '0 0 auto', background: 'var(--panel)', borderBottom: '1px solid var(--line)',
           position: 'relative', zIndex: 30,
         }}
       >
@@ -114,12 +114,12 @@ export function Header() {
           <div
             title="Ticker Tracker"
             style={{
-              width: 32, height: 32, borderRadius: 9, background: COLORS.card,
-              border: `1px solid ${COLORS.line2}`, position: 'relative', flex: '0 0 auto',
+              width: 32, height: 32, borderRadius: 9, background: 'var(--card)',
+              border: '1px solid var(--line2)', position: 'relative', flex: '0 0 auto',
             }}
           >
-            <span style={{ position: 'absolute', left: 5, top: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: COLORS.up }}>T</span>
-            <span style={{ position: 'absolute', right: 5, bottom: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: COLORS.down }}>T</span>
+            <span style={{ position: 'absolute', left: 5, top: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: 'var(--up)' }}>T</span>
+            <span style={{ position: 'absolute', right: 5, bottom: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: 'var(--down)' }}>T</span>
           </div>
 
           {/* Hamburger */}
@@ -129,23 +129,23 @@ export function Header() {
             aria-label="Open navigation menu"
             style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: 5, width: 34, height: 34, borderRadius: 9, background: menuOpen ? COLORS.cardHi : COLORS.card,
-              border: `1px solid ${COLORS.line}`, cursor: 'pointer', flex: '0 0 auto',
+              gap: 5, width: 34, height: 34, borderRadius: 9, background: menuOpen ? 'var(--cardHi)' : 'var(--card)',
+              border: '1px solid var(--line)', cursor: 'pointer', flex: '0 0 auto',
             }}
           >
             {menuOpen ? (
-              <span style={{ fontSize: '16px', color: COLORS.tx2, lineHeight: 1 }}>✕</span>
+              <span style={{ fontSize: '16px', color: 'var(--tx2)', lineHeight: 1 }}>✕</span>
             ) : (
               <>
-                <span style={{ display: 'block', width: 14, height: 2, background: COLORS.tx2, borderRadius: 1 }} />
-                <span style={{ display: 'block', width: 14, height: 2, background: COLORS.tx2, borderRadius: 1 }} />
-                <span style={{ display: 'block', width: 14, height: 2, background: COLORS.tx2, borderRadius: 1 }} />
+                <span style={{ display: 'block', width: 14, height: 2, background: 'var(--tx2)', borderRadius: 1 }} />
+                <span style={{ display: 'block', width: 14, height: 2, background: 'var(--tx2)', borderRadius: 1 }} />
+                <span style={{ display: 'block', width: 14, height: 2, background: 'var(--tx2)', borderRadius: 1 }} />
               </>
             )}
           </button>
 
           {/* Current view label — fills space */}
-          <span style={{ flex: 1, fontSize: '13.5px', fontWeight: 700, color: COLORS.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ flex: 1, fontSize: '13.5px', fontWeight: 700, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {NAV.find((n) => n.view === view)?.label ?? 'Ticker Tracker'}
           </span>
 
@@ -171,8 +171,8 @@ export function Header() {
               aria-label="Search"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-                borderRadius: 9, background: COLORS.card, border: `1px solid ${COLORS.line}`,
-                color: COLORS.tx2, cursor: 'pointer', fontSize: '15px',
+                borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
+                color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px',
               }}
             >
               ⌕
@@ -180,25 +180,25 @@ export function Header() {
             {searchOpen && (
               <div
                 style={{
-                  position: 'fixed', top: 54, left: 0, right: 0, background: COLORS.panel,
-                  borderBottom: `1px solid ${COLORS.line2}`,
+                  position: 'fixed', top: 54, left: 0, right: 0, background: 'var(--panel)',
+                  borderBottom: '1px solid var(--line2)',
                   boxShadow: '0 18px 50px rgba(0,0,0,.55)', overflow: 'hidden', zIndex: 45,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderBottom: `1px solid ${COLORS.line}` }}>
-                  <span style={{ color: COLORS.tx3, fontSize: '15px' }}>⌕</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderBottom: '1px solid var(--line)' }}>
+                  <span style={{ color: 'var(--tx3)', fontSize: '15px' }}>⌕</span>
                   <input
                     autoFocus
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search ticker or company…"
                     aria-label="Search ticker or company"
-                    style={{ flex: 1, border: 'none', background: 'transparent', color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13.5px' }}
+                    style={{ flex: 1, border: 'none', background: 'transparent', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13.5px' }}
                   />
-                  <button onClick={() => setSearchOpen(false)} aria-label="Close search" style={{ background: 'none', border: 'none', color: COLORS.tx3, cursor: 'pointer', fontSize: '14px' }}>✕</button>
+                  <button onClick={() => setSearchOpen(false)} aria-label="Close search" style={{ background: 'none', border: 'none', color: 'var(--tx3)', cursor: 'pointer', fontSize: '14px' }}>✕</button>
                 </div>
                 {q && (searching || matches.length === 0) && (
-                  <div style={{ padding: '14px', fontSize: '12.5px', color: COLORS.tx3 }}>
+                  <div style={{ padding: '14px', fontSize: '12.5px', color: 'var(--tx3)' }}>
                     {searching ? 'Searching…' : 'No matches'}
                   </div>
                 )}
@@ -208,11 +208,11 @@ export function Header() {
                       <div
                         key={m.symbol}
                         onClick={() => { setSelected(m.symbol); setView('dashboard'); setSearch(''); setSearchOpen(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', cursor: 'pointer', borderTop: `1px solid ${COLORS.line}` }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', cursor: 'pointer', borderTop: '1px solid var(--line)' }}
                       >
                         <Logo symbol={m.symbol} size={26} />
-                        <span style={{ fontWeight: 700, fontSize: '13px', minWidth: 46, color: COLORS.tx }}>{m.symbol}</span>
-                        <span style={{ flex: 1, fontSize: '12.5px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.description}</span>
+                        <span style={{ fontWeight: 700, fontSize: '13px', minWidth: 46, color: 'var(--tx)' }}>{m.symbol}</span>
+                        <span style={{ flex: 1, fontSize: '12.5px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.description}</span>
                       </div>
                     ))}
                   </div>
@@ -227,7 +227,7 @@ export function Header() {
               onClick={() => setView('settings')}
               title="Account & settings"
               aria-label="Account menu"
-              style={{ width: 34, height: 34, borderRadius: '50%', background: COLORS.card, border: `1px solid ${COLORS.line2}`, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
+              style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--card)', border: '1px solid var(--line2)', color: 'var(--tx)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
             >
               {acctInitials}
             </button>
@@ -235,7 +235,7 @@ export function Header() {
             <button
               onClick={() => openAuth('login')}
               title="Sign in"
-              style={{ height: 34, padding: '0 12px', borderRadius: 10, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
+              style={{ height: 34, padding: '0 12px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
             >
               Sign in
             </button>
@@ -246,7 +246,7 @@ export function Header() {
         {menuOpen && (
           <div
             style={{
-              background: COLORS.panel, borderTop: `1px solid ${COLORS.line}`,
+              background: 'var(--panel)', borderTop: '1px solid var(--line)',
               padding: '10px 12px 14px', display: 'flex', flexDirection: 'column', gap: 2,
             }}
           >
@@ -259,25 +259,25 @@ export function Header() {
                   fontFamily: FONT_SANS, fontSize: '14px', textAlign: 'left',
                   fontWeight: view === n.view ? 700 : 500,
                   background: view === n.view ? 'var(--accent,#3ddc84)' : 'transparent',
-                  color: view === n.view ? COLORS.accentInk : COLORS.tx2,
+                  color: view === n.view ? 'var(--accentInk)' : 'var(--tx2)',
                 }}
               >
                 {n.label}
               </button>
             ))}
             {/* Connect account in menu on mobile */}
-            <div style={{ marginTop: 6, borderTop: `1px solid ${COLORS.line}`, paddingTop: 10 }}>
+            <div style={{ marginTop: 6, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
               {connected ? (
                 <button
                   onClick={() => navigate('holdings')}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1px solid ${COLORS.line}`, background: COLORS.card, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--card)', color: 'var(--tx)', fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
                 >
                   Portfolio
                 </button>
               ) : (
                 <button
                   onClick={() => { authed ? navigate('settings') : openAuth(); setMenuOpen(false) }}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1px dashed ${COLORS.accent}`, background: 'transparent', color: COLORS.accent, fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1px dashed var(--accent)', background: 'transparent', color: 'var(--accent)', fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
                 >
                   ⊕ Connect account
                 </button>
@@ -295,8 +295,8 @@ export function Header() {
       style={{
         height: '60px', flex: '0 0 auto', display: 'grid',
         gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '16px',
-        padding: '0 22px', borderBottom: `1px solid ${COLORS.line}`,
-        background: COLORS.panel, position: 'relative', zIndex: 30,
+        padding: '0 22px', borderBottom: '1px solid var(--line)',
+        background: 'var(--panel)', position: 'relative', zIndex: 30,
       }}
     >
       {/* left: logo mark + view nav */}
@@ -304,17 +304,17 @@ export function Header() {
         <div
           title="Ticker Tracker"
           style={{
-            width: 32, height: 32, borderRadius: 9, background: COLORS.card,
-            border: `1px solid ${COLORS.line2}`, position: 'relative', flex: '0 0 auto',
+            width: 32, height: 32, borderRadius: 9, background: 'var(--card)',
+            border: '1px solid var(--line2)', position: 'relative', flex: '0 0 auto',
           }}
         >
-          <span style={{ position: 'absolute', left: 5, top: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: COLORS.up }}>T</span>
-          <span style={{ position: 'absolute', right: 5, bottom: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: COLORS.down }}>T</span>
+          <span style={{ position: 'absolute', left: 5, top: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: 'var(--up)' }}>T</span>
+          <span style={{ position: 'absolute', right: 5, bottom: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: 'var(--down)' }}>T</span>
         </div>
         <div
           style={{
             display: 'flex', gap: '3px', padding: '3px', borderRadius: '10px',
-            background: COLORS.card, border: `1px solid ${COLORS.line}`,
+            background: 'var(--card)', border: '1px solid var(--line)',
             overflowX: 'auto', minWidth: 0, flex: '0 1 auto',
           }}
         >
@@ -331,13 +331,13 @@ export function Header() {
         <span
           title="Live"
           style={{
-            width: 7, height: 7, borderRadius: '50%', background: COLORS.up,
-            boxShadow: `0 0 9px ${COLORS.up}`, animation: 'ttpulse 1.8s ease-in-out infinite', flex: '0 0 auto',
+            width: 7, height: 7, borderRadius: '50%', background: 'var(--up)',
+            boxShadow: '0 0 9px var(--up)', animation: 'ttpulse 1.8s ease-in-out infinite', flex: '0 0 auto',
           }}
         />
         <span style={{ fontFamily: FONT_SANS, fontWeight: 800, fontSize: '17px', letterSpacing: '-.025em' }}>
-          <span style={{ color: COLORS.up }}>Ticker</span>
-          <span style={{ color: COLORS.down }}>&nbsp;Tracker</span>
+          <span style={{ color: 'var(--up)' }}>Ticker</span>
+          <span style={{ color: 'var(--down)' }}>&nbsp;Tracker</span>
         </span>
       </div>
 
@@ -364,8 +364,8 @@ export function Header() {
             aria-label="Search"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-              borderRadius: 9, background: COLORS.card, border: `1px solid ${COLORS.line}`,
-              color: COLORS.tx2, cursor: 'pointer', fontSize: '15px',
+              borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
+              color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px',
             }}
           >
             ⌕
@@ -373,24 +373,24 @@ export function Header() {
           {searchOpen && (
             <div
               style={{
-                position: 'absolute', top: 46, right: 0, width: 332, background: COLORS.panel,
-                border: `1px solid ${COLORS.line2}`, borderRadius: 13,
+                position: 'absolute', top: 46, right: 0, width: 332, background: 'var(--panel)',
+                border: '1px solid var(--line2)', borderRadius: 13,
                 boxShadow: '0 18px 50px rgba(0,0,0,.55)', overflow: 'hidden', zIndex: 45,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderBottom: `1px solid ${COLORS.line}` }}>
-                <span style={{ color: COLORS.tx3, fontSize: '15px' }}>⌕</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderBottom: '1px solid var(--line)' }}>
+                <span style={{ color: 'var(--tx3)', fontSize: '15px' }}>⌕</span>
                 <input
                   autoFocus
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search ticker or company…"
                   aria-label="Search ticker or company"
-                  style={{ flex: 1, border: 'none', background: 'transparent', color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13.5px' }}
+                  style={{ flex: 1, border: 'none', background: 'transparent', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13.5px' }}
                 />
               </div>
               {q && (searching || matches.length === 0) && (
-                <div style={{ padding: '14px', fontSize: '12.5px', color: COLORS.tx3 }}>
+                <div style={{ padding: '14px', fontSize: '12.5px', color: 'var(--tx3)' }}>
                   {searching ? 'Searching…' : 'No matches'}
                 </div>
               )}
@@ -400,11 +400,11 @@ export function Header() {
                     <div
                       key={m.symbol}
                       onClick={() => { setSelected(m.symbol); setView('dashboard'); setSearch(''); setSearchOpen(false) }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', cursor: 'pointer', borderTop: `1px solid ${COLORS.line}` }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', cursor: 'pointer', borderTop: '1px solid var(--line)' }}
                     >
                       <Logo symbol={m.symbol} size={26} />
-                      <span style={{ fontWeight: 700, fontSize: '13px', minWidth: 46, color: COLORS.tx }}>{m.symbol}</span>
-                      <span style={{ flex: 1, fontSize: '12.5px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.description}</span>
+                      <span style={{ fontWeight: 700, fontSize: '13px', minWidth: 46, color: 'var(--tx)' }}>{m.symbol}</span>
+                      <span style={{ flex: 1, fontSize: '12.5px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.description}</span>
                     </div>
                   ))}
                 </div>
@@ -416,17 +416,17 @@ export function Header() {
         {connected ? (
           <div
             onClick={() => setView('holdings')}
-            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 12px', borderRadius: 11, background: COLORS.card, border: `1px solid ${COLORS.line}`, flex: '0 0 auto', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 12px', borderRadius: 11, background: 'var(--card)', border: '1px solid var(--line)', flex: '0 0 auto', cursor: 'pointer' }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.12 }}>
-              <span style={{ fontSize: '9.5px', letterSpacing: '.05em', color: COLORS.tx3, fontWeight: 500 }}>PORTFOLIO</span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 600, color: COLORS.tx }}>—</span>
+              <span style={{ fontSize: '9.5px', letterSpacing: '.05em', color: 'var(--tx3)', fontWeight: 500 }}>PORTFOLIO</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 600, color: 'var(--tx)' }}>—</span>
             </div>
           </div>
         ) : (
           <button
             onClick={() => (authed ? setView('settings') : openAuth())}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 14px', borderRadius: 11, background: 'transparent', border: `1px dashed ${COLORS.accent}`, color: COLORS.accent, fontFamily: FONT_SANS, fontWeight: 600, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 14px', borderRadius: 11, background: 'transparent', border: '1px dashed var(--accent)', color: 'var(--accent)', fontFamily: FONT_SANS, fontWeight: 600, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
           >
             ⊕ Connect account
           </button>
@@ -437,7 +437,7 @@ export function Header() {
             onClick={() => setView('settings')}
             title="Account & settings"
             aria-label="Account menu"
-            style={{ width: 34, height: 34, borderRadius: '50%', background: COLORS.card, border: `1px solid ${COLORS.line2}`, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
+            style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--card)', border: '1px solid var(--line2)', color: 'var(--tx)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
           >
             {acctInitials}
           </button>
@@ -445,7 +445,7 @@ export function Header() {
           <button
             onClick={() => openAuth('login')}
             title="Sign in"
-            style={{ height: 34, padding: '0 16px', borderRadius: 10, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', flex: '0 0 auto' }}
+            style={{ height: 34, padding: '0 16px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', flex: '0 0 auto' }}
           >
             Sign in
           </button>

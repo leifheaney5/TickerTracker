@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from './state/store'
-import { rootCssVars, COLORS, FONT_SANS } from './theme/tokens'
+import { rootCssVars, FONT_SANS } from './theme/tokens'
 import { Header } from './components/Header'
 import { AuthScreen } from './components/AuthScreen'
 import { Dashboard } from './views/Dashboard'
@@ -98,8 +98,8 @@ export default function App() {
             position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)',
             zIndex: 999, padding: '10px 20px', borderRadius: 10,
             background: verifyBanner === 'ok' ? 'rgba(61,220,132,.15)' : 'rgba(255,93,115,.15)',
-            border: `1px solid ${verifyBanner === 'ok' ? COLORS.up : COLORS.down}`,
-            color: verifyBanner === 'ok' ? COLORS.up : COLORS.down,
+            border: `1px solid ${verifyBanner === 'ok' ? 'var(--up)' : 'var(--down)'}`,
+            color: verifyBanner === 'ok' ? 'var(--up)' : 'var(--down)',
             fontFamily: FONT_SANS, fontSize: '13.5px', fontWeight: 600,
             display: 'flex', alignItems: 'center', gap: 10,
             boxShadow: '0 8px 24px rgba(0,0,0,.5)',
