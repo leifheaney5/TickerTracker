@@ -185,3 +185,102 @@ def create_portal_session(user_id: int) -> str:
         return_url=f"{_app_base()}/?view=settings",
     )
     return session.url
+
+
+def _ts_to_dt(ts):
+    if not ts:
+        return None
+    try:
+        return _dt.datetime.fromtimestamp(int(ts), tz=_dt.timezone.utc).replace(tzinfo=None)
+    except (TypeError, ValueError):
+        return None
+
+
+def _user_id_from_object(obj: dict):
+    meta = obj.get("metadata") or {}
+    if meta.get("user_id"):
+        try:
+            return int(meta["user_id"])
+        except (TypeError, ValueError):
+            pass
+    if obj.get("client_reference_id"):
+        try:
+            return int(obj["client_reference_id"])
+        except (TypeError, ValueError):
+            pass
+    cust = obj.get("customer")
+    if cust:
+        with db.get_session() as s:
+            sub = (s.query(models.BillingSubscription)
+                   .filter_by(stripe_customer_id=cust).first())
+            if sub:
+                return sub.user_id
+    return None
+
+
+def _upsert_subscription(user_id: int, **fields) -> None:
+    if user_id is None:
+        return
+    with db.get_session() as s:
+        sub = _get_sub(s, user_id)
+        if sub is None:
+            sub = models.BillingSubscription(user_id=user_id)
+            s.add(sub)
+        for k, v in fields.items():
+            if v is not None:
+                setattr(sub, k, v)
+        s.commit()
+
+
+def _sync_from_checkout(obj: dict) -> None:
+    uid = _user_id_from_object(obj)
+    _upsert_subscription(
+        uid,
+        stripe_customer_id=obj.get("customer"),
+        stripe_subscription_id=obj.get("subscription"),
+        status="active",
+        plan=PLAN_PRO,
+    )
+
+
+def _sync_from_subscription(obj: dict) -> None:
+    uid = _user_id_from_object(obj)
+    status = obj.get("status") or ""
+    try:
+        price_id = obj["items"]["data"][0]["price"]["id"]
+    except (KeyError, IndexError, TypeError):
+        price_id = None
+    _upsert_subscription(
+        uid,
+        stripe_subscription_id=obj.get("id"),
+        stripe_customer_id=obj.get("customer"),
+        stripe_price_id=price_id,
+        status=status,
+        plan=PLAN_PRO if status in PRO_STATUSES else PLAN_FREE,
+        current_period_end=_ts_to_dt(obj.get("current_period_end")),
+        cancel_at_period_end=bool(obj.get("cancel_at_period_end")),
+    )
+
+
+def _sync_deleted(obj: dict) -> None:
+    uid = _user_id_from_object(obj)
+    _upsert_subscription(uid, status="canceled", plan=PLAN_FREE)
+
+
+def handle_webhook_event(event: dict) -> bool:
+    event_id = event.get("id")
+    etype = event.get("type", "")
+    with db.get_session() as s:
+        if event_id and s.get(models.StripeEvent, event_id) is not None:
+            return False
+        if event_id:
+            s.add(models.StripeEvent(event_id=event_id, event_type=etype))
+            s.commit()
+    obj = (event.get("data") or {}).get("object") or {}
+    if etype == "checkout.session.completed":
+        _sync_from_checkout(obj)
+    elif etype in ("customer.subscription.created", "customer.subscription.updated"):
+        _sync_from_subscription(obj)
+    elif etype == "customer.subscription.deleted":
+        _sync_deleted(obj)
+    return True
