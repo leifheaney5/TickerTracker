@@ -128,3 +128,29 @@ def test_get_earnings_fallback_on_error(monkeypatch):
 
     assert rows == []
     assert source == "mock"
+
+
+# ─── diagnostics ──────────────────────────────────────────────────────────────
+
+def test_get_earnings_logs_coverage(monkeypatch, caplog):
+    """get_earnings logs which requested symbols had upcoming earnings and
+    which had none — so 'spotty' calendars can be explained from the logs.
+
+    AAPL has an upcoming report; TSLA does not (no row in the window). The
+    diagnostic must name TSLA as missing without flagging it as an error.
+    """
+    cache.clear()
+    monkeypatch.setattr(earnings_svc, "fetch_earnings", lambda frm, to: [
+        {"symbol": "AAPL", "date": "2026-07-10", "hour": "amc", "epsEstimate": 1.55},
+        {"symbol": "MSFT", "date": "2026-07-15", "hour": "bmo", "epsEstimate": 2.88},
+    ])
+
+    with caplog.at_level("INFO", logger="services.earnings"):
+        rows, source = earnings_svc.get_earnings(["AAPL", "TSLA"])
+
+    assert source == "finnhub"
+    assert {r["symbol"] for r in rows} == {"AAPL"}
+    # The diagnostic line names the requested symbol with no upcoming report.
+    msg = "\n".join(r.getMessage() for r in caplog.records)
+    assert "TSLA" in msg
+    assert "1/2" in msg or "1 of 2" in msg  # matched count surfaced

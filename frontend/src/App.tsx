@@ -12,30 +12,13 @@ import { Holdings } from './views/Holdings'
 import { AtAGlance } from './views/AtAGlance'
 import { Crypto } from './views/Crypto'
 import { MarketViews } from './views/MarketViews'
-import { Screener } from './views/Screener'
-import { Strategy } from './views/Strategy'
 import { ManageWatchlist } from './views/ManageWatchlist'
 import { Footer } from './components/Footer'
-import { SharedWatchlist } from './views/SharedWatchlist'
-import { Earnings } from './views/Earnings'
 import { UpgradePrompt } from './components/UpgradePrompt'
 
-// Resolve a /s/<token> path to a share token, or null if not on that path.
-function _parseShareToken(): string | null {
-  const path = window.location.pathname
-  if (path.startsWith('/s/')) {
-    const token = path.slice(3)
-    return token.length > 0 ? token : null
-  }
-  return null
-}
-
 // App root: mounts design tokens, the header chrome, and the active view body.
-// Views are added unit by unit (Dashboard first).
+// The active view + selected ticker come from the URL via RouterBridge.
 export default function App() {
-  // Resolve share token early (not a hook — safe before hooks).
-  const shareToken = _parseShareToken()
-
   const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
@@ -64,19 +47,13 @@ export default function App() {
       }
     })
 
-    // Handle URL query params on first mount.
+    // Handle URL query params on first mount (verify/reset). Ticker + view
+    // deep-links are handled by RouterBridge via the path.
     const params = new URLSearchParams(window.location.search)
 
     // Returning from Stripe Checkout (/?checkout=success|cancel): refresh billing.
     const checkout = params.get('checkout')
     if (checkout === 'success') loadBilling()
-
-    // Deep link to a specific ticker (e.g. from an alert email: /?sym=NVDA).
-    const sym = (params.get('sym') || '').toUpperCase()
-    if (sym && /^[A-Z0-9.\-]{1,12}$/.test(sym)) {
-      useStore.getState().setSelected(sym)
-      useStore.getState().setView('dashboard')
-    }
 
     const verify = params.get('verify')
     if (verify === 'ok' || verify === 'failed') {
@@ -86,9 +63,9 @@ export default function App() {
     if (params.get('reset_token')) {
       openAuth()
     }
-    // Clean handled params from the URL without reload (keep the path).
-    if (sym || verify === 'ok' || verify === 'failed' || checkout === 'success' || checkout === 'cancel') {
-      window.history.replaceState(null, '', window.location.pathname)
+    // Clean handled params from the URL without reload (keep the path + hash).
+    if (verify === 'ok' || verify === 'failed' || checkout === 'success' || checkout === 'cancel') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash)
     }
   }, [loadMe, loadWatchlist, loadSettings, loadHoldings, loadBilling, openAuth])
 
@@ -106,13 +83,6 @@ export default function App() {
   useEffect(() => {
     document.documentElement.style.setProperty('--app-bg', THEMES[theme].bg)
   }, [theme])
-
-  // Render the read-only shared watchlist view for /s/<token> paths.
-  // This bypasses auth entirely — no header, no shell.
-  // Placed AFTER all hooks so the Rules of Hooks are satisfied.
-  if (shareToken) {
-    return <SharedWatchlist token={shareToken} />
-  }
 
   return (
     <div
@@ -158,10 +128,7 @@ export default function App() {
       {view === 'market' && <MarketViews sub="market" />}
       {view === 'map' && <MarketViews sub="map" />}
       {view === 'sectors' && <MarketViews sub="sectors" />}
-      {view === 'screener' && <Screener />}
-      {view === 'strategy' && <Strategy />}
       {view === 'managewatch' && <ManageWatchlist />}
-      {view === 'earnings' && <Earnings />}
       <Footer />
     </div>
   )

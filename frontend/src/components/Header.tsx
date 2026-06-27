@@ -15,9 +15,6 @@ const NAV: { label: string; view: View }[] = [
   { label: 'At-a-Glance', view: 'overview' },
   { label: 'Market', view: 'market' },
   { label: 'Crypto', view: 'crypto' },
-  { label: 'Earnings', view: 'earnings' },
-  { label: 'Screener', view: 'screener' },
-  { label: 'Strategy', view: 'strategy' },
 ]
 
 function navBtnStyle(active: boolean): React.CSSProperties {

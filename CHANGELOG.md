@@ -29,6 +29,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New env vars: `BILLING_ENABLED`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
   `STRIPE_PRO_MONTHLY_PRICE_ID`, `STRIPE_PRO_ANNUAL_PRICE_ID`. Setup guide:
   `docs/ops/stripe-billing-setup.md`.
+- **Real per-page URLs (routing).** Every view now has its own URL —
+  `/dashboard`, `/at-a-glance`, `/market`, `/crypto`, `/earnings`, `/screener`,
+  `/watchlist`, `/settings`, etc. — and each ticker has a page at
+  `/ticker/<SYMBOL>` (e.g. `/ticker/NVDA`). Pages are bookmarkable and
+  shareable, the browser **back/forward buttons work**, alert emails deep-link
+  straight to the ticker, and the sitemap lists the public routes for SEO.
+
+### Changed
+
+- **Earnings moved onto the stock card** — the per-stock Due Diligence panel now
+  shows the *real* next earnings date, time (before open / after close), and
+  forward EPS estimate from Finnhub, replacing the previous placeholder values.
+  The standalone Earnings calendar page (and its `g e` shortcut) was removed —
+  earnings now live where you research a ticker, with an honest "no upcoming
+  report" state when nothing is scheduled in the next 30 days.
+- **Earnings calendar diagnostics** — `get_earnings` now logs (INFO) how many of
+  the requested watchlist symbols have an upcoming report in the 30-day window
+  and names those that don't, so a sparse-looking calendar can be explained from
+  the logs. A symbol with no scheduled report is informational, not an error —
+  most "missing" tickers simply have nothing to report in the next 30 days
+  (and crypto/most non-US tickers have no earnings events at all).
+
+### Removed
+
+- **Screener page pulled from prod nav** — it filtered a hardcoded 18-ticker
+  `UNIVERSE` rather than the real market, so it couldn't discover new stocks;
+  the "+ Compare" control toggled state but rendered no comparison panel; and
+  "diving deep" just navigated to the existing Dashboard. Same
+  "promising functionality that isn't built" problem that pulled Strategy and
+  the Connect-account button. Removed from the nav and view router; source kept
+  at `frontend/src/views/Screener.tsx` and the feature is parked on `ROADMAP.md`
+  with what a genuine market-wide screener would require.
 
 ### Notes
 

@@ -13,7 +13,6 @@ export function viewForKey(letter: string): View | null {
     d: 'dashboard',
     w: 'managewatch',
     s: 'screener',
-    e: 'earnings',
     c: 'crypto',
     m: 'market',
   }
