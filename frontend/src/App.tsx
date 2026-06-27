@@ -63,16 +63,25 @@ export default function App() {
 
     // Handle URL query params on first mount.
     const params = new URLSearchParams(window.location.search)
+
+    // Deep link to a specific ticker (e.g. from an alert email: /?sym=NVDA).
+    const sym = (params.get('sym') || '').toUpperCase()
+    if (sym && /^[A-Z0-9.\-]{1,12}$/.test(sym)) {
+      useStore.getState().setSelected(sym)
+      useStore.getState().setView('dashboard')
+    }
+
     const verify = params.get('verify')
     if (verify === 'ok' || verify === 'failed') {
       setVerifyBanner(verify)
-      // Clean the URL without reload
-      const clean = window.location.pathname
-      window.history.replaceState(null, '', clean)
     }
     // reset_token is handled directly in AuthScreen
     if (params.get('reset_token')) {
       openAuth()
+    }
+    // Clean handled params from the URL without reload (keep the path).
+    if (sym || verify === 'ok' || verify === 'failed') {
+      window.history.replaceState(null, '', window.location.pathname)
     }
   }, [loadMe, loadWatchlist, loadSettings, loadHoldings, openAuth])
 

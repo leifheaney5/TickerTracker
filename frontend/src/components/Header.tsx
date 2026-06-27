@@ -270,24 +270,17 @@ export function Header() {
                 {n.label}
               </button>
             ))}
-            {/* Connect account in menu on mobile */}
-            <div style={{ marginTop: 6, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-              {connected ? (
+            {/* Portfolio link in menu on mobile (when connected) */}
+            {connected && (
+              <div style={{ marginTop: 6, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
                 <button
                   onClick={() => navigate('holdings')}
                   style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--card)', color: 'var(--tx)', fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
                 >
                   Portfolio
                 </button>
-              ) : (
-                <button
-                  onClick={() => { authed ? navigate('settings') : openAuth(); setMenuOpen(false) }}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1px dashed var(--accent)', background: 'transparent', color: 'var(--accent)', fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
-                >
-                  ⊕ Connect account
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -421,7 +414,7 @@ export function Header() {
           )}
         </div>
 
-        {connected ? (
+        {connected && (
           <div
             onClick={() => setView('holdings')}
             style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 12px', borderRadius: 11, background: 'var(--card)', border: '1px solid var(--line)', flex: '0 0 auto', cursor: 'pointer' }}
@@ -431,13 +424,6 @@ export function Header() {
               <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 600, color: 'var(--tx)' }}>—</span>
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => (authed ? setView('settings') : openAuth())}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 14px', borderRadius: 11, background: 'transparent', border: '1px dashed var(--accent)', color: 'var(--accent)', fontFamily: FONT_SANS, fontWeight: 600, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
-          >
-            ⊕ Connect account
-          </button>
         )}
 
         {authed ? (
