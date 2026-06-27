@@ -3,9 +3,6 @@ import datetime as _dt
 _TF_BARS = {"1D": 78, "1W": 7, "1M": 22, "3M": 66, "1Y": 252, "5Y": 260}
 _SECTORS = ["Technology", "Energy", "Financials", "Healthcare", "Consumer"]
 _INDUSTRIES = ["Semiconductors", "Software", "Banks", "Oil & Gas", "Retail"]
-_COINS = [("BTC", "Bitcoin", 1.33e12), ("ETH", "Ethereum", 4.22e11),
-          ("SOL", "Solana", 7.8e10), ("XRP", "XRP", 2.9e10)]
-
 
 def fnv1a(s: str) -> int:
     h = 2166136261
@@ -79,14 +76,29 @@ def mock_history(sym: str, tf: str) -> list:
     return bars
 
 
-def mock_crypto() -> dict:
+def mock_crypto(limit: int = 7, extra_ids=()) -> dict:
+    # Deterministic synthetic coins with descending caps, padded to `limit`.
+    base = [("bitcoin", "BTC", "Bitcoin", 1.33e12),
+            ("ethereum", "ETH", "Ethereum", 4.22e11),
+            ("solana", "SOL", "Solana", 7.8e10),
+            ("ripple", "XRP", "XRP", 2.9e10),
+            ("binancecoin", "BNB", "BNB", 8.5e10),
+            ("dogecoin", "DOGE", "Dogecoin", 1.8e10),
+            ("cardano", "ADA", "Cardano", 1.2e10)]
     coins = []
-    for sym, name, cap in _COINS:
+    for i in range(max(limit, len(base))):
+        if i < len(base):
+            cid, sym, name, cap = base[i]
+        else:
+            cid = f"coin-{i}"; sym = f"C{i}"; name = f"Coin {i}"
+            cap = max(5e7, 1e10 / (i + 1))
         r = rng(fnv1a(sym) + 11)
-        coins.append({"symbol": sym, "name": name,
+        coins.append({"id": cid, "symbol": sym, "name": name,
                       "price": round(r() * 70000, 2),
                       "change_pct": round((r() - 0.5) * 8, 2),
                       "market_cap": cap})
+        if i + 1 >= limit:
+            break
     total = sum(c["market_cap"] for c in coins)
     return {"coins": coins, "total_market_cap": total,
             "btc_dominance": round(coins[0]["market_cap"] / total * 100, 1)}
