@@ -6,14 +6,29 @@ import { create } from 'zustand'
 import { api, ApiError } from '../api/client'
 import type {
   Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
-  CryptoResponse, Fng, Timeframe, AuthUser, BillingState,
+  CryptoResponse, Fng, Timeframe, AuthUser, BillingState, EarningsRow,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
+import { pathForView } from '../routes'
+
+// ── URL routing bridge ───────────────────────────────────────────────────────
+// The RouterBridge (rendered inside <BrowserRouter>) registers a navigate fn
+// here so setView/setSelected can drive the URL. When it's unset (e.g. in unit
+// tests, or before mount) the store falls back to plain state updates.
+type Nav = (path: string, opts?: { replace?: boolean }) => void
+let _navigate: Nav | null = null
+let _syncingFromUrl = false  // guard: don't navigate while applying a URL change
+
+export function registerNavigate(fn: Nav | null) { _navigate = fn }
+export function applyFromUrl(fn: () => void) {
+  _syncingFromUrl = true
+  try { fn() } finally { _syncingFromUrl = false }
+}
 
 export type View =
   | 'dashboard' | 'overview' | 'deep' | 'market' | 'map' | 'sectors'
   | 'crypto' | 'screener' | 'strategy' | 'holdings' | 'alerts' | 'settings'
-  | 'managewatch' | 'earnings'
+  | 'managewatch'
 
 export type ChartType = 'candles' | 'line' | 'area'
 export type SortBy = 'manual' | 'change' | 'price' | 'az'
@@ -43,6 +58,7 @@ interface StoreState {
   news: Record<string, NewsItem[]> // key sym or 'MARKET'
   newsLoaded: Record<string, boolean> // keys whose news fetch has completed
   ratings: Record<string, Ratings>
+  earnings: Record<string, EarningsRow | null>
   watchlist: WatchlistItem[]
   settings: Settings | null
   holdings: Holding[]
@@ -79,6 +95,7 @@ interface StoreState {
   loadFundamentals: (sym: string) => Promise<void>
   loadNews: (sym?: string) => Promise<void>
   loadRatings: (sym: string) => Promise<void>
+  loadEarnings: (sym: string) => Promise<void>
   addWatch: (sym: string, target?: number) => Promise<void>
   removeWatch: (sym: string) => Promise<void>
   updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
@@ -128,6 +145,7 @@ export const useStore = create<StoreState>((set, get) => ({
   news: {},
   newsLoaded: {},
   ratings: {},
+  earnings: {},
   watchlist: [],
   settings: null,
   holdings: [],
@@ -191,8 +209,18 @@ export const useStore = create<StoreState>((set, get) => ({
     return { ok: true }
   },
 
-  setView: (v) => set({ view: v }),
-  setSelected: (s) => set({ selected: s, hover: null, compare: [] }),
+  setView: (v) => {
+    set({ view: v })
+    if (!_syncingFromUrl && _navigate) _navigate(pathForView(v))
+  },
+  setSelected: (s) => {
+    set({ selected: s, hover: null, compare: [] })
+    // Selecting a ticker navigates to its dedicated page + the dashboard view.
+    if (!_syncingFromUrl && _navigate) {
+      set({ view: 'dashboard' })
+      _navigate(`/ticker/${encodeURIComponent(s)}`)
+    }
+  },
   setTimeframe: (tf) => set({ timeframe: tf, hover: null }),
   setChartType: (c) => set({ chartType: c }),
   setGroup: (g) => set({ group: g }),
@@ -360,6 +388,14 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data } = await api.ratings(sym)
       set((st) => ({ ratings: { ...st.ratings, [sym]: data } }))
     } catch { /* leave empty */ }
+  },
+
+  loadEarnings: async (sym) => {
+    if (get().earnings[sym] !== undefined) return
+    try {
+      const { data } = await api.earnings([sym])
+      set((st) => ({ earnings: { ...st.earnings, [sym]: data[0] ?? null } }))
+    } catch { /* leave unset → card shows loading/empty */ }
   },
 
   addWatch: async (sym, target = 0) => {

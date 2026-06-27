@@ -4,8 +4,6 @@ import { FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { FACTS } from '../data/facts'
 import { fallbackSpark } from '../data/series'
-import { hashStr } from '../lib/hash'
-import { makeRng } from '../data/series'
 import { money } from '../lib/format'
 
 // Due-Diligence row — ported from the prototype template (lines 396-447):
@@ -21,9 +19,10 @@ export function DueDiligence() {
   const ratings = useStore((s) => s.ratings)
   const fundamentals = useStore((s) => s.fundamentals)
   const loadRatings = useStore((s) => s.loadRatings)
+  const loadEarnings = useStore((s) => s.loadEarnings)
   const price = useStore((s) => s.price)
 
-  useEffect(() => { loadRatings(selected) }, [selected, loadRatings])
+  useEffect(() => { loadRatings(selected); loadEarnings(selected) }, [selected, loadRatings, loadEarnings])
 
   const u = UNIVERSE[selected] || ({ name: selected, sector: '—', exch: '—' } as typeof UNIVERSE[string])
   const f = fundamentals[selected]
@@ -48,20 +47,20 @@ export function DueDiligence() {
   const curPos = Math.max(2, Math.min(98, ((p - ptLow) / (ptHigh - ptLow || 1)) * 100))
   const avgPos = Math.max(2, Math.min(98, ((ptAvg - ptLow) / (ptHigh - ptLow || 1)) * 100))
 
-  // earnings/events derived deterministically (parity with prototype _dd)
-  const rng = makeRng(hashStr(selected) + 57)
-  const today = new Date(2026, 5, 25)
-  const ed = new Date(today); ed.setDate(ed.getDate() + Math.floor(9 + rng() * 68))
-  const earnDate = `${MONTHS[ed.getMonth()]} ${ed.getDate()}, ${ed.getFullYear()}`
-  const epsEst = (0.3 + rng() * 3.4).toFixed(2)
-  const surprise = (rng() - 0.32) * 13
-  const ev2 = new Date(today); ev2.setDate(ev2.getDate() + Math.floor(4 + rng() * 18))
-  const ev3 = new Date(today); ev3.setDate(ev3.getDate() + Math.floor(24 + rng() * 40))
-  const events = [
-    { label: 'Earnings call', date: earnDate },
-    { label: 'Ex-dividend date', date: `${MONTHS[ev2.getMonth()]} ${ev2.getDate()}` },
-    { label: 'Investor day', date: `${MONTHS[ev3.getMonth()]} ${ev3.getDate()}` },
-  ]
+  // Real upcoming earnings (Finnhub via store). undefined = loading, null = none.
+  const e = useStore((s) => s.earnings[selected])
+
+  // Format ISO 'YYYY-MM-DD' as 'Mon D, YYYY' to match the card's style.
+  function fmtEarnDate(iso: string): string {
+    const [y, m, d] = iso.split('-').map(Number)
+    if (!y || !m || !d) return iso
+    return `${MONTHS[m - 1]} ${d}, ${y}`
+  }
+  function hourLabel(hour: string): string {
+    if (hour === 'bmo') return 'Before open'
+    if (hour === 'amc') return 'After close'
+    return '—'
+  }
   void fallbackSpark
 
   const facts = FACTS[selected] || {
@@ -117,30 +116,31 @@ export function DueDiligence() {
       {/* Earnings & Events + About */}
       <div style={{ flex: '1 1 320px', minWidth: 300, display: 'flex', flexDirection: 'column', gap: 'var(--gap,16px)' }}>
         <div style={card}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Earnings &amp; Events</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: 12 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: '10px', letterSpacing: '.04em', color: 'var(--tx3)' }}>NEXT EARNINGS</span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>{earnDate}</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: '10px', letterSpacing: '.04em', color: 'var(--tx3)' }}>EPS EST.</span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '13px', color: 'var(--tx)' }}>${epsEst}</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: '10px', letterSpacing: '.04em', color: 'var(--tx3)' }}>LAST SURPRISE</span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '13px', fontWeight: 600, color: surprise >= 0 ? 'var(--up)' : 'var(--down)' }}>{(surprise >= 0 ? '+' : '') + surprise.toFixed(1)}%</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {events.map((e, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 0', borderTop: '1px solid var(--line)' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flex: '0 0 auto' }} />
-                <span style={{ flex: 1, fontSize: '12.5px', color: 'var(--tx)' }}>{e.label}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{e.date}</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Next Earnings</span>
+          {e === undefined && (
+            <span style={{ fontSize: '12.5px', color: 'var(--tx3)' }}>…</span>
+          )}
+          {e === null && (
+            <span style={{ fontSize: '12.5px', color: 'var(--tx3)' }}>No upcoming report in the next 30 days</span>
+          )}
+          {e && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: '10px', letterSpacing: '.04em', color: 'var(--tx3)' }}>DATE</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>{fmtEarnDate(e.date)}</span>
               </div>
-            ))}
-          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: '10px', letterSpacing: '.04em', color: 'var(--tx3)' }}>TIME</span>
+                <span style={{ fontSize: '13px', color: 'var(--tx)' }}>{hourLabel(e.hour)}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: '10px', letterSpacing: '.04em', color: 'var(--tx3)' }}>EPS EST.</span>
+                <span style={{ fontFamily: FONT_MONO, fontSize: '13px', color: 'var(--tx)' }}>
+                  {e.epsEstimate != null ? `$${e.epsEstimate.toFixed(2)}` : '—'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         <div style={card}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>About {selected}</span>

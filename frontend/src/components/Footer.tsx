@@ -46,7 +46,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 const FAQ: { q: string; a: string }[] = [
   {
     q: 'What is Ticker Tracker?',
-    a: 'A clean, dark dashboard for tracking the stocks and crypto you care about — watchlists with price targets and alerts, interactive charts, key stats, news with sentiment, analyst ratings, an earnings calendar, a market map, and a crypto Fear & Greed index.',
+    a: 'A clean, dark dashboard for tracking the stocks and crypto you care about — watchlists with price targets and alerts, interactive charts, key stats, news with sentiment, analyst ratings, a market map, and a crypto Fear & Greed index.',
   },
   {
     q: 'Do I need an account?',
