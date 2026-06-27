@@ -234,6 +234,7 @@ from services.store import (get_watchlist, add_watch, update_watch, remove_watch
                             get_holdings, set_holding, remove_holding)
 from services.share import create_share, resolve_share
 from services.screens import list_screens, save_screen, delete_screen
+from services import digest as _digest
 
 
 @app.route("/api/watchlist", methods=["GET"])
@@ -358,6 +359,35 @@ def screens_delete(screen_id):
     if uid is None:
         return envelope({"error": "authentication required"}), 401
     return envelope({"deleted": delete_screen(uid, screen_id)}, source="db")
+
+
+# ─── One-click unsubscribe (unauthenticated; token is unguessable) ───────────
+
+@app.route("/api/unsubscribe/<token>")
+def unsubscribe_route(token):
+    ok = _digest.unsubscribe(token)
+    if ok:
+        body = (
+            "<!doctype html><html><head><meta charset=utf-8>"
+            "<title>Unsubscribed</title></head><body style='font-family:sans-serif;padding:2rem'>"
+            "<h2>You've been unsubscribed from Ticker Tracker emails.</h2>"
+            "<p>You won't receive weekly digest emails anymore. "
+            "You can re-enable them any time in your account settings.</p>"
+            "</body></html>"
+        )
+    else:
+        body = (
+            "<!doctype html><html><head><meta charset=utf-8>"
+            "<title>Invalid link</title></head><body style='font-family:sans-serif;padding:2rem'>"
+            "<h2>This unsubscribe link is invalid.</h2>"
+            "<p>The link may have expired or already been used. "
+            "Contact support if you need help.</p>"
+            "</body></html>"
+        )
+    from flask import make_response
+    resp = make_response(body, 200)
+    resp.content_type = "text/html; charset=utf-8"
+    return resp
 
 
 # ─── Shareable watchlist links ────────────────────────────────────────────────
