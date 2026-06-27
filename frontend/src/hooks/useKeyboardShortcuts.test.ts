@@ -14,8 +14,8 @@ describe('viewForKey', () => {
     expect(viewForKey('s')).toBe('screener')
   })
 
-  it('maps e → earnings', () => {
-    expect(viewForKey('e')).toBe('earnings')
+  it('returns null for e (earnings page removed)', () => {
+    expect(viewForKey('e')).toBeNull()
   })
 
   it('maps c → crypto', () => {

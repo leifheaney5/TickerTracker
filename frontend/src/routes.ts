@@ -16,7 +16,6 @@ export const VIEW_TO_PATH: Record<string, string> = {
   alerts: '/alerts',
   settings: '/settings',
   managewatch: '/watchlist',
-  earnings: '/earnings',
 }
 
 // Inverse: path → view. Built from VIEW_TO_PATH so the two never drift.
