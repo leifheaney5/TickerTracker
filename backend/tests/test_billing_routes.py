@@ -71,3 +71,46 @@ def test_webhook_valid_event_processed(monkeypatch):
     assert r.status_code == 200 and r.get_json()["received"] is True
     import services.billing as billing
     assert billing.is_pro(uid_holder["id"]) is True
+
+
+import pytest
+
+
+@pytest.fixture
+def billing_on(monkeypatch):
+    monkeypatch.setenv("BILLING_ENABLED", "true")
+
+
+def test_watchlist_16th_blocked_402(billing_on):
+    c = _verified_client("wl16@example.com")
+    for i in range(15):
+        assert c.post("/api/watchlist", json={"symbol": f"SYM{i}"}).status_code == 200
+    r = c.post("/api/watchlist", json={"symbol": "OVERX"})
+    assert r.status_code == 402
+    body = r.get_json()
+    assert body["error"] == "limit_exceeded" and body["feature"] == "watchlist"
+    assert c.post("/api/watchlist", json={"symbol": "SYM0", "target": 5}).status_code == 200
+
+
+def test_alert_4th_activation_blocked_402(billing_on):
+    c = _verified_client("al4@example.com")
+    for i in range(4):
+        c.post("/api/watchlist", json={"symbol": f"AL{i}", "alert_price": 10})
+    for i in range(3):
+        assert c.patch(f"/api/watchlist/AL{i}",
+                       json={"alert_active": True}).status_code == 200
+    r = c.patch("/api/watchlist/AL3", json={"alert_active": True})
+    assert r.status_code == 402 and r.get_json()["feature"] == "alerts"
+
+
+def test_second_screen_blocked_402(billing_on):
+    c = _verified_client("sc2@example.com")
+    assert c.post("/api/screens", json={"name": "one", "filters": {}}).status_code == 200
+    r = c.post("/api/screens", json={"name": "two", "filters": {}})
+    assert r.status_code == 402 and r.get_json()["feature"] == "screens"
+
+
+def test_free_digest_enable_blocked_402(billing_on):
+    c = _verified_client("dg402@example.com")
+    r = c.patch("/api/settings", json={"news_digest": True})
+    assert r.status_code == 402 and r.get_json()["feature"] == "digest"
