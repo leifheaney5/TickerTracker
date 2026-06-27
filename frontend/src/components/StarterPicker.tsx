@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { STARTER_LISTS } from '../data/starterLists'
 
 // Shown on ManageWatchlist when the authed user's watchlist is empty.
@@ -11,8 +11,8 @@ export function StarterPicker() {
   const [done, setDone] = useState<string | null>(null)
 
   const card: React.CSSProperties = {
-    background: COLORS.card,
-    border: `1px solid ${COLORS.line}`,
+    background: 'var(--card)',
+    border: '1px solid var(--line)',
     borderRadius: 16,
   }
 
@@ -30,8 +30,8 @@ export function StarterPicker() {
   return (
     <div style={{ ...card, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.tx }}>Start with a preset list</span>
-        <span style={{ fontSize: '12px', color: COLORS.tx3 }}>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Start with a preset list</span>
+        <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>
           Pick a starter watchlist — you can add, remove, or edit tickers any time.
         </span>
       </div>
@@ -45,8 +45,8 @@ export function StarterPicker() {
               onClick={() => handlePick(list.id, list.symbols)}
               disabled={loading !== null}
               style={{
-                background: COLORS.cardHi,
-                border: `1px solid ${COLORS.line2}`,
+                background: 'var(--cardHi)',
+                border: '1px solid var(--line2)',
                 borderRadius: 11,
                 padding: '13px 15px',
                 cursor: loading !== null ? 'default' : 'pointer',
@@ -59,10 +59,10 @@ export function StarterPicker() {
                 transition: 'opacity 0.15s',
               }}
             >
-              <span style={{ fontSize: '13px', fontWeight: 700, color: isDone ? COLORS.up : COLORS.tx, fontFamily: FONT_SANS }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: isDone ? 'var(--up)' : 'var(--tx)', fontFamily: FONT_SANS }}>
                 {isDone ? 'Added!' : isLoading ? 'Adding…' : list.label}
               </span>
-              <span style={{ fontSize: '11px', color: COLORS.tx3, fontFamily: FONT_MONO, letterSpacing: '.01em' }}>
+              <span style={{ fontSize: '11px', color: 'var(--tx3)', fontFamily: FONT_MONO, letterSpacing: '.01em' }}>
                 {list.symbols.join(' · ')}
               </span>
             </button>

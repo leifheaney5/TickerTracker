@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useStore, isAuthed } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO, COMPARE_COLORS } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO, COMPARE_COLORS } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { Donut } from '../charts/Donut'
@@ -57,13 +57,13 @@ export function Holdings() {
       <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Portfolio</span>
+            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Portfolio</span>
           </div>
-          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: COLORS.cardHi, display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.tx3, fontSize: '22px' }}>⊕</div>
-            <span style={{ fontSize: '15px', fontWeight: 700, color: COLORS.tx }}>Sign in to track your portfolio</span>
-            <span style={{ fontSize: '12.5px', color: COLORS.tx3, lineHeight: 1.55, maxWidth: 340 }}>Create a free account or sign in to connect a brokerage and view your real holdings, cost basis, and live portfolio value.</span>
-            <button onClick={() => openAuth('signup')} style={{ marginTop: 6, height: 38, padding: '0 18px', borderRadius: 10, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Sign up free</button>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--cardHi)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tx3)', fontSize: '22px' }}>⊕</div>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tx)' }}>Sign in to track your portfolio</span>
+            <span style={{ fontSize: '12.5px', color: 'var(--tx3)', lineHeight: 1.55, maxWidth: 340 }}>Create a free account or sign in to connect a brokerage and view your real holdings, cost basis, and live portfolio value.</span>
+            <button onClick={() => openAuth('signup')} style={{ marginTop: 6, height: 38, padding: '0 18px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Sign up free</button>
           </div>
         </div>
       </div>
@@ -75,11 +75,11 @@ export function Holdings() {
       <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Portfolio</span>
+            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Portfolio</span>
           </div>
-          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
-            <span style={{ fontSize: '15px', fontWeight: 700, color: COLORS.tx }}>No holdings yet</span>
-            <span style={{ fontSize: '13px', color: COLORS.tx3, lineHeight: 1.55, maxWidth: 340 }}>Your synced portfolio is empty. Holdings will appear here once your broker account has positions.</span>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tx)' }}>No holdings yet</span>
+            <span style={{ fontSize: '13px', color: 'var(--tx3)', lineHeight: 1.55, maxWidth: 340 }}>Your synced portfolio is empty. Holdings will appear here once your broker account has positions.</span>
           </div>
         </div>
       </div>
@@ -91,13 +91,13 @@ export function Holdings() {
       <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Portfolio</span>
+            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Portfolio</span>
           </div>
-          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: COLORS.cardHi, display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.tx3, fontSize: '22px' }}>⊕</div>
-            <span style={{ fontSize: '15px', fontWeight: 700, color: COLORS.tx }}>No brokerage connected</span>
-            <span style={{ fontSize: '12.5px', color: COLORS.tx3, lineHeight: 1.55, maxWidth: 340 }}>Connect an account in Settings to sync your real holdings, cost basis, and live portfolio value.</span>
-            <button onClick={() => setView('settings')} style={{ marginTop: 6, height: 38, padding: '0 18px', borderRadius: 10, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Go to Settings</button>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--cardHi)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tx3)', fontSize: '22px' }}>⊕</div>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tx)' }}>No brokerage connected</span>
+            <span style={{ fontSize: '12.5px', color: 'var(--tx3)', lineHeight: 1.55, maxWidth: 340 }}>Connect an account in Settings to sync your real holdings, cost basis, and live portfolio value.</span>
+            <button onClick={() => setView('settings')} style={{ marginTop: 6, height: 38, padding: '0 18px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Go to Settings</button>
           </div>
         </div>
       </div>
@@ -105,8 +105,8 @@ export function Holdings() {
   }
 
   const summaryCard = (label: string, content: React.ReactNode) => (
-    <div style={{ flex: '1 1 0', minWidth: 168, padding: '15px 17px', borderRadius: 14, background: COLORS.card, border: `1px solid ${COLORS.line}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <span style={{ fontSize: '11px', color: COLORS.tx3, letterSpacing: '.04em' }}>{label}</span>
+    <div style={{ flex: '1 1 0', minWidth: 168, padding: '15px 17px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: '11px', color: 'var(--tx3)', letterSpacing: '.04em' }}>{label}</span>
       {content}
     </div>
   )
@@ -115,69 +115,69 @@ export function Holdings() {
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Portfolio</span>
-          <span style={{ fontSize: '13px', color: COLORS.tx2 }}>{rows.length} positions · synced from {settings?.broker_name || 'your broker'}</span>
+          <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Portfolio</span>
+          <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{rows.length} positions · synced from {settings?.broker_name || 'your broker'}</span>
         </div>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {summaryCard('TOTAL VALUE', <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: COLORS.tx }}>{mask(money(totalValue))}</span>)}
-          {summaryCard('COST BASIS', <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: COLORS.tx2 }}>{mask(money(totalCost))}</span>)}
+          {summaryCard('TOTAL VALUE', <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(totalValue))}</span>)}
+          {summaryCard('COST BASIS', <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx2)' }}>{mask(money(totalCost))}</span>)}
           {summaryCard('TOTAL RETURN', (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: totalGain >= 0 ? COLORS.up : COLORS.down }}>{mask((totalGain >= 0 ? '+' : '') + money(totalGain))}</span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: totalGain >= 0 ? COLORS.up : COLORS.down }}>{pct(totalGainPct)}</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((totalGain >= 0 ? '+' : '') + money(totalGain))}</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(totalGainPct)}</span>
             </div>
           ))}
-          {summaryCard('TODAY', <span style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: todayVal >= 0 ? COLORS.up : COLORS.down }}>{mask((todayVal >= 0 ? '+' : '') + money(todayVal))}</span>)}
+          {summaryCard('TODAY', <span style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: todayVal >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((todayVal >= 0 ? '+' : '') + money(todayVal))}</span>)}
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 270px', minWidth: 260, background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.tx }}>Allocation</span>
+          <div style={{ flex: '1 1 270px', minWidth: 260, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Allocation</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: '0 0 auto' }}>
                 <Donut positions={rows.map((r) => ({ sym: r.symbol, val: r.value }))} total={totalValue} colors={DONUT_COLORS} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                  <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: COLORS.tx }}>{rows.length}</span>
-                  <span style={{ fontSize: '10.5px', color: COLORS.tx3 }}>positions</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{rows.length}</span>
+                  <span style={{ fontSize: '10.5px', color: 'var(--tx3)' }}>positions</span>
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {rows.slice().sort((a, b) => b.value - a.value).slice(0, 6).map((r, i) => (
                   <div key={r.symbol} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span style={{ width: 9, height: 9, borderRadius: 3, background: DONUT_COLORS[i % DONUT_COLORS.length], flex: '0 0 auto' }} />
-                    <span style={{ flex: 1, fontSize: '12.5px', fontWeight: 600, color: COLORS.tx }}>{r.symbol}</span>
-                    <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: COLORS.tx2 }}>{totalValue ? ((r.value / totalValue) * 100).toFixed(1) + '%' : '—'}</span>
+                    <span style={{ flex: 1, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{r.symbol}</span>
+                    <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{totalValue ? ((r.value / totalValue) * 100).toFixed(1) + '%' : '—'}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div style={{ flex: '2 1 480px', minWidth: 320, background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, overflow: 'hidden' }}>
+          <div style={{ flex: '2 1 480px', minWidth: 320, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
               <div style={{ minWidth: 640 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1.6fr) 76px 96px 104px 116px 130px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1.6fr) 76px 96px 104px 116px 130px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
                   {['ASSET', 'SHARES', 'AVG COST', 'PRICE', 'VALUE', 'RETURN'].map((h) => (
-                    <div key={h} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>
+                    <div key={h} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>
                   ))}
                 </div>
                 {rows.map((r) => (
-                  <div key={r.symbol} onClick={() => { setSelected(r.symbol); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1.6fr) 76px 96px 104px 116px 130px', alignItems: 'center', borderTop: `1px solid ${COLORS.line}`, cursor: 'pointer' }}>
+                  <div key={r.symbol} onClick={() => { setSelected(r.symbol); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1.6fr) 76px 96px 104px 116px 130px', alignItems: 'center', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 12px', minWidth: 0 }}>
                       <Logo symbol={r.symbol} size={28} />
                       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <span style={{ fontWeight: 700, fontSize: '13.5px', color: COLORS.tx }}>{r.symbol}</span>
-                        <span style={{ fontSize: '11px', color: COLORS.tx3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                        <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--tx)' }}>{r.symbol}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--tx3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                       </div>
                     </div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{r.shares}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{money(r.avg_cost)}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx }}>{money(r.p)}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: COLORS.tx }}>{mask(money(r.value))}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{r.shares}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{money(r.avg_cost)}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{money(r.p)}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(r.value))}</div>
                     <div style={{ padding: '13px 12px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: r.gain >= 0 ? COLORS.up : COLORS.down }}>{mask((r.gain >= 0 ? '+' : '') + money(r.gain))}</span>
-                      <span style={{ fontFamily: FONT_MONO, fontSize: '10.5px', color: r.gain >= 0 ? COLORS.up : COLORS.down }}>{pct(r.gainPct)}</span>
+                      <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: r.gain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((r.gain >= 0 ? '+' : '') + money(r.gain))}</span>
+                      <span style={{ fontFamily: FONT_MONO, fontSize: '10.5px', color: r.gain >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(r.gainPct)}</span>
                     </div>
                   </div>
                 ))}

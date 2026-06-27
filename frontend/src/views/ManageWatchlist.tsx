@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useStore, isAuthed } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { StarterPicker } from '../components/StarterPicker'
@@ -48,9 +48,9 @@ export function ManageWatchlist() {
     return (
       <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
         <div style={{ maxWidth: 480, margin: '48px auto 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
-          <span style={{ fontSize: '21px', fontWeight: 800, color: COLORS.tx }}>Your Watchlist</span>
-          <span style={{ fontSize: '13.5px', color: COLORS.tx2, lineHeight: 1.5 }}>Create a free account to build and manage your own watchlist — add tickers in bulk, set price targets, and track them across the app.</span>
-          <button onClick={() => openAuth('signup')} style={{ height: 40, padding: '0 20px', borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>Sign in / Sign up</button>
+          <span style={{ fontSize: '21px', fontWeight: 800, color: 'var(--tx)' }}>Your Watchlist</span>
+          <span style={{ fontSize: '13.5px', color: 'var(--tx2)', lineHeight: 1.5 }}>Create a free account to build and manage your own watchlist — add tickers in bulk, set price targets, and track them across the app.</span>
+          <button onClick={() => openAuth('signup')} style={{ height: 40, padding: '0 20px', borderRadius: 11, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>Sign in / Sign up</button>
         </div>
       </div>
     )
@@ -85,23 +85,23 @@ export function ManageWatchlist() {
     setEditSym(null)
   }
 
-  const card: React.CSSProperties = { background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16 }
+  const card: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16 }
 
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Manage Watchlist</span>
-            <span style={{ fontSize: '13px', color: COLORS.tx2 }}>{items.length} ticker{items.length === 1 ? '' : 's'} · add in bulk, set targets, remove</span>
+            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Manage Watchlist</span>
+            <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{items.length} ticker{items.length === 1 ? '' : 's'} · add in bulk, set targets, remove</span>
           </div>
           <button
             onClick={handleShare}
             disabled={shareLabel === 'Copying…'}
             style={{
-              height: 36, padding: '0 16px', borderRadius: 9, border: `1px solid ${COLORS.line2}`,
-              background: shareLabel === 'Copied!' ? COLORS.up : COLORS.card,
-              color: shareLabel === 'Copied!' ? COLORS.accentInk : COLORS.tx2,
+              height: 36, padding: '0 16px', borderRadius: 9, border: '1px solid var(--line2)',
+              background: shareLabel === 'Copied!' ? 'var(--up)' : 'var(--card)',
+              color: shareLabel === 'Copied!' ? 'var(--accentInk)' : 'var(--tx2)',
               fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer',
               transition: 'background 0.2s, color 0.2s', flexShrink: 0,
             }}
@@ -115,20 +115,20 @@ export function ManageWatchlist() {
 
         {/* Bulk add */}
         <div style={{ ...card, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.tx }}>Add tickers</span>
-          <span style={{ fontSize: '12px', color: COLORS.tx3 }}>Enter one or more symbols separated by commas, spaces, or new lines — e.g. <span style={{ fontFamily: FONT_MONO, color: COLORS.tx2 }}>NVDA, RKLB, COIN</span></span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Add tickers</span>
+          <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>Enter one or more symbols separated by commas, spaces, or new lines — e.g. <span style={{ fontFamily: FONT_MONO, color: 'var(--tx2)' }}>NVDA, RKLB, COIN</span></span>
           <textarea
             value={bulk}
             onChange={(e) => setBulk(e.target.value)}
             placeholder="NVDA, AAPL, MSFT, RKLB, KRKNF…"
             rows={2}
-            style={{ resize: 'vertical', minHeight: 44, padding: '10px 12px', borderRadius: 9, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '13px', textTransform: 'uppercase' }}
+            style={{ resize: 'vertical', minHeight: 44, padding: '10px 12px', borderRadius: 9, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '13px', textTransform: 'uppercase' }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={submitBulk}
               disabled={adding || !bulk.trim()}
-              style={{ height: 36, padding: '0 18px', borderRadius: 9, border: 'none', background: bulk.trim() ? COLORS.accent : COLORS.cardHi, color: bulk.trim() ? COLORS.accentInk : COLORS.tx3, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13px', cursor: bulk.trim() ? 'pointer' : 'default' }}
+              style={{ height: 36, padding: '0 18px', borderRadius: 9, border: 'none', background: bulk.trim() ? 'var(--accent)' : 'var(--cardHi)', color: bulk.trim() ? 'var(--accentInk)' : 'var(--tx3)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13px', cursor: bulk.trim() ? 'pointer' : 'default' }}
             >
               {adding ? 'Adding…' : 'Add to watchlist'}
             </button>
@@ -150,11 +150,11 @@ export function ManageWatchlist() {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              style={{ height: 36, padding: '0 16px', borderRadius: 9, border: `1px solid ${COLORS.line2}`, background: COLORS.card, color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              style={{ height: 36, padding: '0 16px', borderRadius: 9, border: '1px solid var(--line2)', background: 'var(--card)', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
             >
               Import file
             </button>
-            {addResult && <span style={{ fontSize: '12.5px', color: COLORS.up }}>{addResult}</span>}
+            {addResult && <span style={{ fontSize: '12.5px', color: 'var(--up)' }}>{addResult}</span>}
           </div>
         </div>
 
@@ -162,9 +162,9 @@ export function ManageWatchlist() {
         <div style={{ ...card, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 560 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 120px 90px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 120px 90px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
                 {['TICKER', 'PRICE', '24H', 'TARGET', 'ALERT', ''].map((h, i) => (
-                  <div key={i} style={{ padding: '12px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>
+                  <div key={i} style={{ padding: '12px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>
                 ))}
               </div>
               {items.map((w) => {
@@ -172,24 +172,24 @@ export function ManageWatchlist() {
                 const c = chg(w.symbol)
                 const up = c >= 0
                 return (
-                  <div key={w.symbol} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 120px 90px', alignItems: 'center', borderTop: `1px solid ${COLORS.line}` }}>
+                  <div key={w.symbol} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 120px 90px', alignItems: 'center', borderTop: '1px solid var(--line)' }}>
                     <div onClick={() => { setSelected(w.symbol); setView('dashboard') }} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', cursor: 'pointer', minWidth: 0 }}>
                       <Logo symbol={w.symbol} size={28} />
                       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <span style={{ fontWeight: 700, fontSize: '13.5px', color: COLORS.tx }}>{w.symbol}</span>
-                        <span style={{ fontSize: '11px', color: COLORS.tx3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                        <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--tx)' }}>{w.symbol}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--tx3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
                       </div>
                     </div>
-                    <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '13px', color: COLORS.tx }}>{money(price(w.symbol))}</div>
-                    <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: up ? COLORS.up : COLORS.down }}>{pct(c)}</div>
+                    <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '13px', color: 'var(--tx)' }}>{money(price(w.symbol))}</div>
+                    <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</div>
                     <div style={{ padding: '10px 14px' }}>
                       {editSym === w.symbol ? (
                         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                          <input autoFocus value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveTarget(w.symbol)} placeholder="$" aria-label={`Target price for ${w.symbol}`} style={{ width: 70, height: 30, padding: '0 8px', borderRadius: 7, border: `1px solid ${COLORS.accent}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '12.5px' }} />
-                          <button onClick={() => saveTarget(w.symbol)} style={{ height: 30, padding: '0 10px', borderRadius: 7, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontWeight: 700, cursor: 'pointer' }}>✓</button>
+                          <input autoFocus value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveTarget(w.symbol)} placeholder="$" aria-label={`Target price for ${w.symbol}`} style={{ width: 70, height: 30, padding: '0 8px', borderRadius: 7, border: '1px solid var(--accent)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '12.5px' }} />
+                          <button onClick={() => saveTarget(w.symbol)} style={{ height: 30, padding: '0 10px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontWeight: 700, cursor: 'pointer' }}>✓</button>
                         </div>
                       ) : (
-                        <span onClick={() => { setEditVal(w.target ? String(w.target) : ''); setEditSym(w.symbol) }} style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: w.target ? COLORS.tx : COLORS.tx3, cursor: 'pointer' }}>
+                        <span onClick={() => { setEditVal(w.target ? String(w.target) : ''); setEditSym(w.symbol) }} style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: w.target ? 'var(--tx)' : 'var(--tx3)', cursor: 'pointer' }}>
                           {w.target ? money(w.target) : 'set target ✎'}
                         </span>
                       )}
@@ -202,25 +202,25 @@ export function ManageWatchlist() {
                         placeholder="$"
                         defaultValue={w.alert_price || ''}
                         onBlur={(e) => updateWatch(w.symbol, { alert_price: parseFloat(e.target.value) || 0 })}
-                        style={{ width: 64, height: 28, padding: '0 7px', borderRadius: 7, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '12px' }}
+                        style={{ width: 64, height: 28, padding: '0 7px', borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '12px' }}
                       />
                       <button
                         onClick={() => updateWatch(w.symbol, { alert_active: !w.alert_active })}
                         title={w.alert_active ? 'Alert on' : 'Alert off'}
                         aria-label={`Toggle price alert for ${w.symbol}`}
-                        style={{ height: 28, padding: '0 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: w.alert_active ? COLORS.up : COLORS.cardHi, color: w.alert_active ? COLORS.accentInk : COLORS.tx3 }}
+                        style={{ height: 28, padding: '0 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: w.alert_active ? 'var(--up)' : 'var(--cardHi)', color: w.alert_active ? 'var(--accentInk)' : 'var(--tx3)' }}
                       >
                         {w.alert_active ? 'ON' : 'OFF'}
                       </button>
                     </div>
                     <div style={{ padding: '12px 14px' }}>
-                      <button onClick={() => removeWatch(w.symbol)} title="Remove" aria-label={`Remove ${w.symbol}`} style={{ height: 30, padding: '0 12px', borderRadius: 7, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12px', cursor: 'pointer' }}>Remove</button>
+                      <button onClick={() => removeWatch(w.symbol)} title="Remove" aria-label={`Remove ${w.symbol}`} style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '12px', cursor: 'pointer' }}>Remove</button>
                     </div>
                   </div>
                 )
               })}
               {items.length === 0 && (
-                <div style={{ padding: '40px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+                <div style={{ padding: '40px 18px', textAlign: 'center', color: 'var(--tx3)', fontSize: '13px' }}>
                   Your watchlist is empty — add some tickers above to get started.
                 </div>
               )}

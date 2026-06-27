@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore, type SortBy } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { GROUPS, UNIVERSE } from '../data/universe'
 import { DEMO_WATCH } from '../data/demo'
 import { Logo } from './Logo'
@@ -19,9 +19,9 @@ function groupTabStyle(active: boolean): React.CSSProperties {
   return {
     padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontFamily: FONT_SANS,
     fontSize: '12px', whiteSpace: 'nowrap', flex: '0 0 auto',
-    border: active ? '1px solid transparent' : `1px solid ${COLORS.line}`,
+    border: active ? '1px solid transparent' : '1px solid var(--line)',
     background: active ? 'var(--accent,#3ddc84)' : 'transparent',
-    color: active ? COLORS.accentInk : COLORS.tx2,
+    color: active ? 'var(--accentInk)' : 'var(--tx2)',
     fontWeight: active ? 700 : 500,
   }
 }
@@ -81,8 +81,8 @@ export function Watchlist() {
     return (
       <aside
         style={{
-          width: '100%', flex: '0 0 auto', borderBottom: `1px solid ${COLORS.line}`,
-          background: COLORS.panel, display: 'flex', flexDirection: 'column',
+          width: '100%', flex: '0 0 auto', borderBottom: '1px solid var(--line)',
+          background: 'var(--panel)', display: 'flex', flexDirection: 'column',
         }}
       >
         {/* Mobile collapsible header */}
@@ -94,10 +94,10 @@ export function Watchlist() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: COLORS.tx }}>Watchlist</span>
-            <span style={{ fontSize: '11.5px', color: COLORS.tx3 }}>{base.length}</span>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tx)' }}>Watchlist</span>
+            <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>{base.length}</span>
           </div>
-          <span style={{ fontSize: '13px', color: COLORS.tx3 }}>{mobileExpanded ? '▲ Hide' : '▼ Show'}</span>
+          <span style={{ fontSize: '13px', color: 'var(--tx3)' }}>{mobileExpanded ? '▲ Hide' : '▼ Show'}</span>
         </div>
 
         {mobileExpanded && (
@@ -109,13 +109,13 @@ export function Watchlist() {
                   title="Manage your watchlist"
                   style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
                 >
-                  <span style={{ fontSize: '11px', color: COLORS.accent }}>⤢ Manage</span>
+                  <span style={{ fontSize: '11px', color: 'var(--accent)' }}>⤢ Manage</span>
                 </div>
                 <button
                   onClick={cycleSort}
                   title="Change sort order"
                   aria-label={`Sort by: ${SORT_LABEL[sortBy]}. Click to cycle sort order`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', color: COLORS.tx3, fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', color: 'var(--tx3)', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   ⇅ {SORT_LABEL[sortBy]}
                 </button>
@@ -140,17 +140,17 @@ export function Watchlist() {
                 const fl = flash[sym]
                 const hasT = target > 0
                 const near = hasT && p / target >= 0.92
-                const priceColor = fl === 'up' ? COLORS.up : fl === 'down' ? COLORS.down : COLORS.tx
+                const priceColor = fl === 'up' ? 'var(--up)' : fl === 'down' ? 'var(--down)' : 'var(--tx)'
                 return (
                   <div
                     key={sym}
                     onClick={() => { setSelected(sym); setMobileExpanded(false) }}
                     style={{
                       padding: 'var(--cpad,12px 14px)', borderRadius: 13,
-                      border: `1px solid ${sym === selected ? COLORS.accent : COLORS.line}`,
-                      background: sym === selected ? COLORS.cardHi : COLORS.card,
+                      border: `1px solid ${sym === selected ? 'var(--accent)' : 'var(--line)'}`,
+                      background: sym === selected ? 'var(--cardHi)' : 'var(--card)',
                       cursor: 'pointer', opacity: dragSym === sym ? 0.4 : 1,
-                      boxShadow: sym === selected ? `0 0 0 1px ${COLORS.accent}` : 'none',
+                      boxShadow: sym === selected ? '0 0 0 1px var(--accent)' : 'none',
                       transition: 'border-color .15s',
                     }}
                   >
@@ -158,21 +158,21 @@ export function Watchlist() {
                       <Logo symbol={sym} size={30} />
                       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '-.01em', color: COLORS.tx }}>{sym}</span>
-                          {near && <span title="Near target" style={{ fontSize: '10px', color: COLORS.accent }}>◆</span>}
+                          <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '-.01em', color: 'var(--tx)' }}>{sym}</span>
+                          {near && <span title="Near target" style={{ fontSize: '10px', color: 'var(--accent)' }}>◆</span>}
                         </div>
-                        <span style={{ fontSize: '11.5px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{u.name}</span>
+                        <span style={{ fontSize: '11.5px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{u.name}</span>
                         <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 500, marginTop: 2, color: priceColor }}>{money(p)}</span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                        <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? COLORS.up : COLORS.down }}>{pct(c)}</span>
+                        <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
                         <Sparkline symbol={sym} />
                       </div>
                     </div>
                     {hasT && (
-                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: COLORS.tx3 }}>
+                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--tx3)' }}>
                         <span>Target {money(target)}</span>
-                        <span style={{ color: p >= target ? COLORS.up : COLORS.tx3, fontWeight: p >= target ? 600 : 400 }}>
+                        <span style={{ color: p >= target ? 'var(--up)' : 'var(--tx3)', fontWeight: p >= target ? 600 : 400 }}>
                           {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
                         </span>
                       </div>
@@ -183,38 +183,38 @@ export function Watchlist() {
               {base.length === 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, padding: '32px 18px', textAlign: 'center' }}>
                   <span style={{ fontSize: '26px', opacity: 0.7 }}>☆</span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: COLORS.tx2 }}>No tickers here yet</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--tx2)' }}>No tickers here yet</span>
                 </div>
               )}
             </div>
 
-            <div style={{ flex: '0 0 auto', padding: 12, borderTop: `1px solid ${COLORS.line}` }}>
+            <div style={{ flex: '0 0 auto', padding: 12, borderTop: '1px solid var(--line)' }}>
               {showAdd ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: 12, borderRadius: 12, background: COLORS.card, border: `1px solid ${COLORS.line2}` }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '.03em', color: COLORS.tx2 }}>ADD TICKER</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: 12, borderRadius: 12, background: 'var(--card)', border: '1px solid var(--line2)' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '.03em', color: 'var(--tx2)' }}>ADD TICKER</span>
                   <input
                     value={addSym}
                     onChange={(e) => setAddSym(e.target.value)}
                     placeholder="Symbol  e.g. NVDA"
                     aria-label="Ticker symbol"
-                    style={{ height: 34, padding: '0 11px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13px', textTransform: 'uppercase' }}
+                    style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13px', textTransform: 'uppercase' }}
                   />
                   <input
                     value={addTarget}
                     onChange={(e) => setAddTarget(e.target.value)}
                     placeholder="Target price (optional)"
                     aria-label="Target price"
-                    style={{ height: 34, padding: '0 11px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '13px' }}
+                    style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '13px' }}
                   />
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={submitAdd} style={{ flex: 1, height: 34, borderRadius: 8, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Add</button>
-                    <button onClick={() => setShowAdd(false)} style={{ height: 34, padding: '0 14px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12.5px', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={submitAdd} style={{ flex: 1, height: 34, borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Add</button>
+                    <button onClick={() => setShowAdd(false)} style={{ height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '12.5px', cursor: 'pointer' }}>Cancel</button>
                   </div>
                 </div>
               ) : (
                 <button
                   onClick={() => requireAuth(() => setShowAdd(true))}
-                  style={{ width: '100%', height: 42, borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(61,220,132,.2)' }}
+                  style={{ width: '100%', height: 42, borderRadius: 11, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(61,220,132,.2)' }}
                 >
                   <span style={{ fontSize: '17px', lineHeight: 1, marginTop: -1 }}>+</span>Add ticker
                 </button>
@@ -229,8 +229,8 @@ export function Watchlist() {
   return (
     <aside
       style={{
-        width: 336, flex: '0 0 auto', borderRight: `1px solid ${COLORS.line}`,
-        background: COLORS.panel, display: 'flex', flexDirection: 'column', minHeight: 0,
+        width: 336, flex: '0 0 auto', borderRight: '1px solid var(--line)',
+        background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0,
       }}
     >
       <div style={{ padding: '16px 16px 10px', display: 'flex', flexDirection: 'column', gap: 12, flex: '0 0 auto' }}>
@@ -240,14 +240,14 @@ export function Watchlist() {
             title="Manage your watchlist"
             style={{ display: 'flex', alignItems: 'baseline', gap: 8, cursor: 'pointer' }}
           >
-            <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '-.01em', color: COLORS.tx }}>Watchlist</span>
-            <span style={{ fontSize: '11.5px', color: COLORS.tx3 }}>{base.length}</span>
-            <span style={{ fontSize: '11px', color: COLORS.accent }}>⤢ Manage</span>
+            <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '-.01em', color: 'var(--tx)' }}>Watchlist</span>
+            <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>{base.length}</span>
+            <span style={{ fontSize: '11px', color: 'var(--accent)' }}>⤢ Manage</span>
           </div>
           <button
             onClick={cycleSort}
             title="Change sort order"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', color: COLORS.tx3, fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', color: 'var(--tx3)', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
           >
             ⇅ {SORT_LABEL[sortBy]}
           </button>
@@ -272,7 +272,7 @@ export function Watchlist() {
           const fl = flash[sym]
           const hasT = target > 0
           const near = hasT && p / target >= 0.92
-          const priceColor = fl === 'up' ? COLORS.up : fl === 'down' ? COLORS.down : COLORS.tx
+          const priceColor = fl === 'up' ? 'var(--up)' : fl === 'down' ? 'var(--down)' : 'var(--tx)'
           return (
             <div
               key={sym}
@@ -288,10 +288,10 @@ export function Watchlist() {
               onDragEnd={() => setDragSym(null)}
               style={{
                 padding: 'var(--cpad,12px 14px)', borderRadius: 13,
-                border: `1px solid ${sym === selected ? COLORS.accent : COLORS.line}`,
-                background: sym === selected ? COLORS.cardHi : COLORS.card,
+                border: `1px solid ${sym === selected ? 'var(--accent)' : 'var(--line)'}`,
+                background: sym === selected ? 'var(--cardHi)' : 'var(--card)',
                 cursor: dragOK ? 'grab' : 'pointer', opacity: dragSym === sym ? 0.4 : 1,
-                boxShadow: sym === selected ? `0 0 0 1px ${COLORS.accent}` : 'none',
+                boxShadow: sym === selected ? '0 0 0 1px var(--accent)' : 'none',
                 transition: 'border-color .15s',
               }}
             >
@@ -299,23 +299,23 @@ export function Watchlist() {
                 <Logo symbol={sym} size={30} />
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '-.01em', color: COLORS.tx }}>{sym}</span>
-                    {near && <span title="Near target" style={{ fontSize: '10px', color: COLORS.accent }}>◆</span>}
+                    <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '-.01em', color: 'var(--tx)' }}>{sym}</span>
+                    {near && <span title="Near target" style={{ fontSize: '10px', color: 'var(--accent)' }}>◆</span>}
                   </div>
-                  <span style={{ fontSize: '11.5px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{u.name}</span>
+                  <span style={{ fontSize: '11.5px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{u.name}</span>
                   <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 500, marginTop: 2, color: priceColor }}>{money(p)}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? COLORS.up : COLORS.down }}>{pct(c)}</span>
+                  <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
                   <Sparkline symbol={sym} />
                 </div>
               </div>
               {hasT && (
                 // Compact one-line target (progress BAR removed to declutter the
                 // list / cut the wall of green). "reached" highlights in accent.
-                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: COLORS.tx3 }}>
+                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--tx3)' }}>
                   <span>Target {money(target)}</span>
-                  <span style={{ color: p >= target ? COLORS.up : COLORS.tx3, fontWeight: p >= target ? 600 : 400 }}>
+                  <span style={{ color: p >= target ? 'var(--up)' : 'var(--tx3)', fontWeight: p >= target ? 600 : 400 }}>
                     {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
                   </span>
                 </div>
@@ -326,39 +326,39 @@ export function Watchlist() {
         {base.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, padding: '46px 18px', textAlign: 'center' }}>
             <span style={{ fontSize: '26px', opacity: 0.7 }}>☆</span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: COLORS.tx2 }}>No tickers here yet</span>
-            <span style={{ fontSize: '11.5px', color: COLORS.tx3, lineHeight: 1.5 }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--tx2)' }}>No tickers here yet</span>
+            <span style={{ fontSize: '11.5px', color: 'var(--tx3)', lineHeight: 1.5 }}>
               {group !== 'All' ? 'No tickers in this group yet' : 'Add a ticker to start tracking'}
             </span>
           </div>
         )}
       </div>
 
-      <div style={{ flex: '0 0 auto', padding: 12, borderTop: `1px solid ${COLORS.line}` }}>
+      <div style={{ flex: '0 0 auto', padding: 12, borderTop: '1px solid var(--line)' }}>
         {showAdd ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: 12, borderRadius: 12, background: COLORS.card, border: `1px solid ${COLORS.line2}` }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '.03em', color: COLORS.tx2 }}>ADD TICKER</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: 12, borderRadius: 12, background: 'var(--card)', border: '1px solid var(--line2)' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '.03em', color: 'var(--tx2)' }}>ADD TICKER</span>
             <input
               value={addSym}
               onChange={(e) => setAddSym(e.target.value)}
               placeholder="Symbol  e.g. NVDA"
-              style={{ height: 34, padding: '0 11px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13px', textTransform: 'uppercase' }}
+              style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13px', textTransform: 'uppercase' }}
             />
             <input
               value={addTarget}
               onChange={(e) => setAddTarget(e.target.value)}
               placeholder="Target price (optional)"
-              style={{ height: 34, padding: '0 11px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '13px' }}
+              style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '13px' }}
             />
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={submitAdd} style={{ flex: 1, height: 34, borderRadius: 8, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Add</button>
-              <button onClick={() => setShowAdd(false)} style={{ height: 34, padding: '0 14px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12.5px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={submitAdd} style={{ flex: 1, height: 34, borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Add</button>
+              <button onClick={() => setShowAdd(false)} style={{ height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '12.5px', cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
         ) : (
           <button
             onClick={() => requireAuth(() => setShowAdd(true))}
-            style={{ width: '100%', height: 42, borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(61,220,132,.2)' }}
+            style={{ width: '100%', height: 42, borderRadius: 11, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(61,220,132,.2)' }}
           >
             <span style={{ fontSize: '17px', lineHeight: 1, marginTop: -1 }}>+</span>Add ticker
           </button>
