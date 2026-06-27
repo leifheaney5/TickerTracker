@@ -6,7 +6,8 @@ from auth import current_user_id
 def _wl_dict(w):
     return {"symbol": w.symbol, "position": w.position, "target": w.target,
             "alert_price": w.alert_price, "alert_dir": w.alert_dir,
-            "alert_active": bool(w.alert_active)}
+            "alert_active": bool(w.alert_active),
+            "kind": w.kind or "stock", "coin_name": w.coin_name or ""}
 
 
 def get_watchlist():
@@ -17,20 +18,26 @@ def get_watchlist():
         return [_wl_dict(w) for w in rows]
 
 
-def add_watch(symbol, target=0, alert_price=0, alert_dir="above"):
+def add_watch(symbol, target=0, alert_price=0, alert_dir="above",
+              kind="stock", coin_name=""):
     uid = current_user_id()
-    symbol = symbol.upper()
+    # Stock tickers are case-insensitive (store upper). CoinGecko ids are
+    # lowercase-hyphen and case-sensitive — keep them verbatim.
+    symbol = symbol.upper() if kind == "stock" else symbol
     with db.get_session() as s:
         existing = s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
         if existing:
             existing.target = target
             existing.alert_price = alert_price
             existing.alert_dir = alert_dir
+            existing.kind = kind
+            existing.coin_name = coin_name or existing.coin_name
             s.commit()
             return _wl_dict(existing)
         count = s.query(models.WatchlistItem).filter_by(user_id=uid).count()
         item = models.WatchlistItem(user_id=uid, symbol=symbol, position=count,
-                                    target=target, alert_price=alert_price, alert_dir=alert_dir)
+                                    target=target, alert_price=alert_price,
+                                    alert_dir=alert_dir, kind=kind, coin_name=coin_name)
         s.add(item)
         s.commit()
         return _wl_dict(item)
@@ -38,9 +45,10 @@ def add_watch(symbol, target=0, alert_price=0, alert_dir="above"):
 
 def update_watch(symbol, **fields):
     uid = current_user_id()
-    symbol = symbol.upper()
     with db.get_session() as s:
-        item = s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
+        # Match either a stock ticker (stored upper) or a crypto id (stored as-is).
+        item = (s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
+                or s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol.upper()).first())
         if not item:
             return None
         for k, v in fields.items():
@@ -52,9 +60,10 @@ def update_watch(symbol, **fields):
 
 def remove_watch(symbol):
     uid = current_user_id()
-    symbol = symbol.upper()
     with db.get_session() as s:
-        item = s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
+        # Match either a stock ticker (stored upper) or a crypto id (stored as-is).
+        item = (s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
+                or s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol.upper()).first())
         if not item:
             return False
         s.delete(item)
