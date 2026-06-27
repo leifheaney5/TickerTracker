@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { COLORS, FONT_MONO } from '../theme/tokens'
+import { FONT_MONO } from '../theme/tokens'
 import { makeRng } from '../data/series'
 
 // Strategy equity curve — ported from the prototype's _equityCurve: a strategy
@@ -33,9 +33,9 @@ export function EquityCurve() {
   const X = (i: number) => padL + (i / (N - 1)) * pw
   const path = (a: number[]) => a.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + yP(v).toFixed(1)).join(' ')
   const up = eqA[N - 1] >= 0
-  const col = up ? COLORS.up : COLORS.down
+  const col = up ? 'var(--up)' : 'var(--down)'
   const grid = []
-  for (let t = 0; t <= 4; t++) { const val = min + (t / 4) * (max - min); const y = yP(val); grid.push(<line key={'g' + t} x1={padL} y1={y} x2={W - padR} y2={y} stroke={COLORS.line} strokeWidth={1} />); grid.push(<text key={'l' + t} x={W - padR + 6} y={y + 3} fill={COLORS.tx3} fontSize={11} fontFamily={FONT_MONO}>{(val >= 0 ? '+' : '') + val.toFixed(0) + '%'}</text>) }
+  for (let t = 0; t <= 4; t++) { const val = min + (t / 4) * (max - min); const y = yP(val); grid.push(<line key={'g' + t} x1={padL} y1={y} x2={W - padR} y2={y} stroke="var(--line)" strokeWidth={1} />); grid.push(<text key={'l' + t} x={W - padR + 6} y={y + 3} fill="var(--tx3)" fontSize={11} fontFamily={FONT_MONO}>{(val >= 0 ? '+' : '') + val.toFixed(0) + '%'}</text>) }
 
   return (
     <div ref={ref} style={{ width: '100%', height: 286 }}>
@@ -47,7 +47,7 @@ export function EquityCurve() {
             <stop offset="100%" stopColor={col} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <path d={path(bmA)} fill="none" stroke={COLORS.tx3} strokeWidth={1.5} strokeDasharray="4 3" />
+        <path d={path(bmA)} fill="none" stroke="var(--tx3)" strokeWidth={1.5} strokeDasharray="4 3" />
         <path d={path(eqA) + ` L${X(N - 1).toFixed(1)} ${padT + ph} L${X(0).toFixed(1)} ${padT + ph} Z`} fill="url(#eqg)" />
         <path d={path(eqA)} fill="none" stroke={col} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
       </svg>

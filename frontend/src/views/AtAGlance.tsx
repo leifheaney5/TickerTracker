@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { GROUPS, UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { Sparkline } from '../charts/Sparkline'
@@ -88,12 +88,12 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
 
   const groupTabStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '12px', whiteSpace: 'nowrap', flex: '0 0 auto',
-    border: active ? '1px solid transparent' : `1px solid ${COLORS.line}`, background: active ? COLORS.accent : 'transparent',
-    color: active ? COLORS.accentInk : COLORS.tx2, fontWeight: active ? 700 : 500,
+    border: active ? '1px solid transparent' : '1px solid var(--line)', background: active ? 'var(--accent)' : 'transparent',
+    color: active ? 'var(--accentInk)' : 'var(--tx2)', fontWeight: active ? 700 : 500,
   })
   const subStyle = (active: boolean): React.CSSProperties => ({
     padding: '7px 13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '12.5px',
-    fontWeight: active ? 700 : 500, background: active ? COLORS.cardHi : 'transparent', color: active ? COLORS.tx : COLORS.tx3,
+    fontWeight: active ? 700 : 500, background: active ? 'var(--cardHi)' : 'transparent', color: active ? 'var(--tx)' : 'var(--tx3)',
   })
 
   const isDeep = sub === 'deep'
@@ -103,9 +103,9 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', flex: '0 0 auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>{isDeep ? 'Deep Dive' : 'At-a-Glance'}</span>
-          <span style={{ fontSize: '13px', color: COLORS.tx2 }}>{isDeep ? 'Valuation, profitability & leverage fundamentals across your watchlist' : `${symbols.length} tickers at a glance — click any column to sort`}</span>
-          <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 10, background: COLORS.bg, alignSelf: 'flex-start', marginTop: 8 }}>
+          <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>{isDeep ? 'Deep Dive' : 'At-a-Glance'}</span>
+          <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{isDeep ? 'Valuation, profitability & leverage fundamentals across your watchlist' : `${symbols.length} tickers at a glance — click any column to sort`}</span>
+          <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 10, background: 'var(--bg)', alignSelf: 'flex-start', marginTop: 8 }}>
             <button onClick={() => { setSub('overview'); setView('overview') }} style={subStyle(!isDeep)}>Watchlist</button>
             <button onClick={() => { setSub('deep'); setView('deep') }} style={subStyle(isDeep)}>Fundamentals</button>
           </div>
@@ -113,8 +113,8 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 20,
-              background: sentiment.mood === 'Bullish' ? 'rgba(61,220,132,.12)' : sentiment.mood === 'Bearish' ? 'rgba(255,93,115,.12)' : `${COLORS.cardHi}`,
-              color: sentiment.mood === 'Bullish' ? COLORS.up : sentiment.mood === 'Bearish' ? COLORS.down : COLORS.tx2,
+              background: sentiment.mood === 'Bullish' ? 'rgba(61,220,132,.12)' : sentiment.mood === 'Bearish' ? 'rgba(255,93,115,.12)' : 'var(--cardHi)',
+              color: sentiment.mood === 'Bullish' ? 'var(--up)' : sentiment.mood === 'Bearish' ? 'var(--down)' : 'var(--tx2)',
               fontFamily: FONT_SANS, fontSize: '12px', fontWeight: 600, alignSelf: 'flex-start',
             }}>
               Watchlist mood: {sentiment.mood} ({sentiment.bullish}▲ / {sentiment.bearish}▼)
@@ -126,19 +126,19 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
         </div>
       </div>
 
-      <div style={{ border: `1px solid ${COLORS.line}`, borderRadius: 16, overflow: 'hidden', background: COLORS.card, flex: '0 0 auto' }}>
+      <div style={{ border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden', background: 'var(--card)', flex: '0 0 auto' }}>
         <div style={{ overflowX: 'auto' }}>
           {!isDeep ? (
             <div style={{ minWidth: 1180 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
                 {OV_COLS.map((c) => (
-                  <div key={c.key} onClick={() => onSort(c.key)} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: sortKey === c.key ? COLORS.tx2 : COLORS.tx3, cursor: 'pointer', userSelect: 'none' }}>
+                  <div key={c.key} onClick={() => onSort(c.key)} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: sortKey === c.key ? 'var(--tx2)' : 'var(--tx3)', cursor: 'pointer', userSelect: 'none' }}>
                     {c.label}{sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
                   </div>
                 ))}
               </div>
               {sorted.length === 0 && (
-                <div style={{ padding: '36px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+                <div style={{ padding: '36px 18px', textAlign: 'center', color: 'var(--tx3)', fontSize: '13px' }}>
                   Your watchlist is empty — add tickers from the Dashboard or Screener.
                 </div>
               )}
@@ -150,34 +150,34 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                 const sector = f?.sector && f.sector !== '—' ? f.sector : u.sector
                 const target = targetOf(sym)
                 return (
-                  <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px', alignItems: 'center', borderTop: `1px solid ${COLORS.line}` }}>
+                  <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px', alignItems: 'center', borderTop: '1px solid var(--line)' }}>
                     <div onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 14px', cursor: 'pointer', minWidth: 0 }}>
                       <Logo symbol={sym} size={28} />
                       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <span style={{ fontWeight: 700, fontSize: '13.5px', color: COLORS.tx }}>{sym}</span>
-                        <span style={{ fontSize: '11px', color: COLORS.tx3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                        <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--tx)' }}>{sym}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--tx3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
                       </div>
                     </div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '13.5px', fontWeight: 500, color: COLORS.tx }}>{money(price(sym))}</div>
-                    <div style={{ padding: '13px 12px' }}><span style={{ fontFamily: FONT_MONO, fontSize: '11.5px', fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? COLORS.up : COLORS.down }}>{pct(c)}</span></div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx }}>{f ? capStr(f.market_cap) : u.cap}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{f && f.pe ? f.pe : u.pe}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{volStr(quotes[sym]?.volume ?? 0)}</div>
-                    <div style={{ padding: '13px 12px', fontSize: '12px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sector}</div>
-                    <div style={{ padding: '13px 12px', fontSize: '12px', color: COLORS.tx2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.industry || '—'}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '13.5px', fontWeight: 500, color: 'var(--tx)' }}>{money(price(sym))}</div>
+                    <div style={{ padding: '13px 12px' }}><span style={{ fontFamily: FONT_MONO, fontSize: '11.5px', fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span></div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{f ? capStr(f.market_cap) : u.cap}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{f && f.pe ? f.pe : u.pe}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{volStr(quotes[sym]?.volume ?? 0)}</div>
+                    <div style={{ padding: '13px 12px', fontSize: '12px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sector}</div>
+                    <div style={{ padding: '13px 12px', fontSize: '12px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.industry || '—'}</div>
                     <div style={{ padding: '13px 12px' }}><Sparkline symbol={sym} /></div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: target ? COLORS.tx : COLORS.tx3 }}>{target ? money(target) : '—'}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: target ? 'var(--tx)' : 'var(--tx3)' }}>{target ? money(target) : '—'}</div>
                   </div>
                 )
               })}
             </div>
           ) : (
             <div style={{ minWidth: 980 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
-                {DEEP_COLS.map((h) => <div key={h} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>)}
+              <div style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
+                {DEEP_COLS.map((h) => <div key={h} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>)}
               </div>
               {sorted.length === 0 && (
-                <div style={{ padding: '36px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+                <div style={{ padding: '36px 18px', textAlign: 'center', color: 'var(--tx3)', fontSize: '13px' }}>
                   Your watchlist is empty — add tickers from the Dashboard or Screener.
                 </div>
               )}
@@ -198,12 +198,12 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                   f ? (f.beta).toFixed(2) + 'x' : '—',
                 ]
                 return (
-                  <div key={sym} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, alignItems: 'center', borderTop: `1px solid ${COLORS.line}`, cursor: 'pointer' }}>
+                  <div key={sym} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, alignItems: 'center', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 12px', minWidth: 0 }}>
                       <Logo symbol={sym} size={26} />
-                      <span style={{ fontWeight: 700, fontSize: '13px', color: COLORS.tx }}>{sym}</span>
+                      <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--tx)' }}>{sym}</span>
                     </div>
-                    {cells.map((cell, i) => <div key={i} style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: COLORS.tx2 }}>{cell}</div>)}
+                    {cells.map((cell, i) => <div key={i} style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{cell}</div>)}
                   </div>
                 )
               })}

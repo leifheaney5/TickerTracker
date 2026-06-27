@@ -1,6 +1,5 @@
 import { useStore } from '../state/store'
 import { fallbackSpark } from '../data/series'
-import { COLORS } from '../theme/tokens'
 
 // 30-day sparkline with gradient fill — ported from the prototype's _spark.
 // Uses live 30d closes from loaded history when available, else seeded fallback.
@@ -23,7 +22,7 @@ export function Sparkline({ symbol, width = 80, height = 30 }: SparkProps) {
   const min = Math.min(...closes)
   const max = Math.max(...closes)
   const up = chg >= 0
-  const col = up ? COLORS.up : COLORS.down
+  const col = up ? 'var(--up)' : 'var(--down)'
   const pts = closes.map((v, i) => [
     pad + (i / (closes.length - 1)) * (W - 2 * pad),
     H - pad - ((v - min) / (max - min || 1)) * (H - 2 * pad),

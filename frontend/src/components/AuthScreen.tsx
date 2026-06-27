@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useStore } from '../state/store'
-import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 
 type Mode = 'login' | 'signup' | 'forgot' | 'reset'
 
 function inputStyle(): React.CSSProperties {
   return {
     height: 40, padding: '0 12px', borderRadius: 9,
-    border: `1px solid ${COLORS.line2}`, background: COLORS.bg,
-    color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13.5px', width: '100%',
+    border: '1px solid var(--line2)', background: 'var(--bg)',
+    color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13.5px', width: '100%',
     boxSizing: 'border-box',
   }
 }
 
 function labelStyle(): React.CSSProperties {
   return {
-    fontSize: '11.5px', fontWeight: 600, color: COLORS.tx2,
+    fontSize: '11.5px', fontWeight: 600, color: 'var(--tx2)',
     letterSpacing: '.03em', marginBottom: 4, display: 'block',
   }
 }
@@ -118,8 +118,8 @@ export function AuthScreen() {
   }
 
   const modal: React.CSSProperties = {
-    background: COLORS.panel,
-    border: `1px solid ${COLORS.line2}`,
+    background: 'var(--panel)',
+    border: '1px solid var(--line2)',
     borderRadius: 20,
     padding: '32px 28px',
     width: '100%', maxWidth: 400,
@@ -131,31 +131,31 @@ export function AuthScreen() {
 
   const primaryBtn: React.CSSProperties = {
     width: '100%', height: 42, borderRadius: 10, border: 'none',
-    background: COLORS.accent, color: COLORS.accentInk,
+    background: 'var(--accent)', color: 'var(--accentInk)',
     fontFamily: FONT_SANS, fontWeight: 700, fontSize: '14px', cursor: 'pointer',
   }
 
   const ghostBtn: React.CSSProperties = {
-    background: 'transparent', border: 'none', color: COLORS.accent,
+    background: 'transparent', border: 'none', color: 'var(--accent)',
     fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 600,
     cursor: 'pointer', padding: 0, textDecoration: 'underline',
   }
 
   const googleBtn: React.CSSProperties = {
     width: '100%', height: 42, borderRadius: 10,
-    border: `1px solid ${COLORS.line2}`,
-    background: COLORS.card, color: COLORS.tx,
+    border: '1px solid var(--line2)',
+    background: 'var(--card)', color: 'var(--tx)',
     fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13.5px', cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
   }
 
   const divider: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 10,
-    color: COLORS.tx3, fontSize: '11.5px',
+    color: 'var(--tx3)', fontSize: '11.5px',
   }
 
   const divLine: React.CSSProperties = {
-    flex: 1, height: 1, background: COLORS.line2,
+    flex: 1, height: 1, background: 'var(--line2)',
   }
 
   function renderLogin() {
@@ -171,7 +171,7 @@ export function AuthScreen() {
             <input style={inputStyle()} type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
         </div>
-        {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
+        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
         <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Logging in…' : 'Log in'}
         </button>
@@ -180,11 +180,11 @@ export function AuthScreen() {
           <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-          <div style={{ fontSize: '12.5px', color: COLORS.tx3 }}>
+          <div style={{ fontSize: '12.5px', color: 'var(--tx3)' }}>
             No account?{' '}
             <button type="button" style={ghostBtn} onClick={() => switchMode('signup')}>Sign up</button>
           </div>
-          <button type="button" style={{ ...ghostBtn, color: COLORS.tx3 }} onClick={() => switchMode('forgot')}>Forgot password?</button>
+          <button type="button" style={{ ...ghostBtn, color: 'var(--tx3)' }} onClick={() => switchMode('forgot')}>Forgot password?</button>
         </div>
       </form>
     )
@@ -195,9 +195,9 @@ export function AuthScreen() {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', textAlign: 'center', padding: '12px 0' }}>
           <span style={{ fontSize: '28px' }}>✉️</span>
-          <span style={{ fontSize: '15px', fontWeight: 700, color: COLORS.tx }}>Check your email</span>
-          <span style={{ fontSize: '13px', color: COLORS.tx2, lineHeight: 1.6 }}>
-            We sent a verification link to <strong style={{ color: COLORS.tx }}>{email}</strong>.
+          <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tx)' }}>Check your email</span>
+          <span style={{ fontSize: '13px', color: 'var(--tx2)', lineHeight: 1.6 }}>
+            We sent a verification link to <strong style={{ color: 'var(--tx)' }}>{email}</strong>.
             Click it to activate your account, then come back to log in.
           </span>
           <button style={{ ...ghostBtn, marginTop: 8 }} onClick={() => switchMode('login')}>Back to log in</button>
@@ -220,7 +220,7 @@ export function AuthScreen() {
             <input style={inputStyle()} type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
         </div>
-        {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
+        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
         <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Creating account…' : 'Create account'}
         </button>
@@ -228,7 +228,7 @@ export function AuthScreen() {
         <button type="button" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
           <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
         </button>
-        <div style={{ fontSize: '12.5px', color: COLORS.tx3, textAlign: 'center' }}>
+        <div style={{ fontSize: '12.5px', color: 'var(--tx3)', textAlign: 'center' }}>
           Already have an account?{' '}
           <button type="button" style={ghostBtn} onClick={() => switchMode('login')}>Log in</button>
         </div>
@@ -241,8 +241,8 @@ export function AuthScreen() {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', textAlign: 'center', padding: '12px 0' }}>
           <span style={{ fontSize: '28px' }}>📬</span>
-          <span style={{ fontSize: '15px', fontWeight: 700, color: COLORS.tx }}>Check your inbox</span>
-          <span style={{ fontSize: '13px', color: COLORS.tx2, lineHeight: 1.6 }}>
+          <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tx)' }}>Check your inbox</span>
+          <span style={{ fontSize: '13px', color: 'var(--tx2)', lineHeight: 1.6 }}>
             If that email address is registered, we've sent a reset link.
           </span>
           <button style={{ ...ghostBtn, marginTop: 8 }} onClick={() => switchMode('login')}>Back to log in</button>
@@ -255,11 +255,11 @@ export function AuthScreen() {
           <span style={labelStyle()}>EMAIL</span>
           <input style={inputStyle()} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoFocus />
         </div>
-        {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
+        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
         <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Sending…' : 'Send reset link'}
         </button>
-        <div style={{ fontSize: '12.5px', color: COLORS.tx3, textAlign: 'center' }}>
+        <div style={{ fontSize: '12.5px', color: 'var(--tx3)', textAlign: 'center' }}>
           <button type="button" style={ghostBtn} onClick={() => switchMode('login')}>Back to log in</button>
         </div>
       </form>
@@ -271,8 +271,8 @@ export function AuthScreen() {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', textAlign: 'center', padding: '12px 0' }}>
           <span style={{ fontSize: '28px' }}>✅</span>
-          <span style={{ fontSize: '15px', fontWeight: 700, color: COLORS.tx }}>Password updated</span>
-          <span style={{ fontSize: '13px', color: COLORS.tx2, lineHeight: 1.6 }}>
+          <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tx)' }}>Password updated</span>
+          <span style={{ fontSize: '13px', color: 'var(--tx2)', lineHeight: 1.6 }}>
             Your password has been reset. You can now log in with your new password.
           </span>
           <button style={{ ...ghostBtn, marginTop: 8 }} onClick={() => switchMode('login')}>Log in</button>
@@ -285,7 +285,7 @@ export function AuthScreen() {
           <span style={labelStyle()}>NEW PASSWORD</span>
           <input style={inputStyle()} type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoFocus />
         </div>
-        {error && <span style={{ fontSize: '12.5px', color: COLORS.down }}>{error}</span>}
+        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
         <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Saving…' : 'Set new password'}
         </button>
@@ -316,8 +316,8 @@ export function AuthScreen() {
           style={{
             position: 'absolute', top: 16, right: 16,
             width: 30, height: 30, borderRadius: '50%',
-            border: `1px solid ${COLORS.line2}`, background: COLORS.card,
-            color: COLORS.tx2, cursor: 'pointer',
+            border: '1px solid var(--line2)', background: 'var(--card)',
+            color: 'var(--tx2)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '14px', fontFamily: FONT_SANS,
           }}
@@ -328,10 +328,10 @@ export function AuthScreen() {
 
         {/* Header */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>
+          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>
             {titles[mode]}
           </span>
-          <span style={{ fontSize: '13px', color: COLORS.tx2 }}>{subtitles[mode]}</span>
+          <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{subtitles[mode]}</span>
         </div>
 
         {mode === 'login' && renderLogin()}
