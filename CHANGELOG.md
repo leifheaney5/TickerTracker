@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-06-27
+
+### Added
+
+- **Email price alerts** (arm in Manage Watchlist, delivery via Railway cron
+  every 5 minutes via Resend) with HIT detection and last-fired tracking.
+- **Weekly watchlist digest** (opt-in, Mondays at 13:00 UTC) summarizing active
+  positions, price movements, and alert activity via Railway cron.
+
+### Fixed
+
+- **News links now open real articles** — external URLs are validated for
+  http/https protocol, and the browser's view navigates to the article instead
+  of remaining in the app (BUG-018).
+- **"As of" timestamps on quotes and Fear & Greed** so users know how stale live
+  data is (BUG-013, BUG-017).
+- **Compare section empty-state sign-in prompt** so anonymous users are prompted
+  to sign in instead of seeing a perpetual "No data" card (BUG-011).
+
 ## [1.4.2] — 2026-06-26
 
 ### Added
