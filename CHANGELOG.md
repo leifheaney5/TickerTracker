@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-06-27
+
+### Added
+
+- **Light/dark theme toggle** (persisted) via theme-aware design tokens; dark
+  remains the default and is unchanged. (Light mode is currently partial — a
+  full per-component var() migration is tracked as follow-up.)
+- **Onboarding starter watchlists** (Big Tech / AI / Crypto Majors / Dividend)
+  shown when a signed-in user's watchlist is empty — one click to seed it.
+- **Shareable read-only watchlist links** — generate a `/s/<token>` URL that
+  shows your list (symbols + live prices only; no targets/alerts/PII) to anyone.
+- **CSV / text file import** in Manage Watchlist (reuses the bulk-add parser).
+
 ## [1.5.0] — 2026-06-27
 
 ### Added
