@@ -57,6 +57,7 @@ class Settings(Base):
     news_digest = Column(Boolean, default=False)
     hide_balances = Column(Boolean, default=False)
     currency = Column(String, default="USD")
+    share_token = Column(String, nullable=True, index=True)
 
 
 class CustomSymbol(Base):

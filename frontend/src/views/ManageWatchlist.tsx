@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useStore, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
+import { StarterPicker } from '../components/StarterPicker'
 import { money, pct } from '../lib/format'
+import { api } from '../api/client'
 
 // Dedicated full-screen watchlist manager: a clean editable list of the user's
 // tickers (price/%, inline target edit, remove) plus a comma-separated bulk-add
@@ -26,6 +28,21 @@ export function ManageWatchlist() {
   const [addResult, setAddResult] = useState<string | null>(null)
   const [editSym, setEditSym] = useState<string | null>(null)
   const [editVal, setEditVal] = useState('')
+  const [shareLabel, setShareLabel] = useState<'Share' | 'Copying…' | 'Copied!'>('Share')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleShare = async () => {
+    setShareLabel('Copying…')
+    try {
+      const res = await api.createShare()
+      const url = `${location.origin}/s/${res.data.token}`
+      await navigator.clipboard.writeText(url)
+      setShareLabel('Copied!')
+      setTimeout(() => setShareLabel('Share'), 2500)
+    } catch {
+      setShareLabel('Share')
+    }
+  }
 
   if (!authed) {
     return (
@@ -73,10 +90,28 @@ export function ManageWatchlist() {
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Manage Watchlist</span>
-          <span style={{ fontSize: '13px', color: COLORS.tx2 }}>{items.length} ticker{items.length === 1 ? '' : 's'} · add in bulk, set targets, remove</span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Manage Watchlist</span>
+            <span style={{ fontSize: '13px', color: COLORS.tx2 }}>{items.length} ticker{items.length === 1 ? '' : 's'} · add in bulk, set targets, remove</span>
+          </div>
+          <button
+            onClick={handleShare}
+            disabled={shareLabel === 'Copying…'}
+            style={{
+              height: 36, padding: '0 16px', borderRadius: 9, border: `1px solid ${COLORS.line2}`,
+              background: shareLabel === 'Copied!' ? COLORS.up : COLORS.card,
+              color: shareLabel === 'Copied!' ? COLORS.accentInk : COLORS.tx2,
+              fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              transition: 'background 0.2s, color 0.2s', flexShrink: 0,
+            }}
+          >
+            {shareLabel === 'Copied!' ? '✓ Copied!' : shareLabel}
+          </button>
         </div>
+
+        {/* Starter watchlists — shown only when watchlist is empty */}
+        {items.length === 0 && <StarterPicker />}
 
         {/* Bulk add */}
         <div style={{ ...card, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -96,6 +131,28 @@ export function ManageWatchlist() {
               style={{ height: 36, padding: '0 18px', borderRadius: 9, border: 'none', background: bulk.trim() ? COLORS.accent : COLORS.cardHi, color: bulk.trim() ? COLORS.accentInk : COLORS.tx3, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13px', cursor: bulk.trim() ? 'pointer' : 'default' }}
             >
               {adding ? 'Adding…' : 'Add to watchlist'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.txt"
+              title="Import tickers from file"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  const text = await file.text()
+                  setBulk(text)
+                  e.target.value = ''
+                }
+              }}
+              style={{ display: 'none' }}
+              aria-label="Import tickers from file"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{ height: 36, padding: '0 16px', borderRadius: 9, border: `1px solid ${COLORS.line2}`, background: COLORS.card, color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Import file
             </button>
             {addResult && <span style={{ fontSize: '12.5px', color: COLORS.up }}>{addResult}</span>}
           </div>
