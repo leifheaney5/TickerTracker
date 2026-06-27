@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.1] — 2026-06-27
+
+### Changed
+
+- **Removed the "⊕ Connect account" header button** (desktop and mobile menu) —
+  broker/account connection is still prospective, so the entry point was pulled
+  to avoid promising functionality that isn't built. The conditional "Portfolio"
+  chip still renders for already-connected accounts. Idea tracked in `ROADMAP.md`.
+
+### Added
+
+- **`ROADMAP.md`** — a parking lot for prospective/deferred ideas so they aren't
+  lost when pulled out of the shipping product.
+
 ## [1.13.0] — 2026-06-27
 
 ### Added
