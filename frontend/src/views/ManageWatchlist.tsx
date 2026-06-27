@@ -131,6 +131,26 @@ export function ManageWatchlist() {
             >
               {adding ? 'Adding…' : 'Add to watchlist'}
             </button>
+            <input
+              type="file"
+              accept=".csv,.txt"
+              title="Import tickers from file"
+              onChange={async (e) => {
+                if (e.target.files?.[0]) {
+                  const text = await e.target.files[0].text()
+                  setBulk(text)
+                  e.target.value = ''
+                }
+              }}
+              style={{ display: 'none' }}
+              aria-label="Import tickers from file"
+            />
+            <button
+              onClick={() => document.querySelector('input[type="file"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))}
+              style={{ height: 36, padding: '0 16px', borderRadius: 9, border: `1px solid ${COLORS.line2}`, background: COLORS.card, color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Import file
+            </button>
             {addResult && <span style={{ fontSize: '12.5px', color: COLORS.up }}>{addResult}</span>}
           </div>
         </div>
