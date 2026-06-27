@@ -7,6 +7,14 @@
 4. Railway builds the Dockerfile and runs the web service; `init_db()` ensures
    the schema (incl. additive columns) at boot.
 
+> ⚠️ **The auto-deploy only redeploys the WEB service (`Ticker-Tracker`).** The
+> two cron services (`cron-alerts`, `cron-digest`) build from the same repo but
+> do **not** redeploy on push — so after any change to the alert/digest/email
+> code (`backend/services/alerts.py`, `services/digest.py`, `providers/email*`),
+> you must **manually redeploy both cron services** or they keep running the old
+> code. Redeploy: Railway dashboard → each cron service → Deploy, or via API
+> `serviceInstanceDeployV2(serviceId, environmentId)`.
+
 ## The pipeline
 
 ```
