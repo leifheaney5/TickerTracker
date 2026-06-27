@@ -6,7 +6,7 @@ import { create } from 'zustand'
 import { api } from '../api/client'
 import type {
   Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
-  CryptoResponse, Fng, Timeframe, AuthUser,
+  CryptoResponse, Fng, Timeframe, AuthUser, EarningsRow,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 import { pathForView } from '../routes'
@@ -58,6 +58,7 @@ interface StoreState {
   news: Record<string, NewsItem[]> // key sym or 'MARKET'
   newsLoaded: Record<string, boolean> // keys whose news fetch has completed
   ratings: Record<string, Ratings>
+  earnings: Record<string, EarningsRow | null>
   watchlist: WatchlistItem[]
   settings: Settings | null
   holdings: Holding[]
@@ -89,6 +90,7 @@ interface StoreState {
   loadFundamentals: (sym: string) => Promise<void>
   loadNews: (sym?: string) => Promise<void>
   loadRatings: (sym: string) => Promise<void>
+  loadEarnings: (sym: string) => Promise<void>
   addWatch: (sym: string, target?: number) => Promise<void>
   removeWatch: (sym: string) => Promise<void>
   updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
@@ -138,6 +140,7 @@ export const useStore = create<StoreState>((set, get) => ({
   news: {},
   newsLoaded: {},
   ratings: {},
+  earnings: {},
   watchlist: [],
   settings: null,
   holdings: [],
@@ -359,6 +362,14 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data } = await api.ratings(sym)
       set((st) => ({ ratings: { ...st.ratings, [sym]: data } }))
     } catch { /* leave empty */ }
+  },
+
+  loadEarnings: async (sym) => {
+    if (get().earnings[sym] !== undefined) return
+    try {
+      const { data } = await api.earnings([sym])
+      set((st) => ({ earnings: { ...st.earnings, [sym]: data[0] ?? null } }))
+    } catch { /* leave unset → card shows loading/empty */ }
   },
 
   addWatch: async (sym, target = 0) => {
