@@ -1,5 +1,6 @@
 import os
 import re
+import datetime as _dt
 from flask import Flask, jsonify, request, send_from_directory
 
 # Serve the built frontend (Vite emits to ../frontend/dist). In production a
@@ -114,7 +115,11 @@ def valid_symbol(sym: str) -> bool:
 
 
 def envelope(data, source="internal", stale=False):
-    return jsonify({"data": data, "meta": {"source": source, "stale": stale}})
+    return jsonify({"data": data, "meta": {
+        "source": source,
+        "stale": stale,
+        "fetched_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+    }})
 
 
 @app.route("/api/health")

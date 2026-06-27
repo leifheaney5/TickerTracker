@@ -2,7 +2,7 @@
 
 export interface Envelope<T> {
   data: T
-  meta: { source: string; stale: boolean }
+  meta: { source: string; stale: boolean; fetched_at: string }
 }
 
 export interface Quote {
