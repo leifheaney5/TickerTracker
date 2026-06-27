@@ -3,6 +3,7 @@ import { useStore, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
+import { StarterPicker } from '../components/StarterPicker'
 import { money, pct } from '../lib/format'
 
 // Dedicated full-screen watchlist manager: a clean editable list of the user's
@@ -77,6 +78,9 @@ export function ManageWatchlist() {
           <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Manage Watchlist</span>
           <span style={{ fontSize: '13px', color: COLORS.tx2 }}>{items.length} ticker{items.length === 1 ? '' : 's'} · add in bulk, set targets, remove</span>
         </div>
+
+        {/* Starter watchlists — shown only when watchlist is empty */}
+        {items.length === 0 && <StarterPicker />}
 
         {/* Bulk add */}
         <div style={{ ...card, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
