@@ -18,6 +18,7 @@ import { ManageWatchlist } from './views/ManageWatchlist'
 import { Footer } from './components/Footer'
 import { SharedWatchlist } from './views/SharedWatchlist'
 import { Earnings } from './views/Earnings'
+import { UpgradePrompt } from './components/UpgradePrompt'
 
 // Resolve a /s/<token> path to a share token, or null if not on that path.
 function _parseShareToken(): string | null {
@@ -38,6 +39,7 @@ export default function App() {
   const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
+  const loadBilling = useStore((s) => s.loadBilling)
   const loadMe = useStore((s) => s.loadMe)
   const pollQuotes = useStore((s) => s.pollQuotes)
   const watchlist = useStore((s) => s.watchlist)
@@ -58,11 +60,16 @@ export default function App() {
         loadWatchlist()
         loadSettings()
         loadHoldings()
+        loadBilling()
       }
     })
 
     // Handle URL query params on first mount.
     const params = new URLSearchParams(window.location.search)
+
+    // Returning from Stripe Checkout (/?checkout=success|cancel): refresh billing.
+    const checkout = params.get('checkout')
+    if (checkout === 'success') loadBilling()
 
     // Deep link to a specific ticker (e.g. from an alert email: /?sym=NVDA).
     const sym = (params.get('sym') || '').toUpperCase()
@@ -80,10 +87,10 @@ export default function App() {
       openAuth()
     }
     // Clean handled params from the URL without reload (keep the path).
-    if (sym || verify === 'ok' || verify === 'failed') {
+    if (sym || verify === 'ok' || verify === 'failed' || checkout === 'success' || checkout === 'cancel') {
       window.history.replaceState(null, '', window.location.pathname)
     }
-  }, [loadMe, loadWatchlist, loadSettings, loadHoldings, openAuth])
+  }, [loadMe, loadWatchlist, loadSettings, loadHoldings, loadBilling, openAuth])
 
   // Poll quotes for the effective symbol list (the user's watchlist, or the
   // demo list when anonymous) so cards/movers/At-a-Glance always show LIVE
@@ -116,6 +123,7 @@ export default function App() {
       }}
     >
       <AuthScreen />
+      <UpgradePrompt />
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
       {verifyBanner && (
         <div
