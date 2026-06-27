@@ -31,12 +31,9 @@ function _parseShareToken(): string | null {
 // App root: mounts design tokens, the header chrome, and the active view body.
 // Views are added unit by unit (Dashboard first).
 export default function App() {
-  // Render the read-only shared watchlist view for /s/<token> paths.
-  // This bypasses auth entirely — no header, no shell.
+  // Resolve share token early (not a hook — safe before hooks).
   const shareToken = _parseShareToken()
-  if (shareToken) {
-    return <SharedWatchlist token={shareToken} />
-  }
+
   const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
@@ -86,6 +83,13 @@ export default function App() {
     const id = setInterval(pollQuotes, 60000)
     return () => clearInterval(id)
   }, [watchlist.length, currentUser, pollQuotes])
+
+  // Render the read-only shared watchlist view for /s/<token> paths.
+  // This bypasses auth entirely — no header, no shell.
+  // Placed AFTER all hooks so the Rules of Hooks are satisfied.
+  if (shareToken) {
+    return <SharedWatchlist token={shareToken} />
+  }
 
   return (
     <div
