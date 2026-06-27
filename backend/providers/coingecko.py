@@ -15,23 +15,34 @@ def _coin(x):
 
 
 def fetch_crypto(limit: int = 50, extra_ids=()) -> dict:
-    params = {"vs_currency": "usd", "order": "market_cap_desc",
-              "per_page": limit, "page": 1}
-    # Union any watchlisted coins outside the top-N into the same request.
-    extra = [i for i in extra_ids if i]
-    if extra:
-        params["ids"] = ",".join(sorted(set(extra)))
-        # When ids is set CoinGecko ignores per_page paging semantics; ask for
-        # both by widening per_page so the top-N still come back.
-        params["per_page"] = max(limit, len(extra) + limit)
-    r = requests.get(f"{_BASE}/coins/markets", params=params, timeout=10)
+    # Request 1: top-N by market cap (CoinGecko treats `ids` as a FILTER, so it
+    # must NOT be set here or the top-N would be dropped).
+    r = requests.get(f"{_BASE}/coins/markets",
+                     params={"vs_currency": "usd", "order": "market_cap_desc",
+                             "per_page": limit, "page": 1},
+                     timeout=10)
     r.raise_for_status()
-    rows = r.json()
-    coins = [_coin(x) for x in rows]
-    total = sum(c["market_cap"] for c in coins) or 1
+    coins = [_coin(x) for x in r.json()]
+
+    # Request 2 (only if needed): watchlisted coins that fell outside the top-N.
+    present = {c["id"] for c in coins}
+    missing = sorted({i for i in extra_ids if i} - present)
+    if missing:
+        r2 = requests.get(f"{_BASE}/coins/markets",
+                          params={"vs_currency": "usd", "ids": ",".join(missing),
+                                  "per_page": len(missing), "page": 1},
+                          timeout=10)
+        r2.raise_for_status()
+        for x in r2.json():
+            c = _coin(x)
+            if c["id"] not in present:  # request-1 coins win on dedupe
+                present.add(c["id"])
+                coins.append(c)
+
+    total = sum(c["market_cap"] for c in coins)
     btc = next((c for c in coins if c["symbol"] == "BTC"), None)
     return {"coins": coins, "total_market_cap": total,
-            "btc_dominance": round((btc["market_cap"] / total * 100) if btc else 0, 1)}
+            "btc_dominance": round((btc["market_cap"] / (total or 1) * 100) if btc else 0, 1)}
 
 
 def search_coins(query: str) -> list:

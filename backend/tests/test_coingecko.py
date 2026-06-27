@@ -35,6 +35,31 @@ def test_search_coins_shape():
 
 
 @responses.activate
+def test_fetch_crypto_unions_extra_id_outside_top_n():
+    responses.add(responses.GET, _MARKETS, json=[
+        _row("bitcoin", "btc", "Bitcoin", 60000, 1.5, 1_200_000_000_000),
+    ], status=200)
+    responses.add(responses.GET, _MARKETS, json=[
+        _row("shiba-inu", "shib", "Shiba Inu", 0.00002, 3.0, 9_000_000_000),
+    ], status=200)
+    out = cg.fetch_crypto(limit=50, extra_ids=["shiba-inu"])
+    assert {c["id"] for c in out["coins"]} == {"bitcoin", "shiba-inu"}
+    assert len(responses.calls) == 2
+    assert "ids=shiba-inu" in responses.calls[1].request.url
+    assert "ids=" not in responses.calls[0].request.url   # top-N call is unfiltered
+
+
+@responses.activate
+def test_fetch_crypto_skips_second_request_when_extra_already_in_top_n():
+    responses.add(responses.GET, _MARKETS, json=[
+        _row("bitcoin", "btc", "Bitcoin", 60000, 1.5, 1_200_000_000_000),
+    ], status=200)
+    out = cg.fetch_crypto(limit=50, extra_ids=["bitcoin"])
+    assert len(responses.calls) == 1
+    assert {c["id"] for c in out["coins"]} == {"bitcoin"}
+
+
+@responses.activate
 def test_fetch_prices_keyed_by_id():
     responses.add(responses.GET, _MARKETS, json=[
         _row("solana", "sol", "Solana", 150.0, 4.0, 7_000_000_000),
