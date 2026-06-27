@@ -11,13 +11,14 @@ export interface Result<T> {
   data: T
   source: string
   stale: boolean
+  fetchedAt: string
 }
 
 async function get<T>(path: string): Promise<Result<T>> {
   const r = await fetch(path, { credentials: 'include' })
   if (!r.ok) throw new Error(`${path} → ${r.status}`)
   const env = (await r.json()) as Envelope<T>
-  return { data: env.data, source: env.meta.source, stale: env.meta.stale }
+  return { data: env.data, source: env.meta.source, stale: env.meta.stale, fetchedAt: env.meta.fetched_at }
 }
 
 async function send<T>(path: string, method: string, body?: unknown): Promise<Result<T>> {
@@ -29,7 +30,7 @@ async function send<T>(path: string, method: string, body?: unknown): Promise<Re
   })
   if (!r.ok) throw new Error(`${path} → ${r.status}`)
   const env = (await r.json()) as Envelope<T>
-  return { data: env.data, source: env.meta.source, stale: env.meta.stale }
+  return { data: env.data, source: env.meta.source, stale: env.meta.stale, fetchedAt: env.meta.fetched_at }
 }
 
 export const api = {

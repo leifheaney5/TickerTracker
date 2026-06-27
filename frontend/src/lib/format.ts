@@ -24,6 +24,13 @@ export function capStr(v: number): string {
   return '$' + v.toLocaleString('en-US')
 }
 
+// "as of HH:MM" label from an ISO-8601 UTC timestamp.
+export function asOf(iso: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return 'as of ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 // Share-volume formatting (counts, not dollars). Returns '—' when unavailable.
 export function volStr(v: number): string {
   if (!v) return '—'

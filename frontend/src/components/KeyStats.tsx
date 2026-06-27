@@ -1,7 +1,7 @@
 import { useStore } from '../state/store'
 import { COLORS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
-import { money, capStr, volStr } from '../lib/format'
+import { money, capStr, volStr, asOf } from '../lib/format'
 
 // Key Statistics grid — ported from the prototype template (lines 359-369).
 // Reads real fundamentals + quote where available, falls back to universe seed.
@@ -10,6 +10,7 @@ export function KeyStats() {
   const quotes = useStore((s) => s.quotes)
   const fundamentals = useStore((s) => s.fundamentals)
   const history = useStore((s) => s.history)
+  const quotesFetchedAt = useStore((s) => s.quotesFetchedAt)
 
   const u = UNIVERSE[selected] || ({} as typeof UNIVERSE[string])
   const q = quotes[selected]
@@ -38,7 +39,10 @@ export function KeyStats() {
 
   return (
     <div style={{ flex: 1, minWidth: 300, background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-.01em', color: COLORS.tx }}>Key Statistics</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-.01em', color: COLORS.tx }}>Key Statistics</span>
+        {quotesFetchedAt && <span style={{ fontSize: '11px', color: COLORS.tx3 }}>{asOf(quotesFetchedAt)}</span>}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: COLORS.line, borderRadius: 10, overflow: 'hidden' }}>
         {stats.map(([label, value]) => (
           <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '11px 13px', background: COLORS.card }}>

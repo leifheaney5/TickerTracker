@@ -82,14 +82,22 @@ def fetch_news(sym=None) -> list:
         r = requests.get(f"{_BASE}/news", params={"category": "general", "token": key}, timeout=10)
     r.raise_for_status()
     rows = r.json()[:12]
-    return [{
-        "source": a.get("source", "—"),
-        "datetime": _ago(a.get("datetime", 0)),
-        "sentiment": _sentiment(a),
-        "headline": a.get("headline", ""),
-        "url": a.get("url", ""),
-        "symbol": sym or "MKT",
-    } for a in rows if a.get("headline")]
+    out = []
+    for a in rows:
+        url = a.get("url", "") or ""
+        if not url or "finnhub.io/api" in url:
+            continue  # skip raw API endpoints / missing links (BUG-018)
+        if not a.get("headline"):
+            continue
+        out.append({
+            "source": a.get("source", "—"),
+            "datetime": _ago(a.get("datetime", 0)),
+            "sentiment": _sentiment(a),
+            "headline": a.get("headline", ""),
+            "url": url,
+            "symbol": sym or "MKT",
+        })
+    return out
 
 
 def fetch_ratings(sym: str) -> dict:

@@ -48,6 +48,7 @@ interface StoreState {
   crypto: CryptoResponse | null
   fng: Fng | null
   flash: Record<string, 'up' | 'down' | null>
+  quotesFetchedAt: string
 
   // ── actions ──
   setView: (v: View) => void
@@ -122,6 +123,7 @@ export const useStore = create<StoreState>((set, get) => ({
   crypto: null,
   fng: null,
   flash: {},
+  quotesFetchedAt: '',
 
   authModal: false,
   authIntent: 'login',
@@ -207,7 +209,7 @@ export const useStore = create<StoreState>((set, get) => ({
       set({
         watchlist: DEFAULT_WATCH.map((symbol, i) => ({
           symbol, position: i, target: UNIVERSE[symbol]?.target ?? 0,
-          alert_price: 0, alert_dir: 'above' as const,
+          alert_price: 0, alert_dir: 'above' as const, alert_active: false,
         })),
       })
     }
@@ -262,7 +264,7 @@ export const useStore = create<StoreState>((set, get) => ({
     const all = Array.from(new Set([...syms, selected])).filter(Boolean)
     if (!all.length) return
     try {
-      const { data } = await api.quotes(all)
+      const { data, fetchedAt } = await api.quotes(all)
       const prev = get().quotes
       const flash: Record<string, 'up' | 'down' | null> = {}
       for (const sym of Object.keys(data.quotes)) {
@@ -270,7 +272,7 @@ export const useStore = create<StoreState>((set, get) => ({
         const now = data.quotes[sym].price
         flash[sym] = old === undefined ? null : now > old ? 'up' : now < old ? 'down' : null
       }
-      set({ quotes: { ...prev, ...data.quotes }, marketStatus: data.market_status, flash })
+      set({ quotes: { ...prev, ...data.quotes }, marketStatus: data.market_status, flash, quotesFetchedAt: fetchedAt })
       // clear flash after the prototype's ~650ms window
       setTimeout(() => set({ flash: {} }), 650)
     } catch {

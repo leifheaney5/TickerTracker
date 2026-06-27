@@ -3,6 +3,8 @@ import { useStore } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO, IDX_COLORS } from '../theme/tokens'
 import { SECTORS, IDX, HM, hmChange, sectorPerf } from '../data/market'
 import { Treemap, heatColor, type TreemapItem } from '../charts/Treemap'
+import { api } from '../api/client'
+import { asOf } from '../lib/format'
 
 // Market / Map / Sectors — ported from the prototype templates (lines 753-779,
 // 783+, 719-750). A shared Overview/Map/Sectors sub-nav. Index + sector data is
@@ -21,8 +23,12 @@ export function MarketViews({ sub }: { sub: Sub }) {
   const [secTf, setSecTf] = useState('1M')
   const [mapW, setMapW] = useState(800)
   const mapRef = useRef<HTMLDivElement | null>(null)
+  const [fngFetchedAt, setFngFetchedAt] = useState('')
 
-  useEffect(() => { loadFng() }, [loadFng])
+  useEffect(() => {
+    loadFng()
+    api.fng().then((r) => setFngFetchedAt(r.fetchedAt)).catch(() => {})
+  }, [loadFng])
   useEffect(() => {
     const el = mapRef.current
     if (!el) return
@@ -78,7 +84,7 @@ export function MarketViews({ sub }: { sub: Sub }) {
                 </div>
               )
             })}
-            {fng && <span style={{ fontSize: 11.5, color: COLORS.tx3 }}>Crypto Fear &amp; Greed: {fng.value} · {fng.label}</span>}
+            {fng && <span style={{ fontSize: 11.5, color: COLORS.tx3 }}>Crypto Fear &amp; Greed: {fng.value} · {fng.label}{fngFetchedAt ? ' · ' + asOf(fngFetchedAt) : ''}</span>}
           </div>
         </>
       )}
