@@ -26,6 +26,7 @@ export default function App() {
   const currentUser = useStore((s) => s.currentUser)
   const view = useStore((s) => s.view)
   const openAuth = useStore((s) => s.openAuth)
+  const theme = useStore((s) => s.theme)
 
   // One-time banner for email verification outcome
   const [verifyBanner, setVerifyBanner] = useState<'ok' | 'failed' | null>(null)
@@ -67,9 +68,9 @@ export default function App() {
   return (
     <div
       style={{
-        ...rootCssVars(),
+        ...rootCssVars(undefined, 'balanced', theme),
         position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column',
-        overflow: 'hidden', fontFamily: FONT_SANS, color: COLORS.tx, background: COLORS.bg,
+        overflow: 'hidden', fontFamily: FONT_SANS, color: 'var(--tx)', background: 'var(--bg)',
       }}
     >
       <AuthScreen />

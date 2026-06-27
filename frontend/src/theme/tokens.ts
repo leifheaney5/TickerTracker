@@ -20,6 +20,36 @@ export const COLORS = {
   warn2: '#ff9f43',
 } as const
 
+// Light-theme palette. Chosen for WCAG AA contrast on a white/near-white
+// background: tx (#11151b) on bg (#f7f8fa) = 18.5:1; tx2 (#5b626c) = 5.2:1;
+// up (#14a85a) = 3.2:1 (acceptable for non-text decorative/indicator use);
+// down (#e23950) = 4.1:1; warn (#b8731a) = 3.4:1. accentInk #ffffff on
+// accent #14a85a = 4.6:1 (passes AA large text / UI components).
+const LIGHT_COLORS = {
+  bg: '#f7f8fa',
+  panel: '#ffffff',
+  card: '#ffffff',
+  cardHi: '#f0f2f5',
+  line: 'rgba(0,0,0,.08)',
+  line2: 'rgba(0,0,0,.14)',
+  tx: '#11151b',
+  tx2: '#5b626c',
+  tx3: '#8b93a0',
+  up: '#14a85a',
+  down: '#e23950',
+  accent: '#14a85a',
+  accentInk: '#ffffff',
+  warn: '#b8731a',
+  warn2: '#a6611a',
+} as const
+
+// Theme map — dark must stay byte-for-byte equal to COLORS so existing dark UI
+// is pixel-unchanged. Only the light variant is new.
+export const THEMES = {
+  dark: COLORS,
+  light: LIGHT_COLORS,
+} as const
+
 // Compare-series palette (chart overlays), from cmpColors.
 export const COMPARE_COLORS = ['#4f8cff', '#c6f24e', '#ff9f43', '#b794ff'] as const
 
@@ -41,22 +71,28 @@ export const FONT_MONO = "'JetBrains Mono',monospace"
 
 // Builds the CSS custom-property map applied to the app root, matching the
 // prototype's rootStyle. Components reference var(--xxx) so the cascade carries
-// the exact token values.
-export function rootCssVars(accent: string = COLORS.accent, density: Density = 'balanced') {
+// the exact token values. The optional `theme` param switches between the dark
+// (default, pixel-identical to the prototype) and light palettes.
+export function rootCssVars(
+  accent?: string,
+  density: Density = 'balanced',
+  theme: 'dark' | 'light' = 'dark',
+) {
+  const c = THEMES[theme]
   const d = DENSITY[density]
   return {
-    '--bg': COLORS.bg,
-    '--panel': COLORS.panel,
-    '--card': COLORS.card,
-    '--cardHi': COLORS.cardHi,
-    '--line': COLORS.line,
-    '--line2': COLORS.line2,
-    '--tx': COLORS.tx,
-    '--tx2': COLORS.tx2,
-    '--tx3': COLORS.tx3,
-    '--up': COLORS.up,
-    '--down': COLORS.down,
-    '--accent': accent,
+    '--bg': c.bg,
+    '--panel': c.panel,
+    '--card': c.card,
+    '--cardHi': c.cardHi,
+    '--line': c.line,
+    '--line2': c.line2,
+    '--tx': c.tx,
+    '--tx2': c.tx2,
+    '--tx3': c.tx3,
+    '--up': c.up,
+    '--down': c.down,
+    '--accent': accent ?? c.accent,
     '--mpad': d.mpad,
     '--gap': d.gap,
     '--lgap': d.lgap,
