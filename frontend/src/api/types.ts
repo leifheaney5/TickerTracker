@@ -118,3 +118,24 @@ export interface SharedWatchlistResponse {
   owner_name: string
   items: SharedWatchlistItem[]
 }
+
+export interface EarningsRow {
+  symbol: string
+  date: string
+  hour: string
+  epsEstimate: number | null
+}
+
+export interface SavedScreen {
+  id: number
+  name: string
+  filters: Record<string, string>
+}
+
+export interface WatchlistSentiment {
+  bullish: number
+  bearish: number
+  neutral: number
+  total: number
+  mood: string
+}
