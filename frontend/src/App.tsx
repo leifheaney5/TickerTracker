@@ -15,6 +15,7 @@ import { MarketViews } from './views/MarketViews'
 import { Screener } from './views/Screener'
 import { Strategy } from './views/Strategy'
 import { ManageWatchlist } from './views/ManageWatchlist'
+import { Footer } from './components/Footer'
 import { SharedWatchlist } from './views/SharedWatchlist'
 import { Earnings } from './views/Earnings'
 
@@ -144,6 +145,7 @@ export default function App() {
       {view === 'strategy' && <Strategy />}
       {view === 'managewatch' && <ManageWatchlist />}
       {view === 'earnings' && <Earnings />}
+      <Footer />
     </div>
   )
 }
