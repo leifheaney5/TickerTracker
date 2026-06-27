@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore, type SortBy } from '../state/store'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { GROUPS, UNIVERSE } from '../data/universe'
@@ -40,6 +40,8 @@ export function Watchlist() {
   const chg = useStore((s) => s.chg)
   const flash = useStore((s) => s.flash)
   const addWatch = useStore((s) => s.addWatch)
+  const history = useStore((s) => s.history)
+  const loadHistory = useStore((s) => s.loadHistory)
   const requireAuth = useRequireAuth()
   const isMobile = useIsMobile()
   const [mobileExpanded, setMobileExpanded] = useState(false)
@@ -67,6 +69,21 @@ export function Watchlist() {
   else if (sortBy === 'az') base = base.slice().sort((a, b) => a.localeCompare(b))
 
   const dragOK = sortBy === 'manual'
+
+  // Load 1M history for each visible symbol so the Sparkline has live data.
+  // Effect is gated on the joined symbol string — won't re-fire on re-renders
+  // unless the symbol list actually changes. loadHistory is a no-op if the key
+  // is already in the cache, so there's no risk of hammering the API.
+  const symKey = sourceSymbols.join(',')
+  useEffect(() => {
+    if (!sourceSymbols.length) return
+    for (const sym of sourceSymbols) {
+      if (!history[`${sym}:1M`]) {
+        loadHistory(sym, '1M')
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symKey])
 
   const submitAdd = () => {
     const sym = addSym.trim().toUpperCase()
