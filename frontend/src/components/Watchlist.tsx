@@ -114,6 +114,7 @@ export function Watchlist() {
                 <button
                   onClick={cycleSort}
                   title="Change sort order"
+                  aria-label={`Sort by: ${SORT_LABEL[sortBy]}. Click to cycle sort order`}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', color: COLORS.tx3, fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   ⇅ {SORT_LABEL[sortBy]}
@@ -195,12 +196,14 @@ export function Watchlist() {
                     value={addSym}
                     onChange={(e) => setAddSym(e.target.value)}
                     placeholder="Symbol  e.g. NVDA"
+                    aria-label="Ticker symbol"
                     style={{ height: 34, padding: '0 11px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13px', textTransform: 'uppercase' }}
                   />
                   <input
                     value={addTarget}
                     onChange={(e) => setAddTarget(e.target.value)}
                     placeholder="Target price (optional)"
+                    aria-label="Target price"
                     style={{ height: 34, padding: '0 11px', borderRadius: 8, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '13px' }}
                   />
                   <div style={{ display: 'flex', gap: 8 }}>
