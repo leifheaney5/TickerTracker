@@ -5,7 +5,7 @@
 import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
   NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
-  SharedWatchlistResponse, EarningsRow, SavedScreen,
+  SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
 } from './types'
 
 export interface Result<T> {
@@ -74,4 +74,7 @@ export const api = {
     send<SavedScreen>('/api/screens', 'POST', b),
   deleteScreen: (id: number) =>
     send<{ deleted: boolean }>(`/api/screens/${id}`, 'DELETE'),
+
+  sentiment: (syms: string[]) =>
+    get<WatchlistSentiment>(`/api/sentiment?syms=${encodeURIComponent(syms.join(','))}`),
 }
