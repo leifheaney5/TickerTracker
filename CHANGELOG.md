@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Screener page pulled from prod nav** — it filtered a hardcoded 18-ticker
+  `UNIVERSE` rather than the real market, so it couldn't discover new stocks;
+  the "+ Compare" control toggled state but rendered no comparison panel; and
+  "diving deep" just navigated to the existing Dashboard. Same
+  "promising functionality that isn't built" problem that pulled Strategy and
+  the Connect-account button. Removed from the nav and view router; source kept
+  at `frontend/src/views/Screener.tsx` and the feature is parked on `ROADMAP.md`
+  with what a genuine market-wide screener would require.
+
+### Changed
+
+- **Earnings calendar diagnostics** — `get_earnings` now logs (INFO) how many of
+  the requested watchlist symbols have an upcoming report in the 30-day window
+  and names those that don't, so a sparse-looking calendar can be explained from
+  the logs. A symbol with no scheduled report is informational, not an error —
+  most "missing" tickers simply have nothing to report in the next 30 days
+  (and crypto/most non-US tickers have no earnings events at all).
+
 ## [1.13.1] — 2026-06-27
 
 ### Changed
