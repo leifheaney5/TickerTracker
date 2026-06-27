@@ -143,3 +143,14 @@ Once all three steps are complete:
 **Secrets still in chat history:**
 - These are now invalidated by rotation; no further action needed
 - Future development: use a secrets manager (e.g., Railway's native secrets, 1Password, Vault) instead of pasting
+
+
+---
+
+## STATUS (2026-06-27): Resend domain VERIFIED ✅
+
+`tickertracker.info` is verified in Resend (DKIM/SPF/DMARC all green). `MAIL_FROM`
+is now `Ticker Tracker <alerts@tickertracker.info>` on the web service + both cron
+services. Emails (signup verification, password reset, price alerts, weekly
+digest) now deliver to ANY recipient — no longer sandbox-limited. Verified by a
+real test send. Google OAuth: live + published. **All launch gates closed.**
