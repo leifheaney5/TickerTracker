@@ -35,6 +35,11 @@ jobs:
 
       - name: Deploy
         if: steps.check.outputs.have_token == 'true'
-        run: railway up --detach --service Ticker-Tracker --ci
+        # The stored secret is an ACCOUNT-scoped token, so it's passed as
+        # RAILWAY_API_TOKEN (project-scoped tokens use RAILWAY_TOKEN). Link the
+        # project explicitly since the CI checkout isn't linked, then deploy.
+        run: |
+          railway link --project tickertracker-website --environment production --service Ticker-Tracker
+          railway up --detach --ci --service Ticker-Tracker
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
