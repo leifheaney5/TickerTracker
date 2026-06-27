@@ -88,3 +88,29 @@ Visual verify (vite preview + headless): DARK mode pixel-correct (--bg #0a0b0d,
 light mode the body edge behind the app root stays dark (app itself is light).
 Cosmetic; fix = make body bg use var(--bg) or move the bg to the root. Logged,
 not blocking — dark default unaffected.
+
+# ===== OVERNIGHT RUN FINAL SUMMARY (2026-06-27) =====
+
+ALL PLANNED WORK COMPLETE. 7 versions shipped + deployed to tickertracker.info, every deploy SUCCESS, every phase passed its green gate (backend pytest + frontend build + vitest) before deploy.
+
+## Versions shipped
+- v1.5.0  Phase 1 Launch Readiness: email price alerts (arm in Manage Watchlist), weekly digest, cron entrypoint (backend/jobs.py), news links -> real articles (BUG-018), as-of timestamps (BUG-013/017), Compare anon polish (BUG-011). + deploy-safety: init_db ensures alert columns on existing tables.
+- v1.6.0  Phase 2 Growth: light/dark theme toggle, onboarding starter watchlists, shareable read-only /s/ links, CSV/file import.
+- v1.7.0  Phase 3 Engagement: earnings calendar, saved screener filters, watchlist sentiment chip.
+- v1.8.0  Phase 4 Polish: friendly empty/error states, a11y aria-labels, backend coverage 118->136 + SQLAlchemy .get() modernization (0 warnings), README refresh.
+- v1.9.0  Phase 4b: FULL light theme (570 COLORS.x -> var(--x) across 27 files; browser-verified dark pixel-identical + light flips).
+- v1.10.0 Phase 5: digest unsubscribe link, watchlist sparklines, SEO/OG meta + robots.txt + sitemap.xml.
+- v1.11.0 Phase 5: keyboard shortcuts + help overlay; fixed a rules-of-hooks violation in App.tsx.
+
+Tests end state: backend 141 passing (0 deprecation warnings), frontend 24 passing. main @ 5cf0233, clean.
+
+## MORNING REVIEW CHECKLIST (human)
+1. VISUAL QA light theme on the live site (toggle ☾/☀ in header). Known minor: page <body> edge stays dark behind the app in light mode (index.css static bg) — see P4.T6 note. Cosmetic.
+2. ALERTS + DIGEST DON'T FIRE YET: you must create the two Railway CRON SERVICES per docs/ops/cron-setup.md (alerts every 5 min: `python backend/jobs.py check-alerts`; digest weekly: `python backend/jobs.py weekly-digest`). Until then the engine is built+tested but never invoked. Deploy web FIRST (it ran migrations); then activate cron (deploy-order note in cron-setup.md).
+3. LAUNCH GATES still owed (docs/ops/launch-gates.md): verify a Resend sending domain (emails only reach the owner until then), add GOOGLE_CLIENT_ID/SECRET, ROTATE the secrets pasted in chat.
+4. Try keyboard shortcuts: press ? on the site for the overlay.
+5. Carryover MINORS (none blocking) logged throughout this file + ledger: TOCTOU on first share/unsub token write; asOf() NaN guard; MarketViews double /api/fng fetch; saved-screens dropdown no click-outside; body-bg in light mode.
+
+## What was NOT done (out of declared scope / deliberately deferred)
+- Real brokerage connect (SnapTrade/Plaid) — market doc says sequence after quick wins; not in tonight's phases.
+- The light-mode body-bg cosmetic fix (logged for follow-up).
