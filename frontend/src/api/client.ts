@@ -5,6 +5,7 @@
 import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
   NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
+  SharedWatchlistResponse,
 } from './types'
 
 export interface Result<T> {
@@ -61,4 +62,7 @@ export const api = {
     send<Holding>('/api/holdings', 'POST', b),
   removeHolding: (sym: string) =>
     send<{ removed: boolean }>(`/api/holdings/${encodeURIComponent(sym)}`, 'DELETE'),
+
+  createShare: () => send<{ token: string }>('/api/watchlist/share', 'POST'),
+  getShared: (token: string) => get<SharedWatchlistResponse>(`/api/shared/${encodeURIComponent(token)}`),
 }

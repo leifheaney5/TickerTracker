@@ -213,6 +213,7 @@ _db.init_db()
 from services.store import (get_watchlist, add_watch, update_watch, remove_watch,
                             get_settings, update_settings,
                             get_holdings, set_holding, remove_holding)
+from services.share import create_share, resolve_share
 
 
 @app.route("/api/watchlist", methods=["GET"])
@@ -303,6 +304,25 @@ def holdings_delete(sym):
     if _require_user() is None:
         return envelope({"error": "authentication required"}), 401
     return envelope({"removed": remove_holding(sym)}, source="db")
+
+
+# ─── Shareable watchlist links ────────────────────────────────────────────────
+
+@app.route("/api/watchlist/share", methods=["POST"])
+def watchlist_share_create():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    token = create_share(uid)
+    return envelope({"token": token}, source="db")
+
+
+@app.route("/api/shared/<token>")
+def shared_watchlist(token):
+    result = resolve_share(token)
+    if result is None:
+        return envelope({"error": "not found"}), 404
+    return envelope(result, source="db")
 
 
 # ─── SPA fallback ────────────────────────────────────────────────────────────

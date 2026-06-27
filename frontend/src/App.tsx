@@ -13,10 +13,27 @@ import { MarketViews } from './views/MarketViews'
 import { Screener } from './views/Screener'
 import { Strategy } from './views/Strategy'
 import { ManageWatchlist } from './views/ManageWatchlist'
+import { SharedWatchlist } from './views/SharedWatchlist'
+
+// Resolve a /s/<token> path to a share token, or null if not on that path.
+function _parseShareToken(): string | null {
+  const path = window.location.pathname
+  if (path.startsWith('/s/')) {
+    const token = path.slice(3)
+    return token.length > 0 ? token : null
+  }
+  return null
+}
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // Views are added unit by unit (Dashboard first).
 export default function App() {
+  // Render the read-only shared watchlist view for /s/<token> paths.
+  // This bypasses auth entirely — no header, no shell.
+  const shareToken = _parseShareToken()
+  if (shareToken) {
+    return <SharedWatchlist token={shareToken} />
+  }
   const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
