@@ -184,3 +184,59 @@ def test_portal_returns_url_when_customer_exists(monkeypatch):
     monkeypatch.setattr(stripe.billing_portal.Session, "create",
                         staticmethod(lambda **kw: _FakeSession("https://portal.test/x")))
     assert billing.create_portal_session(uid) == "https://portal.test/x"
+
+
+def _sub_event(etype, uid, status="active", sub_id="sub_1", cust="cus_9"):
+    return {
+        "id": f"evt_{etype}_{uid}",
+        "type": etype,
+        "data": {"object": {
+            "id": sub_id,
+            "customer": cust,
+            "status": status,
+            "cancel_at_period_end": False,
+            "current_period_end": 1893456000,  # 2030-01-01
+            "metadata": {"user_id": str(uid)},
+            "items": {"data": [{"price": {"id": "price_annual"}}]},
+        }},
+    }
+
+
+def test_webhook_subscription_created_sets_pro():
+    uid = _mk_user("wh1@example.com")
+    assert billing.handle_webhook_event(_sub_event("customer.subscription.created", uid)) is True
+    assert billing.is_pro(uid) is True
+    st = billing.get_billing_state(uid)
+    assert st["status"] == "active"
+    assert st["current_period_end"] is not None
+
+
+def test_webhook_subscription_updated_then_deleted():
+    uid = _mk_user("wh2@example.com")
+    billing.handle_webhook_event(_sub_event("customer.subscription.created", uid))
+    billing.handle_webhook_event(_sub_event("customer.subscription.deleted", uid,
+                                            status="canceled", sub_id="sub_1"))
+    assert billing.is_pro(uid) is False
+
+
+def test_duplicate_webhook_event_ignored():
+    uid = _mk_user("wh3@example.com")
+    ev = _sub_event("customer.subscription.created", uid)
+    assert billing.handle_webhook_event(ev) is True
+    assert billing.handle_webhook_event(ev) is False  # same event id
+
+
+def test_webhook_checkout_completed_links_customer():
+    uid = _mk_user("wh4@example.com")
+    ev = {
+        "id": "evt_checkout_1",
+        "type": "checkout.session.completed",
+        "data": {"object": {
+            "client_reference_id": str(uid),
+            "customer": "cus_link",
+            "subscription": "sub_link",
+            "metadata": {"user_id": str(uid)},
+        }},
+    }
+    assert billing.handle_webhook_event(ev) is True
+    assert billing._existing_customer_id(uid) == "cus_link"
