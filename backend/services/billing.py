@@ -134,3 +134,54 @@ def check_digest_enable(user_id: int) -> dict | None:
     if not billing_enabled() or is_pro(user_id):
         return None
     return _limit_error("digest", PLAN_FREE, LIMITS[PLAN_FREE]["digest"])
+
+
+def _existing_customer_id(user_id: int) -> str | None:
+    with db.get_session() as s:
+        sub = _get_sub(s, user_id)
+        return sub.stripe_customer_id if sub else None
+
+
+def _app_base() -> str:
+    return os.environ.get("APP_BASE_URL", "http://localhost:5000").rstrip("/")
+
+
+def create_checkout_session(user_id: int, interval: str) -> str:
+    import stripe
+    key = os.environ.get("STRIPE_SECRET_KEY")
+    if not key:
+        raise BillingNotConfigured("STRIPE_SECRET_KEY not set")
+    stripe.api_key = key
+    if interval == "annual":
+        price_id = os.environ.get("STRIPE_PRO_ANNUAL_PRICE_ID")
+    else:
+        price_id = os.environ.get("STRIPE_PRO_MONTHLY_PRICE_ID")
+    if not price_id:
+        raise BillingNotConfigured(f"price id not set for interval={interval!r}")
+    base = _app_base()
+    session = stripe.checkout.Session.create(
+        mode="subscription",
+        line_items=[{"price": price_id, "quantity": 1}],
+        client_reference_id=str(user_id),
+        customer=_existing_customer_id(user_id) or None,
+        subscription_data={"metadata": {"user_id": str(user_id)}},
+        success_url=f"{base}/?checkout=success",
+        cancel_url=f"{base}/?checkout=cancel",
+    )
+    return session.url
+
+
+def create_portal_session(user_id: int) -> str:
+    import stripe
+    key = os.environ.get("STRIPE_SECRET_KEY")
+    if not key:
+        raise BillingNotConfigured("STRIPE_SECRET_KEY not set")
+    customer_id = _existing_customer_id(user_id)
+    if not customer_id:
+        raise BillingNotConfigured("no Stripe customer for user")
+    stripe.api_key = key
+    session = stripe.billing_portal.Session.create(
+        customer=customer_id,
+        return_url=f"{_app_base()}/?view=settings",
+    )
+    return session.url
