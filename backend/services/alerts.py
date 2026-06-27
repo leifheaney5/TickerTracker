@@ -99,7 +99,7 @@ def _alert_email_html(symbol, price, level, direction, kind):
         f'color:{color}">${price:,.2f}</td></tr>'
         '</table>'
 
-        f'{t.button(f"View {symbol} on Ticker Tracker", f"{t.APP_URL}/?sym={symbol}")}'
+        f'{t.button(f"View {symbol} on Ticker Tracker", f"{t.APP_URL}/ticker/{symbol}")}'
         '<p style="margin:16px 0 0;font-size:12px;color:#8b93a0">'
         "You're receiving this because you set an alert on this ticker. "
         'Manage alerts in your watchlist, or turn off alert emails in Settings.</p>'

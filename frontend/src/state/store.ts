@@ -9,6 +9,21 @@ import type {
   CryptoResponse, Fng, Timeframe, AuthUser,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
+import { pathForView } from '../routes'
+
+// ── URL routing bridge ───────────────────────────────────────────────────────
+// The RouterBridge (rendered inside <BrowserRouter>) registers a navigate fn
+// here so setView/setSelected can drive the URL. When it's unset (e.g. in unit
+// tests, or before mount) the store falls back to plain state updates.
+type Nav = (path: string, opts?: { replace?: boolean }) => void
+let _navigate: Nav | null = null
+let _syncingFromUrl = false  // guard: don't navigate while applying a URL change
+
+export function registerNavigate(fn: Nav | null) { _navigate = fn }
+export function applyFromUrl(fn: () => void) {
+  _syncingFromUrl = true
+  try { fn() } finally { _syncingFromUrl = false }
+}
 
 export type View =
   | 'dashboard' | 'overview' | 'deep' | 'market' | 'map' | 'sectors'
@@ -184,8 +199,18 @@ export const useStore = create<StoreState>((set, get) => ({
     return { ok: true }
   },
 
-  setView: (v) => set({ view: v }),
-  setSelected: (s) => set({ selected: s, hover: null, compare: [] }),
+  setView: (v) => {
+    set({ view: v })
+    if (!_syncingFromUrl && _navigate) _navigate(pathForView(v))
+  },
+  setSelected: (s) => {
+    set({ selected: s, hover: null, compare: [] })
+    // Selecting a ticker navigates to its dedicated page + the dashboard view.
+    if (!_syncingFromUrl && _navigate) {
+      set({ view: 'dashboard' })
+      _navigate(`/ticker/${encodeURIComponent(s)}`)
+    }
+  },
   setTimeframe: (tf) => set({ timeframe: tf, hover: null }),
   setChartType: (c) => set({ chartType: c }),
   setGroup: (g) => set({ group: g }),

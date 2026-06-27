@@ -53,6 +53,26 @@ ideas aren't lost when we pull them out of the shipping product.
   connection above (real holdings + order flow) plus a backtesting/live-trading
   engine. Revive only once those exist; until then every metric on it is fiction.
 
+### Stock screener
+- **Status:** Idea
+- **Deferred:** 2026-06-27
+- **Why deferred:** The page couldn't do the one thing a screener exists for —
+  *discover stocks you don't already follow*. It filtered `UNIVERSE`, a hardcoded
+  list of 18 tickers (`frontend/src/data/universe.ts`), so it only re-filtered
+  names already visible on Dashboard/Market/Watchlist. Filters were coarse
+  (sector / gainers-losers / mega-large) with no fundamental thresholds, the
+  "+ Compare" button was a dead control (toggled state + a count, rendered no
+  comparison panel), and "diving deep" just navigated to the existing Dashboard.
+  Same "promising functionality that isn't built" problem that pulled Strategy
+  and the Connect-account button. Removed from prod nav; source kept at
+  `frontend/src/views/Screener.tsx` (saved-screens API in `backend` stays).
+- **What it would take:** A backend screening endpoint that queries the *full*
+  market universe (not a fixed seed list) with real fundamental filters —
+  P/E, market cap, dividend yield, volume, sector, performance ranges — plus a
+  working multi-stock comparison surface for the "+ Compare" selection. The
+  saved-screens persistence layer (`getScreens`/`saveScreen`/`deleteScreen`)
+  already exists and can be reused when this is revived.
+
 ### In-app / push notifications
 - **Status:** Idea
 - **Why deferred:** Alerts and the weekly digest are **email-only** today. Email
