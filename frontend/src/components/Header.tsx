@@ -126,6 +126,7 @@ export function Header() {
           <button
             onClick={() => setMenuOpen((o) => !o)}
             title="Navigation"
+            aria-label="Open navigation menu"
             style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 5, width: 34, height: 34, borderRadius: 9, background: menuOpen ? COLORS.cardHi : COLORS.card,
@@ -152,6 +153,7 @@ export function Header() {
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
               borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
@@ -166,6 +168,7 @@ export function Header() {
             <button
               onClick={() => setSearchOpen(!searchOpen)}
               title="Search"
+              aria-label="Search"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
                 borderRadius: 9, background: COLORS.card, border: `1px solid ${COLORS.line}`,
@@ -189,9 +192,10 @@ export function Header() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search ticker or company…"
+                    aria-label="Search ticker or company"
                     style={{ flex: 1, border: 'none', background: 'transparent', color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13.5px' }}
                   />
-                  <button onClick={() => setSearchOpen(false)} style={{ background: 'none', border: 'none', color: COLORS.tx3, cursor: 'pointer', fontSize: '14px' }}>✕</button>
+                  <button onClick={() => setSearchOpen(false)} aria-label="Close search" style={{ background: 'none', border: 'none', color: COLORS.tx3, cursor: 'pointer', fontSize: '14px' }}>✕</button>
                 </div>
                 {q && (searching || matches.length === 0) && (
                   <div style={{ padding: '14px', fontSize: '12.5px', color: COLORS.tx3 }}>
@@ -222,6 +226,7 @@ export function Header() {
             <button
               onClick={() => setView('settings')}
               title="Account & settings"
+              aria-label="Account menu"
               style={{ width: 34, height: 34, borderRadius: '50%', background: COLORS.card, border: `1px solid ${COLORS.line2}`, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
             >
               {acctInitials}
@@ -342,6 +347,7 @@ export function Header() {
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
             borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
@@ -355,6 +361,7 @@ export function Header() {
           <button
             onClick={() => setSearchOpen(!searchOpen)}
             title="Search"
+            aria-label="Search"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
               borderRadius: 9, background: COLORS.card, border: `1px solid ${COLORS.line}`,
@@ -378,6 +385,7 @@ export function Header() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search ticker or company…"
+                  aria-label="Search ticker or company"
                   style={{ flex: 1, border: 'none', background: 'transparent', color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '13.5px' }}
                 />
               </div>
@@ -428,6 +436,7 @@ export function Header() {
           <button
             onClick={() => setView('settings')}
             title="Account & settings"
+            aria-label="Account menu"
             style={{ width: 34, height: 34, borderRadius: '50%', background: COLORS.card, border: `1px solid ${COLORS.line2}`, color: COLORS.tx, fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
           >
             {acctInitials}

@@ -185,7 +185,7 @@ export function ManageWatchlist() {
                     <div style={{ padding: '10px 14px' }}>
                       {editSym === w.symbol ? (
                         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                          <input autoFocus value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveTarget(w.symbol)} placeholder="$" style={{ width: 70, height: 30, padding: '0 8px', borderRadius: 7, border: `1px solid ${COLORS.accent}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '12.5px' }} />
+                          <input autoFocus value={editVal} onChange={(e) => setEditVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveTarget(w.symbol)} placeholder="$" aria-label={`Target price for ${w.symbol}`} style={{ width: 70, height: 30, padding: '0 8px', borderRadius: 7, border: `1px solid ${COLORS.accent}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '12.5px' }} />
                           <button onClick={() => saveTarget(w.symbol)} style={{ height: 30, padding: '0 10px', borderRadius: 7, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontWeight: 700, cursor: 'pointer' }}>✓</button>
                         </div>
                       ) : (
@@ -197,6 +197,7 @@ export function ManageWatchlist() {
                     <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input
                         title="Set price alert"
+                        aria-label={`Alert price for ${w.symbol}`}
                         type="number"
                         placeholder="$"
                         defaultValue={w.alert_price || ''}
@@ -206,13 +207,14 @@ export function ManageWatchlist() {
                       <button
                         onClick={() => updateWatch(w.symbol, { alert_active: !w.alert_active })}
                         title={w.alert_active ? 'Alert on' : 'Alert off'}
+                        aria-label={`Toggle price alert for ${w.symbol}`}
                         style={{ height: 28, padding: '0 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: w.alert_active ? COLORS.up : COLORS.cardHi, color: w.alert_active ? COLORS.accentInk : COLORS.tx3 }}
                       >
                         {w.alert_active ? 'ON' : 'OFF'}
                       </button>
                     </div>
                     <div style={{ padding: '12px 14px' }}>
-                      <button onClick={() => removeWatch(w.symbol)} title="Remove" style={{ height: 30, padding: '0 12px', borderRadius: 7, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12px', cursor: 'pointer' }}>Remove</button>
+                      <button onClick={() => removeWatch(w.symbol)} title="Remove" aria-label={`Remove ${w.symbol}`} style={{ height: 30, padding: '0 12px', borderRadius: 7, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12px', cursor: 'pointer' }}>Remove</button>
                     </div>
                   </div>
                 )
