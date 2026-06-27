@@ -105,8 +105,8 @@ export function ManageWatchlist() {
         <div style={{ ...card, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 560 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 90px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
-                {['TICKER', 'PRICE', '24H', 'TARGET', ''].map((h, i) => (
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 120px 90px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
+                {['TICKER', 'PRICE', '24H', 'TARGET', 'ALERT', ''].map((h, i) => (
                   <div key={i} style={{ padding: '12px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>
                 ))}
               </div>
@@ -115,7 +115,7 @@ export function ManageWatchlist() {
                 const c = chg(w.symbol)
                 const up = c >= 0
                 return (
-                  <div key={w.symbol} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 90px', alignItems: 'center', borderTop: `1px solid ${COLORS.line}` }}>
+                  <div key={w.symbol} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px 150px 120px 90px', alignItems: 'center', borderTop: `1px solid ${COLORS.line}` }}>
                     <div onClick={() => { setSelected(w.symbol); setView('dashboard') }} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', cursor: 'pointer', minWidth: 0 }}>
                       <Logo symbol={w.symbol} size={28} />
                       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -136,6 +136,23 @@ export function ManageWatchlist() {
                           {w.target ? money(w.target) : 'set target ✎'}
                         </span>
                       )}
+                    </div>
+                    <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input
+                        title="Set price alert"
+                        type="number"
+                        placeholder="$"
+                        defaultValue={w.alert_price || ''}
+                        onBlur={(e) => updateWatch(w.symbol, { alert_price: parseFloat(e.target.value) || 0 })}
+                        style={{ width: 64, height: 28, padding: '0 7px', borderRadius: 7, border: `1px solid ${COLORS.line2}`, background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_MONO, fontSize: '12px' }}
+                      />
+                      <button
+                        onClick={() => updateWatch(w.symbol, { alert_active: !w.alert_active })}
+                        title={w.alert_active ? 'Alert on' : 'Alert off'}
+                        style={{ height: 28, padding: '0 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: w.alert_active ? COLORS.up : COLORS.cardHi, color: w.alert_active ? COLORS.accentInk : COLORS.tx3 }}
+                      >
+                        {w.alert_active ? 'ON' : 'OFF'}
+                      </button>
                     </div>
                     <div style={{ padding: '12px 14px' }}>
                       <button onClick={() => removeWatch(w.symbol)} title="Remove" style={{ height: 30, padding: '0 12px', borderRadius: 7, border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '12px', cursor: 'pointer' }}>Remove</button>
