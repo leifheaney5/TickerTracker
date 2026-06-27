@@ -51,6 +51,10 @@ container start command to run alembic. The Alembic migration stays as the
 source-of-truth for fresh/standard environments. Logged; implementing before
 the v1.5.0 deploy.
 
+## T2.2 crypto symbols — equity proxies only, no raw crypto tickers — 2026-06-27
+
+valid_symbol accepts BTC/ETH/SOL (regex ^[A-Z0-9.-]{1,12}$), but the app's quote service covers equities only; those symbols would show $0 prices and never resolve. DECISION: Crypto Majors starter list uses equity proxies (COIN, MSTR, RIOT, MARA) that trade on US exchanges and expose crypto beta without silent data failure.
+
 ## P2.T1 theme toggle — scope of light theme — 2026-06-27
 The token system EMITS CSS vars via rootCssVars, but most components consume the
 STATIC `COLORS` object (e.g. COLORS.card) in inline styles, not var(--card). So
