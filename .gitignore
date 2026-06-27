@@ -8,5 +8,7 @@ alembic_tmp.db
 # screenshots / playwright artifacts
 .playwright-mcp/
 *.png
+# ...but the brand app icons under public/ are real assets, not artifacts
+!frontend/public/*.png
 .env.railway.local
 .claude/
