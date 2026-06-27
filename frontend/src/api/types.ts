@@ -2,7 +2,7 @@
 
 export interface Envelope<T> {
   data: T
-  meta: { source: string; stale: boolean }
+  meta: { source: string; stale: boolean; fetched_at: string }
 }
 
 export interface Quote {
@@ -87,6 +87,7 @@ export interface WatchlistItem {
   target: number
   alert_price: number
   alert_dir: AlertDir
+  alert_active: boolean
 }
 
 export interface Settings {

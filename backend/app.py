@@ -1,5 +1,6 @@
 import os
 import re
+import datetime as _dt
 from flask import Flask, jsonify, request, send_from_directory
 
 # Serve the built frontend (Vite emits to ../frontend/dist). In production a
@@ -114,7 +115,11 @@ def valid_symbol(sym: str) -> bool:
 
 
 def envelope(data, source="internal", stale=False):
-    return jsonify({"data": data, "meta": {"source": source, "stale": stale}})
+    return jsonify({"data": data, "meta": {
+        "source": source,
+        "stale": stale,
+        "fetched_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+    }})
 
 
 @app.route("/api/health")
@@ -237,7 +242,7 @@ def watchlist_patch(sym):
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     # Explicit allowlist of client-patchable fields (avoid mass-assignment).
-    allowed = {"target", "alert_price", "alert_dir"}
+    allowed = {"target", "alert_price", "alert_dir", "alert_active"}
     fields = {k: v for k, v in b.items() if k in allowed}
     item = update_watch(sym, **fields)
     if item is None:

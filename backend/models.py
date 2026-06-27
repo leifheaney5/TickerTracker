@@ -24,6 +24,8 @@ class WatchlistItem(Base):
     target = Column(Float, default=0.0)
     alert_price = Column(Float, default=0.0)
     alert_dir = Column(String, default="above")
+    alert_active = Column(Boolean, default=False)
+    alert_last_fired_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
 
