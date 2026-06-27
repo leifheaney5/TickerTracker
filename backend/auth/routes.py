@@ -16,7 +16,8 @@ auth_bp = Blueprint("auth", __name__)
 
 def _public_user(u):
     return {"id": u.id, "email": u.email, "name": u.name or "",
-            "email_verified": bool(u.email_verified)}
+            "email_verified": bool(u.email_verified),
+            "plan": getattr(u, "plan", "free") or "free"}
 
 
 def _base():

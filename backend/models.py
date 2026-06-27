@@ -13,6 +13,7 @@ class User(UserMixin, Base):
     created_at = Column(DateTime, server_default=func.now())
     password_hash = Column(String, nullable=True)
     email_verified = Column(Boolean, default=False)
+    plan = Column(String, default="free")  # 'free' | 'premium'
 
 
 class WatchlistItem(Base):
