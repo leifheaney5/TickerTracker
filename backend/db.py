@@ -73,6 +73,17 @@ def _ensure_columns(conn) -> None:
             conn.execute(text(
                 "ALTER TABLE watchlist_items ADD COLUMN alert_last_fired_at DATETIME"
             ))
+        # settings.share_token — added in bb01_share_token migration.
+        # Guard: only run if the settings table exists (bare-engine tests
+        # may only have watchlist_items).
+        tables = {r[0] for r in conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'")).fetchall()}
+        if "settings" in tables:
+            rows_s = conn.execute(text("PRAGMA table_info(settings)")).fetchall()
+            existing_s = {r[1] for r in rows_s}
+            if "share_token" not in existing_s:
+                conn.execute(text(
+                    "ALTER TABLE settings ADD COLUMN share_token VARCHAR"
+                ))
     else:
         # Postgres 9.6+ supports ADD COLUMN IF NOT EXISTS natively.
         conn.execute(text(
@@ -82,6 +93,10 @@ def _ensure_columns(conn) -> None:
         conn.execute(text(
             "ALTER TABLE watchlist_items "
             "ADD COLUMN IF NOT EXISTS alert_last_fired_at TIMESTAMP"
+        ))
+        conn.execute(text(
+            "ALTER TABLE settings "
+            "ADD COLUMN IF NOT EXISTS share_token VARCHAR"
         ))
 
 
