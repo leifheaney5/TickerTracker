@@ -50,3 +50,15 @@ init_db pattern. This is lower-risk for an unattended deploy than rewiring the
 container start command to run alembic. The Alembic migration stays as the
 source-of-truth for fresh/standard environments. Logged; implementing before
 the v1.5.0 deploy.
+
+## P2.T1 theme toggle — scope of light theme — 2026-06-27
+The token system EMITS CSS vars via rootCssVars, but most components consume the
+STATIC `COLORS` object (e.g. COLORS.card) in inline styles, not var(--card). So
+toggling theme only restyles elements that use var(--xxx) (root bg/color + accent
+nav). A COMPLETE pixel-faithful light theme requires migrating every component's
+COLORS.x -> var(--x) — a large refactor, out of scope for one overnight task.
+DECISION: ship the toggle + theme infra now; fix the toggle BUTTON to use var()
+so it isn't itself broken in light mode (reviewer Important); LOG that full
+light-theme coverage is a follow-up (added as a Phase 4 / future task: "var()
+migration for full light theme"). Light mode is therefore PARTIAL today — usable
+but not pixel-perfect. Dark mode (default) is 100% unchanged.
