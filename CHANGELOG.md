@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] — 2026-06-27
+
+### Added
+
+- **One-click unsubscribe** in weekly digest emails (stable per-user link).
+- **Per-card price sparklines** on the watchlist (1-month trend).
+- **SEO / social sharing:** OpenGraph + Twitter Card meta, `robots.txt`, and
+  `sitemap.xml` (share previews now show the brand icon + description).
+
 ## [1.9.0] — 2026-06-27
 
 ### Changed
