@@ -58,6 +58,7 @@ class Settings(Base):
     hide_balances = Column(Boolean, default=False)
     currency = Column(String, default="USD")
     share_token = Column(String, nullable=True, index=True)
+    unsub_token = Column(String, nullable=True, index=True)
 
 
 class CustomSymbol(Base):
