@@ -70,7 +70,7 @@ _rl_lock = _threading.Lock()
 # Only throttle the public provider-proxy routes (read-only market data).
 _RL_PREFIXES = ("/api/quotes", "/api/history", "/api/fundamentals",
                 "/api/news", "/api/ratings", "/api/crypto", "/api/fng",
-                "/api/search", "/api/earnings")
+                "/api/search", "/api/earnings", "/api/sentiment")
 
 
 def _client_ip():
@@ -182,7 +182,7 @@ def fng_route():
     return envelope(data, source=source)
 
 
-from services.news import get_news
+from services.news import get_news, watchlist_sentiment
 from services.ratings import get_ratings
 from services.earnings import get_earnings
 
@@ -196,6 +196,15 @@ def news_route():
             return envelope({"error": "invalid symbol"}), 400
     data, source = get_news(sym)  # sym None → market news
     return envelope(data, source=source)
+
+
+@app.route("/api/sentiment")
+def sentiment_route():
+    raw = request.args.get("syms", "")
+    syms = [s.strip().upper() for s in raw.split(",") if s.strip()]
+    syms = [s for s in syms if valid_symbol(s)]
+    result = watchlist_sentiment(syms)
+    return envelope(result, source="finnhub")
 
 
 @app.route("/api/earnings")

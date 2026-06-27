@@ -131,3 +131,11 @@ export interface SavedScreen {
   name: string
   filters: Record<string, string>
 }
+
+export interface WatchlistSentiment {
+  bullish: number
+  bearish: number
+  neutral: number
+  total: number
+  mood: string
+}

@@ -5,6 +5,8 @@ import { GROUPS, UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { Sparkline } from '../charts/Sparkline'
 import { money, pct, capStr, volStr } from '../lib/format'
+import { api } from '../api/client'
+import type { WatchlistSentiment } from '../api/types'
 
 // At-a-Glance + Deep Dive — ported from the prototype templates (lines 455-533
 // and 662-671). One sortable table of the watchlist; a Watchlist/Fundamentals
@@ -39,10 +41,16 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
   const [sub, setSub] = useState<Sub>(initialSub)
   const [sortKey, setSortKey] = useState('sym')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [sentiment, setSentiment] = useState<WatchlistSentiment | null>(null)
 
   const symbols = watchSymbols().filter((s) => group === 'All' || UNIVERSE[s]?.group === group)
 
   useEffect(() => { symbols.forEach((s) => loadFundamentals(s)) }, [symbols.join(','), loadFundamentals])
+
+  useEffect(() => {
+    if (symbols.length === 0) return
+    api.sentiment(symbols).then((r) => setSentiment(r.data)).catch(() => {})
+  }, [symbols.join(',')])
 
   const fundOf = (sym: string) => fundamentals[sym]
   const targetOf = (sym: string) => watchlist.find((w) => w.symbol === sym)?.target ?? 0
@@ -101,6 +109,17 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
             <button onClick={() => { setSub('overview'); setView('overview') }} style={subStyle(!isDeep)}>Watchlist</button>
             <button onClick={() => { setSub('deep'); setView('deep') }} style={subStyle(isDeep)}>Fundamentals</button>
           </div>
+          {sentiment && sentiment.total > 0 && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 10px', borderRadius: 20,
+              background: sentiment.mood === 'Bullish' ? 'rgba(61,220,132,.12)' : sentiment.mood === 'Bearish' ? 'rgba(255,93,115,.12)' : `${COLORS.cardHi}`,
+              color: sentiment.mood === 'Bullish' ? COLORS.up : sentiment.mood === 'Bearish' ? COLORS.down : COLORS.tx2,
+              fontFamily: FONT_SANS, fontSize: '12px', fontWeight: 600, alignSelf: 'flex-start',
+            }}>
+              Watchlist mood: {sentiment.mood} ({sentiment.bullish}▲ / {sentiment.bearish}▼)
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
           {GROUPS.map((g) => <button key={g} onClick={() => setGroup(g)} style={groupTabStyle(g === group)}>{g}</button>)}
