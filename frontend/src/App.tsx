@@ -3,6 +3,8 @@ import { useStore } from './state/store'
 import { rootCssVars, FONT_SANS } from './theme/tokens'
 import { Header } from './components/Header'
 import { AuthScreen } from './components/AuthScreen'
+import { ShortcutsHelp } from './components/ShortcutsHelp'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { Dashboard } from './views/Dashboard'
 import { Settings } from './views/Settings'
 import { Alerts } from './views/Alerts'
@@ -45,6 +47,8 @@ export default function App() {
   const view = useStore((s) => s.view)
   const openAuth = useStore((s) => s.openAuth)
   const theme = useStore((s) => s.theme)
+
+  const { helpOpen, setHelpOpen } = useKeyboardShortcuts()
 
   // One-time banner for email verification outcome
   const [verifyBanner, setVerifyBanner] = useState<'ok' | 'failed' | null>(null)
@@ -92,6 +96,7 @@ export default function App() {
       }}
     >
       <AuthScreen />
+      <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
       {verifyBanner && (
         <div
           style={{
