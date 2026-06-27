@@ -6,6 +6,7 @@ import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
   NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
   SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
+  WatchlistWithItems, WatchlistItemFull,
 } from './types'
 
 export interface Result<T> {
@@ -53,6 +54,22 @@ export const api = {
     send<WatchlistItem>(`/api/watchlist/${encodeURIComponent(sym)}`, 'PATCH', b),
   removeWatch: (sym: string) =>
     send<{ removed: boolean }>(`/api/watchlist/${encodeURIComponent(sym)}`, 'DELETE'),
+
+  getWatchlists: () => get<WatchlistWithItems[]>('/api/watchlists'),
+  createWatchlist: (name: string) =>
+    send<WatchlistWithItems>('/api/watchlists', 'POST', { name }),
+  patchWatchlist: (id: number, b: { name?: string; position?: number }) =>
+    send<{ id: number; name: string; position: number }>(`/api/watchlists/${id}`, 'PATCH', b),
+  deleteWatchlist: (id: number) =>
+    send<{ deleted: boolean }>(`/api/watchlists/${id}`, 'DELETE'),
+  addListItem: (id: number, b: { symbol: string; target?: number }) =>
+    send<WatchlistItemFull>(`/api/watchlists/${id}/items`, 'POST', b),
+  patchListItem: (id: number, sym: string, b: Partial<WatchlistItemFull>) =>
+    send<WatchlistItemFull>(`/api/watchlists/${id}/items/${encodeURIComponent(sym)}`, 'PATCH', b),
+  removeListItem: (id: number, sym: string) =>
+    send<{ removed: boolean }>(`/api/watchlists/${id}/items/${encodeURIComponent(sym)}`, 'DELETE'),
+  shareList: (id: number) =>
+    send<{ token: string }>(`/api/watchlists/${id}/share`, 'POST'),
 
   getSettings: () => get<Settings>('/api/settings'),
   updateSettings: (b: Partial<Settings>) => send<Settings>('/api/settings', 'PATCH', b),
