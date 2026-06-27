@@ -41,6 +41,8 @@ export function Header() {
   const authed = useStore(isAuthed)
   const currentUser = useStore((s) => s.currentUser)
   const openAuth = useStore((s) => s.openAuth)
+  const theme = useStore((s) => s.theme)
+  const setTheme = useStore((s) => s.setTheme)
   const isMobile = useIsMobile()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -144,6 +146,19 @@ export function Header() {
           <span style={{ flex: 1, fontSize: '13.5px', fontWeight: 700, color: COLORS.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {NAV.find((n) => n.view === view)?.label ?? 'Ticker Tracker'}
           </span>
+
+          {/* Theme toggle */}
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
+              borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
+              color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px', flex: '0 0 auto',
+            }}
+          >
+            {theme === 'dark' ? '☾' : '☀'}
+          </button>
 
           {/* Search */}
           <div style={{ position: 'relative', flex: '0 0 auto' }}>
@@ -320,8 +335,21 @@ export function Header() {
         </span>
       </div>
 
-      {/* right: search, portfolio/connect, help, avatar */}
+      {/* right: search, portfolio/connect, theme toggle, avatar */}
       <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        {/* Theme toggle */}
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
+            borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
+            color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px', flex: '0 0 auto',
+          }}
+        >
+          {theme === 'dark' ? '☾' : '☀'}
+        </button>
+
         <div style={{ position: 'relative', flex: '0 0 auto' }}>
           <button
             onClick={() => setSearchOpen(!searchOpen)}

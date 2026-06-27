@@ -77,6 +77,10 @@ interface StoreState {
   removeWatch: (sym: string) => Promise<void>
   updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
 
+  // ── theme ──
+  theme: 'dark' | 'light'
+  setTheme: (t: 'dark' | 'light') => void
+
   // ── auth modal ──
   authModal: boolean
   authIntent: 'login' | 'signup'
@@ -124,6 +128,14 @@ export const useStore = create<StoreState>((set, get) => ({
   fng: null,
   flash: {},
   quotesFetchedAt: '',
+
+  theme: (typeof localStorage !== 'undefined'
+    ? (localStorage.getItem('tt_theme') as 'dark' | 'light') || 'dark'
+    : 'dark'),
+  setTheme: (t) => {
+    if (typeof localStorage !== 'undefined') localStorage.setItem('tt_theme', t)
+    set({ theme: t })
+  },
 
   authModal: false,
   authIntent: 'login',
