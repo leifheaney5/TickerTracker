@@ -14,6 +14,7 @@ import { Screener } from './views/Screener'
 import { Strategy } from './views/Strategy'
 import { ManageWatchlist } from './views/ManageWatchlist'
 import { SharedWatchlist } from './views/SharedWatchlist'
+import { Earnings } from './views/Earnings'
 
 // Resolve a /s/<token> path to a share token, or null if not on that path.
 function _parseShareToken(): string | null {
@@ -127,6 +128,7 @@ export default function App() {
       {view === 'screener' && <Screener />}
       {view === 'strategy' && <Strategy />}
       {view === 'managewatch' && <ManageWatchlist />}
+      {view === 'earnings' && <Earnings />}
     </div>
   )
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useStore } from '../state/store'
+import { useStore, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { money, pct, capStr } from '../lib/format'
 import { api } from '../api/client'
+import type { SavedScreen } from '../api/types'
 
 // Screener — ported from the prototype template (lines 674-715): filter the full
 // universe by sector group / performance / market-cap tier, with a + Compare
@@ -20,10 +21,52 @@ export function Screener() {
   const loadFundamentals = useStore((s) => s.loadFundamentals)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
+  const authed = useStore(isAuthed)
+  const openAuth = useStore((s) => s.openAuth)
   const [grp, setGrp] = useState('All')
   const [perf, setPerf] = useState('All')
   const [cap, setCap] = useState('All')
   const [cmp, setCmp] = useState<string[]>([])
+
+  // ── saved screens state ───────────────────────────────────────────────────
+  const [savedScreens, setSavedScreens] = useState<SavedScreen[]>([])
+  const [saveName, setSaveName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [screensOpen, setScreensOpen] = useState(false)
+
+  // Load saved screens on mount (auth-only)
+  useEffect(() => {
+    if (!authed) return
+    api.getScreens().then(({ data }) => setSavedScreens(data)).catch(() => {})
+  }, [authed])
+
+  const handleSave = async () => {
+    const n = saveName.trim()
+    if (!n) return
+    setSaving(true)
+    try {
+      const { data } = await api.saveScreen({ name: n, filters: { grp, perf, cap } })
+      setSavedScreens((prev) => [...prev, data])
+      setSaveName('')
+    } catch { /* ignore */ } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleLoadScreen = (s: SavedScreen) => {
+    setGrp(s.filters.grp ?? 'All')
+    setPerf(s.filters.perf ?? 'All')
+    setCap(s.filters.cap ?? 'All')
+    setScreensOpen(false)
+  }
+
+  const handleDeleteScreen = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await api.deleteScreen(id)
+      setSavedScreens((prev) => prev.filter((s) => s.id !== id))
+    } catch { /* ignore */ }
+  }
 
   const capTier = (capStr: string): 'Mega' | 'Large' | 'Other' => {
     if (capStr.includes('T')) return 'Mega'
@@ -85,6 +128,100 @@ export function Screener() {
         {filterGroup('SECTOR', GROUP_TABS, grp, setGrp)}
         {filterGroup('PERFORMANCE', PERF_TABS, perf, setPerf)}
         {filterGroup('MARKET CAP', CAP_TABS, cap, setCap)}
+
+        {/* ── Save / Load screens ─────────────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginLeft: 'auto' }}>
+          <span style={{ fontSize: '11px', letterSpacing: '.04em', color: COLORS.tx3, fontWeight: 600 }}>SAVED SCREENS</span>
+          {authed ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Save current filters */}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+                  placeholder="Name this screen…"
+                  style={{
+                    height: 28, padding: '0 9px', borderRadius: 7, border: `1px solid ${COLORS.line2}`,
+                    background: COLORS.bg, color: COLORS.tx, fontFamily: FONT_SANS, fontSize: '12px',
+                    outline: 'none', width: 156,
+                  }}
+                />
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !saveName.trim()}
+                  style={{
+                    height: 28, padding: '0 11px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                    fontFamily: FONT_SANS, fontSize: '12px', fontWeight: 600,
+                    background: COLORS.accent, color: COLORS.accentInk,
+                    opacity: saving || !saveName.trim() ? 0.5 : 1,
+                  }}
+                >
+                  Save
+                </button>
+                {/* Load saved screens dropdown toggle */}
+                {savedScreens.length > 0 && (
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setScreensOpen((o) => !o)}
+                      style={{
+                        height: 28, padding: '0 11px', borderRadius: 7, cursor: 'pointer',
+                        fontFamily: FONT_SANS, fontSize: '12px', fontWeight: 600,
+                        border: `1px solid ${COLORS.line2}`, background: 'transparent', color: COLORS.tx2,
+                      }}
+                    >
+                      Load ▾
+                    </button>
+                    {screensOpen && (
+                      <div style={{
+                        position: 'absolute', top: 32, right: 0, zIndex: 100, minWidth: 200,
+                        background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 10,
+                        boxShadow: '0 8px 24px rgba(0,0,0,.25)', overflow: 'hidden',
+                      }}>
+                        {savedScreens.map((sc) => (
+                          <div
+                            key={sc.id}
+                            onClick={() => handleLoadScreen(sc)}
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              padding: '9px 12px', cursor: 'pointer', borderBottom: `1px solid ${COLORS.line}`,
+                              gap: 8,
+                            }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = COLORS.panel }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+                          >
+                            <span style={{ fontSize: '13px', color: COLORS.tx, fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.name}</span>
+                            <button
+                              onClick={(e) => handleDeleteScreen(sc.id, e)}
+                              title="Delete"
+                              style={{
+                                width: 20, height: 20, borderRadius: 4, border: 'none', cursor: 'pointer',
+                                background: 'transparent', color: COLORS.tx3, fontFamily: FONT_SANS,
+                                fontSize: '13px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => openAuth('login')}
+              style={{
+                height: 28, padding: '0 11px', borderRadius: 7, border: `1px solid ${COLORS.line2}`,
+                background: 'transparent', color: COLORS.tx3, fontFamily: FONT_SANS, fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              Sign in to save screens
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, overflow: 'hidden', flex: '0 0 auto' }}>

@@ -5,7 +5,7 @@
 import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
   NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
-  SharedWatchlistResponse,
+  SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
 } from './types'
 
 export interface Result<T> {
@@ -65,4 +65,16 @@ export const api = {
 
   createShare: () => send<{ token: string }>('/api/watchlist/share', 'POST'),
   getShared: (token: string) => get<SharedWatchlistResponse>(`/api/shared/${encodeURIComponent(token)}`),
+
+  earnings: (syms: string[]) =>
+    get<EarningsRow[]>(`/api/earnings?syms=${encodeURIComponent(syms.join(','))}`),
+
+  getScreens: () => get<SavedScreen[]>('/api/screens'),
+  saveScreen: (b: { name: string; filters: Record<string, string> }) =>
+    send<SavedScreen>('/api/screens', 'POST', b),
+  deleteScreen: (id: number) =>
+    send<{ deleted: boolean }>(`/api/screens/${id}`, 'DELETE'),
+
+  sentiment: (syms: string[]) =>
+    get<WatchlistSentiment>(`/api/sentiment?syms=${encodeURIComponent(syms.join(','))}`),
 }

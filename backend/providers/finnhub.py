@@ -100,6 +100,31 @@ def fetch_news(sym=None) -> list:
     return out
 
 
+def fetch_earnings(frm: str, to: str) -> list:
+    """Fetch the Finnhub earnings calendar for the given date window.
+
+    Returns a list of dicts with keys: symbol, date, hour, epsEstimate.
+    Rows without a symbol are skipped.
+    """
+    key = _key()
+    r = requests.get(f"{_BASE}/calendar/earnings",
+                     params={"from": frm, "to": to, "token": key}, timeout=10)
+    r.raise_for_status()
+    rows = r.json().get("earningsCalendar", []) or []
+    out = []
+    for x in rows:
+        sym = x.get("symbol", "")
+        if not sym:
+            continue
+        out.append({
+            "symbol": sym,
+            "date": x.get("date", ""),
+            "hour": x.get("hour", ""),
+            "epsEstimate": x.get("epsEstimate"),
+        })
+    return out
+
+
 def fetch_ratings(sym: str) -> dict:
     key = _key()
     rec = requests.get(f"{_BASE}/stock/recommendation",
