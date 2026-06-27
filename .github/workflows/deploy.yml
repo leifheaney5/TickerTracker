@@ -19,10 +19,22 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
+      - name: Check for Railway token
+        id: check
+        run: |
+          if [ -n "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "have_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_token=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::RAILWAY_TOKEN secret not set — skipping deploy. See docs/ops/deploy-process.md."
+          fi
+
       - name: Install Railway CLI
+        if: steps.check.outputs.have_token == 'true'
         run: npm i -g @railway/cli
 
       - name: Deploy
+        if: steps.check.outputs.have_token == 'true'
         run: railway up --detach --service Ticker-Tracker --ci
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
