@@ -54,7 +54,7 @@ export function StockHeader() {
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', flex: '0 0 auto' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-          <Logo symbol={selected} size={42} />
+          <Logo symbol={selected} size={42} domain={f?.website} />
           <span style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>{selected}</span>
           <span style={{ fontSize: '10.5px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)', border: '1px solid var(--line2)', borderRadius: 5, padding: '2px 7px' }}>{u.exch}</span>
           <button

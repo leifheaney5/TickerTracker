@@ -46,6 +46,22 @@ def fetch_history(sym: str, tf: str) -> list:
     return bars
 
 
+def domain_from_url(url: str | None) -> str:
+    """Reduce a company website URL to its bare host (no scheme/www/path).
+
+    Used for the logo favicon lookup; returns "" for empty input so callers can
+    treat "unknown domain" uniformly.
+    """
+    import re
+    v = (url or "").strip()
+    if not v:
+        return ""
+    v = re.sub(r"^[a-z]+://", "", v, flags=re.I)
+    v = re.sub(r"^www\.", "", v, flags=re.I)
+    v = re.split(r"[/?#]", v, 1)[0]
+    return v.lower()
+
+
 def fetch_fundamentals(sym: str) -> dict:
     t = Ticker(sym)
     summary = t.summary_detail.get(sym, {})
@@ -69,4 +85,5 @@ def fetch_fundamentals(sym: str) -> dict:
         "beta": round(float(keystats.get("beta", 0) or 0), 2),
         "dividend_yield": round(float(summary.get("dividendYield", 0) or 0) * 100, 2),
         "eps": round(float(keystats.get("trailingEps", 0) or 0), 2),
+        "website": domain_from_url(profile.get("website")),
     }

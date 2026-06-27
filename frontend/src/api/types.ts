@@ -41,6 +41,8 @@ export interface Fundamentals {
   beta: number
   dividend_yield: number
   eps: number
+  /** Bare company domain (e.g. "coca-cola.com") for the logo; "" when unknown. */
+  website?: string
 }
 
 export interface Coin {
