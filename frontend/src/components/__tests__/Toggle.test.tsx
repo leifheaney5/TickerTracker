@@ -4,8 +4,8 @@ import { Toggle } from '../Toggle'
 
 describe('Toggle', () => {
   it('renders without crash', () => {
-    render(<Toggle on={false} onClick={vi.fn()} />)
-    expect(document.body.firstChild).toBeTruthy()
+    const { container } = render(<Toggle on={false} onClick={vi.fn()} />)
+    expect(container.firstChild).toBeTruthy()
   })
 
   it('calls onClick when clicked', () => {
