@@ -235,6 +235,7 @@ from services.store import (get_watchlist, add_watch, update_watch, remove_watch
 from services.share import create_share, resolve_share
 from services.screens import list_screens, save_screen, delete_screen
 from services import digest as _digest
+from services import billing as _billing
 
 
 @app.route("/api/watchlist", methods=["GET"])
@@ -407,6 +408,56 @@ def shared_watchlist(token):
     if result is None:
         return envelope({"error": "not found"}), 404
     return envelope(result, source="db")
+
+
+# ─── Billing (Stripe subscriptions) ──────────────────────────────────────────
+
+@app.route("/api/billing", methods=["GET"])
+def billing_get():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    return envelope(_billing.get_billing_state(uid), source="db")
+
+
+@app.route("/api/billing/checkout", methods=["POST"])
+def billing_checkout():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    interval = "annual" if b.get("interval") == "annual" else "monthly"
+    try:
+        url = _billing.create_checkout_session(uid, interval)
+    except _billing.BillingNotConfigured as e:
+        return envelope({"error": "billing unavailable", "detail": str(e)}), 503
+    return envelope({"url": url}, source="stripe")
+
+
+@app.route("/api/billing/portal", methods=["POST"])
+def billing_portal():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    try:
+        url = _billing.create_portal_session(uid)
+    except _billing.BillingNotConfigured as e:
+        return envelope({"error": "billing unavailable", "detail": str(e)}), 503
+    return envelope({"url": url}, source="stripe")
+
+
+@app.route("/api/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    import stripe
+    payload = request.get_data()
+    sig = request.headers.get("Stripe-Signature", "")
+    secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, secret)
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 400
+    _billing.handle_webhook_event(event)
+    return jsonify({"received": True}), 200
 
 
 # ─── SPA fallback ────────────────────────────────────────────────────────────
