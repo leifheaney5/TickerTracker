@@ -207,7 +207,7 @@ export const useStore = create<StoreState>((set, get) => ({
       set({
         watchlist: DEFAULT_WATCH.map((symbol, i) => ({
           symbol, position: i, target: UNIVERSE[symbol]?.target ?? 0,
-          alert_price: 0, alert_dir: 'above' as const,
+          alert_price: 0, alert_dir: 'above' as const, alert_active: false,
         })),
       })
     }

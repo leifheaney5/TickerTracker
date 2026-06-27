@@ -237,7 +237,7 @@ def watchlist_patch(sym):
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     # Explicit allowlist of client-patchable fields (avoid mass-assignment).
-    allowed = {"target", "alert_price", "alert_dir"}
+    allowed = {"target", "alert_price", "alert_dir", "alert_active"}
     fields = {k: v for k, v in b.items() if k in allowed}
     item = update_watch(sym, **fields)
     if item is None:
