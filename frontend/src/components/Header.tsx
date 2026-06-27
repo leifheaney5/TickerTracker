@@ -45,9 +45,11 @@ export function Header() {
   const theme = useStore((s) => s.theme)
   const setTheme = useStore((s) => s.setTheme)
   const isMobile = useIsMobile()
-  // Hide the centered "Ticker Tracker" wordmark on narrower desktop widths where
-  // it would collide with the (wide) view-nav. It returns once there's room.
-  const narrowDesktop = useIsMobile(1180)
+  // Hide the centered "Ticker Tracker" wordmark unless the viewport is wide
+  // enough that it won't collide with the (wide) view-nav + right-side controls.
+  // The nav alone runs to ~680px and the right cluster needs ~360px, so the
+  // wordmark only has clear space well above 1400px.
+  const narrowDesktop = useIsMobile(1439)
   const [menuOpen, setMenuOpen] = useState(false)
 
   // Close hamburger menu when navigating
