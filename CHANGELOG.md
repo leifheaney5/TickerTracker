@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] — 2026-06-27
+
+### Added
+
+- **Keyboard shortcuts** — `/` to search, `g` then a letter to navigate
+  (d/w/s/e/c/m), `?` for a shortcuts help overlay (Esc closes). Shortcuts are
+  ignored while typing in inputs.
+
+### Fixed
+
+- Resolved a React rules-of-hooks ordering issue in the app root (shared-watchlist
+  early return now runs after all hooks).
+
 ## [1.10.0] — 2026-06-27
 
 ### Added

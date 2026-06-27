@@ -3,6 +3,8 @@ import { useStore } from './state/store'
 import { rootCssVars, FONT_SANS } from './theme/tokens'
 import { Header } from './components/Header'
 import { AuthScreen } from './components/AuthScreen'
+import { ShortcutsHelp } from './components/ShortcutsHelp'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { Dashboard } from './views/Dashboard'
 import { Settings } from './views/Settings'
 import { Alerts } from './views/Alerts'
@@ -29,12 +31,9 @@ function _parseShareToken(): string | null {
 // App root: mounts design tokens, the header chrome, and the active view body.
 // Views are added unit by unit (Dashboard first).
 export default function App() {
-  // Render the read-only shared watchlist view for /s/<token> paths.
-  // This bypasses auth entirely — no header, no shell.
+  // Resolve share token early (not a hook — safe before hooks).
   const shareToken = _parseShareToken()
-  if (shareToken) {
-    return <SharedWatchlist token={shareToken} />
-  }
+
   const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
@@ -45,6 +44,8 @@ export default function App() {
   const view = useStore((s) => s.view)
   const openAuth = useStore((s) => s.openAuth)
   const theme = useStore((s) => s.theme)
+
+  const { helpOpen, setHelpOpen } = useKeyboardShortcuts()
 
   // One-time banner for email verification outcome
   const [verifyBanner, setVerifyBanner] = useState<'ok' | 'failed' | null>(null)
@@ -83,6 +84,13 @@ export default function App() {
     return () => clearInterval(id)
   }, [watchlist.length, currentUser, pollQuotes])
 
+  // Render the read-only shared watchlist view for /s/<token> paths.
+  // This bypasses auth entirely — no header, no shell.
+  // Placed AFTER all hooks so the Rules of Hooks are satisfied.
+  if (shareToken) {
+    return <SharedWatchlist token={shareToken} />
+  }
+
   return (
     <div
       style={{
@@ -92,6 +100,7 @@ export default function App() {
       }}
     >
       <AuthScreen />
+      <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
       {verifyBanner && (
         <div
           style={{
