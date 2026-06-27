@@ -224,6 +224,7 @@ from services.store import (get_watchlist, add_watch, update_watch, remove_watch
                             get_settings, update_settings,
                             get_holdings, set_holding, remove_holding)
 from services.share import create_share, resolve_share
+from services.screens import list_screens, save_screen, delete_screen
 
 
 @app.route("/api/watchlist", methods=["GET"])
@@ -314,6 +315,40 @@ def holdings_delete(sym):
     if _require_user() is None:
         return envelope({"error": "authentication required"}), 401
     return envelope({"removed": remove_holding(sym)}, source="db")
+
+
+# ─── Saved screener filters ──────────────────────────────────────────────────
+
+@app.route("/api/screens", methods=["GET"])
+def screens_get():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    return envelope(list_screens(uid), source="db")
+
+
+@app.route("/api/screens", methods=["POST"])
+def screens_post():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    # Explicit allowlist — only name + filters accepted.
+    name = b.get("name") or ""
+    filters = b.get("filters") or {}
+    if not name:
+        return envelope({"error": "name is required"}), 400
+    if not isinstance(filters, dict):
+        return envelope({"error": "filters must be an object"}), 400
+    return envelope(save_screen(uid, name, filters), source="db")
+
+
+@app.route("/api/screens/<int:screen_id>", methods=["DELETE"])
+def screens_delete(screen_id):
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    return envelope({"deleted": delete_screen(uid, screen_id)}, source="db")
 
 
 # ─── Shareable watchlist links ────────────────────────────────────────────────
