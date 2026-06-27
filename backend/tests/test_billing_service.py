@@ -70,3 +70,67 @@ def test_usage_counts_watchlist_active_alerts_and_screens():
         s.commit()
     usage = billing.get_usage(uid)
     assert usage == {"watchlist": 2, "alerts": 1, "screens": 1}
+
+
+import pytest
+
+
+@pytest.fixture
+def billing_on(monkeypatch):
+    monkeypatch.setenv("BILLING_ENABLED", "true")
+
+
+def _add_symbols(uid, n, active=0):
+    with db.get_session() as s:
+        for i in range(n):
+            s.add(models.WatchlistItem(user_id=uid, symbol=f"SYM{i}",
+                                       alert_active=(i < active)))
+        s.commit()
+
+
+def test_watchlist_limit_blocks_16th_but_allows_existing(billing_on):
+    uid = _mk_user("wl@example.com")
+    _add_symbols(uid, 15)
+    err = billing.check_watchlist_add(uid, "NEWONE")
+    assert err["error"] == "limit_exceeded" and err["feature"] == "watchlist"
+    assert err["limit"] == 15 and err["plan"] == "free"
+    assert billing.check_watchlist_add(uid, "SYM0") is None
+
+
+def test_watchlist_limit_disabled_when_billing_off():
+    uid = _mk_user("wloff@example.com")
+    _add_symbols(uid, 15)
+    assert billing.check_watchlist_add(uid, "NEWONE") is None  # BILLING_ENABLED unset
+
+
+def test_pro_watchlist_allows_more_than_15(billing_on):
+    uid = _mk_user("wlpro@example.com")
+    _mk_sub(uid, status="active")
+    _add_symbols(uid, 15)
+    assert billing.check_watchlist_add(uid, "NEWONE") is None
+
+
+def test_active_alert_limit_blocks_4th(billing_on):
+    uid = _mk_user("al@example.com")
+    _add_symbols(uid, 5, active=3)
+    err = billing.check_alert_activate(uid, "SYM3")
+    assert err["feature"] == "alerts" and err["limit"] == 3
+    assert billing.check_alert_activate(uid, "SYM0") is None
+
+
+def test_screen_limit_blocks_2nd(billing_on):
+    uid = _mk_user("sc@example.com")
+    with db.get_session() as s:
+        s.add(models.SavedScreen(user_id=uid, name="one", filters_json="{}"))
+        s.commit()
+    err = billing.check_screen_add(uid)
+    assert err["feature"] == "screens" and err["limit"] == 1
+
+
+def test_digest_enable_blocked_for_free(billing_on):
+    uid = _mk_user("dg@example.com")
+    err = billing.check_digest_enable(uid)
+    assert err["feature"] == "digest"
+    uid2 = _mk_user("dgpro@example.com")
+    _mk_sub(uid2, status="active")
+    assert billing.check_digest_enable(uid2) is None

@@ -67,3 +67,70 @@ def get_billing_state(user_id: int) -> dict:
         "current_period_end": cpe.isoformat() if isinstance(cpe, _dt.datetime) else None,
         "cancel_at_period_end": cancel,
     }
+
+
+_FEATURE_MESSAGES = {
+    "watchlist": "You've reached the Free plan limit of {limit} watchlist tickers. "
+                 "Upgrade to Pro for up to {pro} tickers.",
+    "alerts": "You've reached the Free plan limit of {limit} active price alerts. "
+              "Upgrade to Pro for up to {pro} alerts.",
+    "screens": "You've reached the Free plan limit of {limit} saved screener. "
+               "Upgrade to Pro for up to {pro} saved screeners.",
+    "digest": "The weekly market digest is a Pro feature. Upgrade to enable it.",
+}
+
+
+def _limit_error(feature: str, plan: str, limit) -> dict:
+    msg = _FEATURE_MESSAGES[feature].format(limit=limit, pro=LIMITS[PLAN_PRO].get(feature))
+    return {"error": "limit_exceeded", "feature": feature,
+            "limit": limit, "plan": plan, "message": msg}
+
+
+def _enforced(user_id: int) -> bool:
+    """True only when limits should actively block (billing on AND user is Free)."""
+    return billing_enabled() and not is_pro(user_id)
+
+
+def check_watchlist_add(user_id: int, symbol: str) -> dict | None:
+    if not _enforced(user_id):
+        return None
+    symbol = (symbol or "").upper()
+    with db.get_session() as s:
+        exists = (s.query(models.WatchlistItem)
+                  .filter_by(user_id=user_id, symbol=symbol).first() is not None)
+        if exists:
+            return None  # update of an existing ticker, not a new add
+    limit = LIMITS[PLAN_FREE]["watchlist"]
+    if get_usage(user_id)["watchlist"] >= limit:
+        return _limit_error("watchlist", PLAN_FREE, limit)
+    return None
+
+
+def check_alert_activate(user_id: int, symbol: str) -> dict | None:
+    if not _enforced(user_id):
+        return None
+    symbol = (symbol or "").upper()
+    with db.get_session() as s:
+        item = (s.query(models.WatchlistItem)
+                .filter_by(user_id=user_id, symbol=symbol).first())
+        if item is not None and item.alert_active:
+            return None  # already active -> no new alert consumed
+    limit = LIMITS[PLAN_FREE]["alerts"]
+    if get_usage(user_id)["alerts"] >= limit:
+        return _limit_error("alerts", PLAN_FREE, limit)
+    return None
+
+
+def check_screen_add(user_id: int) -> dict | None:
+    if not _enforced(user_id):
+        return None
+    limit = LIMITS[PLAN_FREE]["screens"]
+    if get_usage(user_id)["screens"] >= limit:
+        return _limit_error("screens", PLAN_FREE, limit)
+    return None
+
+
+def check_digest_enable(user_id: int) -> dict | None:
+    if not billing_enabled() or is_pro(user_id):
+        return None
+    return _limit_error("digest", PLAN_FREE, LIMITS[PLAN_FREE]["digest"])
