@@ -19,3 +19,4 @@ Docker image and DATABASE_URL/FINNHUB_API_KEY/RESEND_API_KEY/MAIL_FROM env.
 - Trigger once manually (Railway → service → Deploy / Run) and check logs for
   `alerts fired: N` / `digests sent: N`.
 - Locally: `cd backend && python jobs.py check-alerts` (uses local DATABASE_URL).
+- IMPORTANT: Deploy/activate the web service FIRST so its boot runs migrations; only then activate the cron services, otherwise the alert columns may not yet exist on the shared database.

@@ -11,7 +11,11 @@ logger = logging.getLogger("jobs")
 
 
 def main(argv) -> int:
-    init_db()  # Ensure schema is initialized
+    # init_db() creates any MISSING tables so this separate cron process can
+    # run standalone. NOTE: it does NOT run Alembic migrations and does NOT add
+    # new columns to existing tables — the web-service deploy must have applied
+    # migrations before the cron queries alert columns on an existing DB.
+    init_db()
     if not argv:
         logger.error("usage: jobs.py <check-alerts|weekly-digest>")
         return 2
