@@ -60,7 +60,9 @@ def _evaluate(w, price):
 def _alert_email_html(symbol, price, level, direction, kind):
     """Branded, colorful alert email. `kind` is 'target' or 'alert'; `direction`
     is 'above'/'below'; `level` is the price that was crossed."""
+    from html import escape
     from providers import email_templates as t
+    symbol = escape(str(symbol))  # defense-in-depth: never trust into HTML
     up = direction == "above"
     color = t.UP if up else t.DOWN
     arrow = "&#9650;" if up else "&#9660;"  # ▲ / ▼

@@ -11,6 +11,17 @@ def test_build_digest_html_lists_symbols():
     assert "Sam" in html
 
 
+def test_digest_escapes_user_name_and_symbol():
+    # A name (and symbol) containing HTML must be escaped, not rendered raw.
+    html = dg.build_digest_html('<script>alert(1)</script>', [
+        {"symbol": "<b>X</b>", "price": 10.0, "change_pct": 1.0},
+    ])
+    assert "<script>" not in html
+    assert "&lt;script&gt;" in html
+    assert "<b>X</b>" not in html
+    assert "&lt;b&gt;X&lt;/b&gt;" in html
+
+
 def test_send_weekly_digest_only_opted_in(monkeypatch):
     sent = []
     def fake_quote(syms): return ({s: {"price": 10.0, "change_pct": 1.0} for s in syms}, "t")

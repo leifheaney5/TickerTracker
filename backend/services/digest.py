@@ -39,10 +39,12 @@ def unsubscribe(token: str) -> bool:
 
 
 def build_digest_html(name: str, rows: list[dict], unsub_url: str = "") -> str:
+    from html import escape
     from providers import email_templates as t
 
+    safe_name = escape(name or "there")
     greeting = (
-        f'<p style="margin:0 0 16px">Hi {name or "there"}, here\'s how the tickers '
+        f'<p style="margin:0 0 16px">Hi {safe_name}, here\'s how the tickers '
         'on your watchlist moved this week.</p>'
     )
 
@@ -53,10 +55,11 @@ def build_digest_html(name: str, rows: list[dict], unsub_url: str = "") -> str:
             color = t.UP if up else t.DOWN
             arrow = "&#9650;" if up else "&#9660;"
             sign = "+" if up else ""
+            sym = escape(str(r["symbol"]))
             cells.append(
                 '<tr>'
                 f'<td style="padding:11px 0;border-top:1px solid #f0f2f4;font-weight:700;'
-                f'color:#11151b">{r["symbol"]}</td>'
+                f'color:#11151b">{sym}</td>'
                 f'<td align="right" style="padding:11px 0;border-top:1px solid #f0f2f4;'
                 f'font-weight:600">${r["price"]:,.2f}</td>'
                 f'<td align="right" style="padding:11px 0;border-top:1px solid #f0f2f4;'
