@@ -134,3 +134,53 @@ def test_digest_enable_blocked_for_free(billing_on):
     uid2 = _mk_user("dgpro@example.com")
     _mk_sub(uid2, status="active")
     assert billing.check_digest_enable(uid2) is None
+
+
+class _FakeSession:
+    def __init__(self, url):
+        self.url = url
+
+
+def test_checkout_requires_stripe_env(monkeypatch):
+    monkeypatch.delenv("STRIPE_SECRET_KEY", raising=False)
+    uid = _mk_user("co@example.com")
+    with pytest.raises(billing.BillingNotConfigured):
+        billing.create_checkout_session(uid, "annual")
+
+
+def test_checkout_uses_annual_price_and_returns_url(monkeypatch):
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_x")
+    monkeypatch.setenv("STRIPE_PRO_ANNUAL_PRICE_ID", "price_annual")
+    monkeypatch.setenv("APP_BASE_URL", "http://localhost:5000")
+    uid = _mk_user("co2@example.com")
+    captured = {}
+
+    import stripe
+    def _create(**kwargs):
+        captured.update(kwargs)
+        return _FakeSession("https://checkout.stripe.test/sess")
+    monkeypatch.setattr(stripe.checkout.Session, "create", staticmethod(_create))
+
+    url = billing.create_checkout_session(uid, "annual")
+    assert url == "https://checkout.stripe.test/sess"
+    assert captured["mode"] == "subscription"
+    assert captured["line_items"][0]["price"] == "price_annual"
+    assert captured["client_reference_id"] == str(uid)
+
+
+def test_portal_requires_existing_customer(monkeypatch):
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_x")
+    uid = _mk_user("po@example.com")  # no subscription row -> no customer id
+    with pytest.raises(billing.BillingNotConfigured):
+        billing.create_portal_session(uid)
+
+
+def test_portal_returns_url_when_customer_exists(monkeypatch):
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_x")
+    monkeypatch.setenv("APP_BASE_URL", "http://localhost:5000")
+    uid = _mk_user("po2@example.com")
+    _mk_sub(uid, status="active")  # sets stripe_customer_id="cus_1"
+    import stripe
+    monkeypatch.setattr(stripe.billing_portal.Session, "create",
+                        staticmethod(lambda **kw: _FakeSession("https://portal.test/x")))
+    assert billing.create_portal_session(uid) == "https://portal.test/x"
