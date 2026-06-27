@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useStore, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
@@ -29,6 +29,7 @@ export function ManageWatchlist() {
   const [editSym, setEditSym] = useState<string | null>(null)
   const [editVal, setEditVal] = useState('')
   const [shareLabel, setShareLabel] = useState<'Share' | 'Copying…' | 'Copied!'>('Share')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleShare = async () => {
     setShareLabel('Copying…')
@@ -132,12 +133,14 @@ export function ManageWatchlist() {
               {adding ? 'Adding…' : 'Add to watchlist'}
             </button>
             <input
+              ref={fileInputRef}
               type="file"
               accept=".csv,.txt"
               title="Import tickers from file"
               onChange={async (e) => {
-                if (e.target.files?.[0]) {
-                  const text = await e.target.files[0].text()
+                const file = e.target.files?.[0]
+                if (file) {
+                  const text = await file.text()
                   setBulk(text)
                   e.target.value = ''
                 }
@@ -146,7 +149,7 @@ export function ManageWatchlist() {
               aria-label="Import tickers from file"
             />
             <button
-              onClick={() => document.querySelector('input[type="file"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))}
+              onClick={() => fileInputRef.current?.click()}
               style={{ height: 36, padding: '0 16px', borderRadius: 9, border: `1px solid ${COLORS.line2}`, background: COLORS.card, color: COLORS.tx2, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
             >
               Import file
