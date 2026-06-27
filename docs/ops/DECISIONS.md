@@ -66,3 +66,16 @@ so it isn't itself broken in light mode (reviewer Important); LOG that full
 light-theme coverage is a follow-up (added as a Phase 4 / future task: "var()
 migration for full light theme"). Light mode is therefore PARTIAL today — usable
 but not pixel-perfect. Dark mode (default) is 100% unchanged.
+
+## P4.T6 light-theme var() migration — sequence safely, don't block deploy — 2026-06-27
+The migration is 570 COLORS.x references across 27 files, and rootCssVars is
+MISSING vars for accentInk/warn/warn2 (3 keys). A blind sweep risks (a) undefined
+vars for those 3, (b) hard-to-auto-detect dark-mode (default!) regressions at
+570 sites. Dark mode is what all current users see — a silent regression there is
+the worst outcome of the night. DECISION: (1) ship the SAFE, already-verified
+Phase-4 work (backend coverage, a11y, empty/error states, README) as v1.8.0 NOW;
+(2) attempt the var() migration on a SEPARATE sub-branch with the gap closed
+first (emit --accentInk/--warn/--warn2); (3) deploy the migration ONLY if its
+green-gate + review come back clean — otherwise leave on-branch for morning human
+visual QA (automated tests can't see a dark-mode color regression). This honors
+auto-deploy-when-green without risking the default UI on an unattended big sweep.

@@ -89,7 +89,13 @@ export function Crypto() {
               </div>
             </div>
             <div ref={mapRef} style={{ position: 'relative', width: '100%', height: 320, background: COLORS.bg, borderRadius: 6, overflow: 'hidden' }}>
-              {treemapItems.length > 0 && <Treemap items={treemapItems} width={mapW} height={320} />}
+              {treemapItems.length > 0 ? (
+                <Treemap items={treemapItems} width={mapW} height={320} />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.tx3, fontSize: '13px' }}>
+                  {crypto === null ? 'Loading…' : 'Crypto data unavailable right now.'}
+                </div>
+              )}
             </div>
             <span style={{ fontSize: '11px', color: COLORS.tx3 }}>Tile size = market cap · color = daily change</span>
           </div>
@@ -118,7 +124,11 @@ export function Crypto() {
                     </div>
                   )
                 })}
-                {coins.length === 0 && <div style={{ padding: 24, color: COLORS.tx3, fontSize: 12 }}>Loading coins…</div>}
+                {coins.length === 0 && (
+                  <div style={{ padding: '36px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+                    {crypto === null ? 'Loading…' : 'Crypto data unavailable right now.'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
