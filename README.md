@@ -21,7 +21,8 @@ holdings, price Alerts, and Settings.
 - **Onboarding Starter Watchlists:** Quick-start templates (Big Tech, AI, Crypto Majors, Dividend).
 - **Earnings Calendar, Screeners, & News Sentiment:** Saved filter results, per-watchlist "mood" chips showing sentiment.
 - **Mobile-Responsive:** Layout adapts to all screen sizes; web manifest and favicons for iOS/Android home-screen install.
-- **Security & Rate Limiting:** HTTP security headers, IP-based rate limiting on the public market API.
+- **Keyboard shortcuts:** `/` to search, `g` + a letter to navigate, `?` for a help overlay.
+- **Security & Rate Limiting:** HTTP security headers, IP-based rate limiting on the public market API, argon2 password hashing, per-user data scoping.
 
 ## Architecture
 
@@ -126,10 +127,11 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 
 #### (b) Register a Google OAuth app
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials → Create OAuth 2.0 Client ID.
-2. Set the authorized redirect URI to `<APP_BASE_URL>/api/auth/google/callback`.
-3. Scopes: `openid`, `email`, `profile`.
-4. Copy the client ID and secret into `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+Full click-by-click steps are in
+[`docs/ops/google-oauth-setup.md`](docs/ops/google-oauth-setup.md). In short:
+create a Web OAuth client in Google Cloud Console, set the redirect URI to
+`<APP_BASE_URL>/api/auth/google/callback`, and put the client ID/secret into
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
 #### (c) Set up Resend
 
@@ -143,21 +145,34 @@ In the Railway dashboard, add all six auth variables as service variables.
 Alembic migration (`alembic upgrade head`) to create the `users` table and
 auth columns on first deploy.
 
-## Tests
+## Tests & CI
 
 ```bash
-cd backend && . .venv/Scripts/activate && pytest -q     # 47 tests
+cd backend && python -m pytest -q          # backend: 144 tests (pytest, in-memory sqlite)
+cd frontend && npm run test                # frontend: unit + React Testing Library component tests
+cd frontend && npm run e2e                 # end-to-end: Playwright (chromium)
 ```
+
+Every push and PR runs **GitHub Actions CI** (`.github/workflows/ci.yml`):
+backend pytest, frontend build + vitest, and Playwright E2E. See
+[`docs/ops/deploy-process.md`](docs/ops/deploy-process.md) for the full
+CI-gated deploy pipeline.
 
 ## Deploy (Railway)
 
-1. Create a Railway project from this repo. Nixpacks (`nixpacks.toml`) installs
-   Node + Python, runs `npm ci && npm run build`, installs Python deps, and
-   starts gunicorn (`Procfile`).
-2. Add the **Postgres** plugin — `DATABASE_URL` is injected automatically; tables
-   are created on first boot.
-3. Set `FINNHUB_API_KEY` as a service variable for real news + ratings.
+Production builds from the **Dockerfile** (multi-stage: Node builds the SPA,
+Python runs gunicorn). Deploys are gated on green CI — see
+[`docs/ops/deploy-process.md`](docs/ops/deploy-process.md).
+
+1. Railway project + **Postgres** plugin — `DATABASE_URL` is injected automatically.
+2. At boot, `init_db()` creates missing tables and `_ensure_columns()` additively
+   adds new columns to existing tables (no manual migration step in prod; Alembic
+   migrations are the source of truth for fresh/local DBs).
+3. Set service variables: `FINNHUB_API_KEY`, `SECRET_KEY`, `APP_BASE_URL`, and the
+   auth/email vars below.
 4. Healthcheck is `/api/health` (configured in `railway.json`).
+5. Two **cron services** run the alert + digest engine — see
+   [`docs/ops/cron-setup.md`](docs/ops/cron-setup.md).
 
 ## Project docs
 
@@ -165,7 +180,8 @@ cd backend && . .venv/Scripts/activate && pytest -q     # 47 tests
 - [`docs/superpowers/plans/`](docs/superpowers/plans/) — implementation plans.
 - [`docs/PROTOTYPE_HANDOFF.md`](docs/PROTOTYPE_HANDOFF.md) — the original
   high-fidelity prototype handoff (the UI this app recreates).
-- [`docs/ops/`](docs/ops/) — operations guides: cron setup, launch gates, and architectural decisions.
+- [`docs/ops/`](docs/ops/) — operations guides: [deploy process](docs/ops/deploy-process.md), [cron setup](docs/ops/cron-setup.md), [Google OAuth setup](docs/ops/google-oauth-setup.md), [launch gates](docs/ops/launch-gates.md), and [decisions log](docs/ops/DECISIONS.md).
+- [`docs/reports/`](docs/reports/) — QA and security review reports.
 - [`CHANGELOG.md`](CHANGELOG.md) — version history.
 
 ## Credits

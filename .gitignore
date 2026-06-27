@@ -10,5 +10,12 @@ alembic_tmp.db
 *.png
 # ...but the brand app icons under public/ are real assets, not artifacts
 !frontend/public/*.png
+# Playwright E2E outputs
+frontend/test-results/
+frontend/playwright-report/
+frontend/playwright/.cache/
+# Node
+node_modules/
 .env.railway.local
 .claude/
+.superpowers/
