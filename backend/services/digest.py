@@ -28,7 +28,7 @@ def send_weekly_digest(quote_fn=None, send_fn=None) -> int:
         opted = (s.query(models.Settings)
                  .filter(models.Settings.news_digest.is_(True)).all())
         for st in opted:
-            user = s.query(models.User).get(st.user_id)
+            user = s.get(models.User, st.user_id)
             if not user or not user.email or not user.email_verified:
                 continue
             items = (s.query(models.WatchlistItem)

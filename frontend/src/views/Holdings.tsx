@@ -21,6 +21,7 @@ export function Holdings() {
   const chg = useStore((s) => s.chg)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
+  const openAuth = useStore((s) => s.openAuth)
 
   useEffect(() => { if (authed) loadHoldings() }, [authed, loadHoldings])
 
@@ -50,6 +51,40 @@ export function Holdings() {
   const totalGain = totalValue - totalCost
   const totalGainPct = totalCost ? (totalGain / totalCost) * 100 : 0
   const todayVal = rows.reduce((a, r) => a + (r.value * r.day) / 100, 0)
+
+  if (!authed) {
+    return (
+      <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Portfolio</span>
+          </div>
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: COLORS.cardHi, display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.tx3, fontSize: '22px' }}>⊕</div>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: COLORS.tx }}>Sign in to track your portfolio</span>
+            <span style={{ fontSize: '12.5px', color: COLORS.tx3, lineHeight: 1.55, maxWidth: 340 }}>Create a free account or sign in to connect a brokerage and view your real holdings, cost basis, and live portfolio value.</span>
+            <button onClick={() => openAuth('signup')} style={{ marginTop: 6, height: 38, padding: '0 18px', borderRadius: 10, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Sign up free</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (connected && holdings.length === 0) {
+    return (
+      <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: COLORS.tx }}>Portfolio</span>
+          </div>
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.line}`, borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: COLORS.tx }}>No holdings yet</span>
+            <span style={{ fontSize: '13px', color: COLORS.tx3, lineHeight: 1.55, maxWidth: 340 }}>Your synced portfolio is empty. Holdings will appear here once your broker account has positions.</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!connected) {
     return (
