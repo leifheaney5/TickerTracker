@@ -45,6 +45,9 @@ export function Header() {
   const theme = useStore((s) => s.theme)
   const setTheme = useStore((s) => s.setTheme)
   const isMobile = useIsMobile()
+  // Hide the centered "Ticker Tracker" wordmark on narrower desktop widths where
+  // it would collide with the (wide) view-nav. It returns once there's room.
+  const narrowDesktop = useIsMobile(1180)
   const [menuOpen, setMenuOpen] = useState(false)
 
   // Close hamburger menu when navigating
@@ -326,20 +329,23 @@ export function Header() {
         </div>
       </div>
 
-      {/* center: LIVE pulse + wordmark */}
-      <div style={{ justifySelf: 'center', display: 'flex', alignItems: 'center', gap: '9px', whiteSpace: 'nowrap' }}>
-        <span
-          title="Live"
-          style={{
-            width: 7, height: 7, borderRadius: '50%', background: 'var(--up)',
-            boxShadow: '0 0 9px var(--up)', animation: 'ttpulse 1.8s ease-in-out infinite', flex: '0 0 auto',
-          }}
-        />
-        <span style={{ fontFamily: FONT_SANS, fontWeight: 800, fontSize: '17px', letterSpacing: '-.025em' }}>
-          <span style={{ color: 'var(--up)' }}>Ticker</span>
-          <span style={{ color: 'var(--down)' }}>&nbsp;Tracker</span>
-        </span>
-      </div>
+      {/* center: LIVE pulse + wordmark — hidden on narrow desktop to avoid
+          colliding with the view-nav */}
+      {!narrowDesktop && (
+        <div style={{ justifySelf: 'center', display: 'flex', alignItems: 'center', gap: '9px', whiteSpace: 'nowrap' }}>
+          <span
+            title="Live"
+            style={{
+              width: 7, height: 7, borderRadius: '50%', background: 'var(--up)',
+              boxShadow: '0 0 9px var(--up)', animation: 'ttpulse 1.8s ease-in-out infinite', flex: '0 0 auto',
+            }}
+          />
+          <span style={{ fontFamily: FONT_SANS, fontWeight: 800, fontSize: '17px', letterSpacing: '-.025em' }}>
+            <span style={{ color: 'var(--up)' }}>Ticker</span>
+            <span style={{ color: 'var(--down)' }}>&nbsp;Tracker</span>
+          </span>
+        </div>
+      )}
 
       {/* right: search, portfolio/connect, theme toggle, avatar */}
       <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
