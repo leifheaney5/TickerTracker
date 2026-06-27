@@ -36,6 +36,23 @@ ideas aren't lost when we pull them out of the shipping product.
   symbol routing so crypto symbols hit it instead of the equity provider, and
   formatting for crypto-scale prices/precision.
 
+### Strategy / algo-trading cockpit
+- **Status:** Idea
+- **Deferred:** 2026-06-27
+- **Why deferred:** The page was a prototype mockup — Sharpe ratio, max drawdown,
+  win rate, equity curve, circuit breakers, system health, and execution-quality
+  metrics were all hardcoded literals (no live algo backend, per the original
+  spec). It implied algorithmic trading, broker connectivity, and live risk
+  management the product doesn't have — the same "promising functionality that
+  isn't built" problem that pulled the Connect-account button. Active Positions
+  was the only partly-live section, and even that ran on seeded demo share counts
+  rather than real user holdings. Removed from the prod nav (v1.13.x); source kept
+  at `frontend/src/views/Strategy.tsx` + `frontend/src/charts/EquityCurve.tsx`.
+- **What it would take:** A real strategy/algo backend producing genuine P&L,
+  risk, and execution telemetry — which presupposes the brokerage/account
+  connection above (real holdings + order flow) plus a backtesting/live-trading
+  engine. Revive only once those exist; until then every metric on it is fiction.
+
 ### In-app / push notifications
 - **Status:** Idea
 - **Why deferred:** Alerts and the weekly digest are **email-only** today. Email
