@@ -140,7 +140,7 @@ def update_item(uid, list_id, symbol, **fields):
         for k, v in fields.items():
             if k in allowed and v is not None:
                 if k == "watchlist_id" and not _owned(s, uid, int(v)):
-                    continue  # never move into a list you don't own
+                    raise ValueError("target list not found or not owned")
                 setattr(it, k, v)
         s.commit()
         return _item_dict(it)

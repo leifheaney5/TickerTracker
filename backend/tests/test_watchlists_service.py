@@ -77,3 +77,22 @@ def test_move_item_between_lists():
     moved = wl.update_item(uid, a, "NVDA", watchlist_id=b)
     assert moved["watchlist_id"] == b
     assert "NVDA" not in [i["symbol"] for i in wl.list_watchlists(uid)[0]["items"] if wl.list_watchlists(uid)[0]["id"] == a]
+
+
+def test_move_into_unowned_list_raises():
+    # _fresh_user resets the schema, so create user A first, then add user B
+    # without resetting, so both coexist.
+    uidA = _fresh_user("premium")
+    with db.get_session() as s:
+        ub = models.User(email="b@x.com", name="B", plan="premium")
+        s.add(ub); s.commit()
+        uidB = ub.id
+    la = wl.get_or_create_primary_list(uidA)
+    lb = wl.get_or_create_primary_list(uidB)
+    wl.add_item(uidA, la, "NVDA")
+    with pytest.raises(ValueError):
+        wl.update_item(uidA, la, "NVDA", watchlist_id=lb)
+    # item stays in A's original list — move was rejected, not silently dropped
+    item = wl.list_watchlists(uidA)[0]["items"][0]
+    assert item["symbol"] == "NVDA"
+    assert item["watchlist_id"] == la
