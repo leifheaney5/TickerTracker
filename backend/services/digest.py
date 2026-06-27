@@ -1,11 +1,41 @@
 # backend/services/digest.py
 import logging
+import os
+import secrets
 import db
 import models
 from services.quotes import get_quotes
 from providers.email import _send
 
 logger = logging.getLogger(__name__)
+
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "https://tickertracker.info")
+
+
+def get_or_create_unsub_token(user_id: int) -> str:
+    """Return the stable per-user unsubscribe token, creating one if absent."""
+    with db.get_session() as s:
+        st = s.get(models.Settings, user_id)
+        if st is None:
+            raise ValueError(f"No Settings row for user_id={user_id}")
+        if st.unsub_token:
+            return st.unsub_token
+        token = secrets.token_urlsafe(12)
+        st.unsub_token = token
+        s.commit()
+        return token
+
+
+def unsubscribe(token: str) -> bool:
+    """Find the Settings row by unsub_token; set news_digest=False. Idempotent."""
+    with db.get_session() as s:
+        st = (s.query(models.Settings)
+              .filter(models.Settings.unsub_token == token).first())
+        if st is None:
+            return False
+        st.news_digest = False
+        s.commit()
+        return True
 
 
 def build_digest_html(name: str, rows: list[dict]) -> str:
@@ -40,8 +70,14 @@ def send_weekly_digest(quote_fn=None, send_fn=None) -> int:
                      "price": quotes.get(w.symbol, {}).get("price", 0.0),
                      "change_pct": quotes.get(w.symbol, {}).get("change_pct", 0.0)}
                     for w in items]
-            if send_fn(user.email, "Your Ticker Tracker weekly digest",
-                       build_digest_html(user.name, rows)):
+            unsub_token = get_or_create_unsub_token(st.user_id)
+            unsub_url = f"{APP_BASE_URL}/api/unsubscribe/{unsub_token}"
+            unsub_footer = (
+                f'<p style="font-size:11px;color:#888">'
+                f'<a href="{unsub_url}">Unsubscribe from these emails</a></p>'
+            )
+            html = build_digest_html(user.name, rows) + unsub_footer
+            if send_fn(user.email, "Your Ticker Tracker weekly digest", html):
                 emailed += 1
     return emailed
 

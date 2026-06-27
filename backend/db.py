@@ -84,6 +84,10 @@ def _ensure_columns(conn) -> None:
                 conn.execute(text(
                     "ALTER TABLE settings ADD COLUMN share_token VARCHAR"
                 ))
+            if "unsub_token" not in existing_s:
+                conn.execute(text(
+                    "ALTER TABLE settings ADD COLUMN unsub_token VARCHAR"
+                ))
     else:
         # Postgres 9.6+ supports ADD COLUMN IF NOT EXISTS natively.
         conn.execute(text(
@@ -97,6 +101,10 @@ def _ensure_columns(conn) -> None:
         conn.execute(text(
             "ALTER TABLE settings "
             "ADD COLUMN IF NOT EXISTS share_token VARCHAR"
+        ))
+        conn.execute(text(
+            "ALTER TABLE settings "
+            "ADD COLUMN IF NOT EXISTS unsub_token VARCHAR"
         ))
 
 
