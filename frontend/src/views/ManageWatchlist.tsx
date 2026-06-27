@@ -22,6 +22,8 @@ export function ManageWatchlist() {
   const updateWatch = useStore((s) => s.updateWatch)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
+  const billing = useStore((s) => s.billing)
+  const openUpgrade = useStore((s) => s.openUpgrade)
 
   const [bulk, setBulk] = useState('')
   const [adding, setAdding] = useState(false)
@@ -64,6 +66,14 @@ export function ManageWatchlist() {
       bulk.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean)
     ))
     if (!syms.length) return
+    if (billing && !billing.is_pro) {
+      const room = billing.limits.watchlist - items.length
+      if (room <= 0 || syms.length > room) {
+        openUpgrade('watchlist',
+          `Your Free plan allows ${billing.limits.watchlist} watchlist tickers. Upgrade to Pro for more.`)
+        return
+      }
+    }
     setAdding(true)
     setAddResult(null)
     let added = 0
@@ -93,7 +103,7 @@ export function ManageWatchlist() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Manage Watchlist</span>
-            <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{items.length} ticker{items.length === 1 ? '' : 's'} · add in bulk, set targets, remove</span>
+            <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{items.length} ticker{items.length === 1 ? '' : 's'}{billing ? ` of ${billing.limits.watchlist}` : ''} · add in bulk, set targets, remove</span>
           </div>
           <button
             onClick={handleShare}
