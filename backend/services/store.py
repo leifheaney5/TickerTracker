@@ -1,65 +1,53 @@
 import db
 import models
 from auth import current_user_id
-
-
-def _wl_dict(w):
-    return {"symbol": w.symbol, "position": w.position, "target": w.target,
-            "alert_price": w.alert_price, "alert_dir": w.alert_dir,
-            "alert_active": bool(w.alert_active)}
+from services import watchlists as _wl
 
 
 def get_watchlist():
     uid = current_user_id()
-    with db.get_session() as s:
-        rows = (s.query(models.WatchlistItem)
-                .filter_by(user_id=uid).order_by(models.WatchlistItem.position).all())
-        return [_wl_dict(w) for w in rows]
+    # Active union across all lists (deduped, ordered). Locked overflow excluded.
+    rows = []
+    for lst in _wl.list_watchlists(uid):
+        for it in lst["items"]:
+            if not it["locked"]:
+                rows.append(it)
+    # de-dupe by symbol, renumber position for the flat consumer
+    seen, out = set(), []
+    for i, it in enumerate(rows):
+        if it["symbol"] in seen:
+            continue
+        seen.add(it["symbol"])
+        out.append({"symbol": it["symbol"], "position": len(out), "target": it["target"],
+                    "alert_price": it["alert_price"], "alert_dir": it["alert_dir"],
+                    "alert_active": bool(it["alert_active"])})
+    return out
 
 
 def add_watch(symbol, target=0, alert_price=0, alert_dir="above"):
     uid = current_user_id()
-    symbol = symbol.upper()
-    with db.get_session() as s:
-        existing = s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
-        if existing:
-            existing.target = target
-            existing.alert_price = alert_price
-            existing.alert_dir = alert_dir
-            s.commit()
-            return _wl_dict(existing)
-        count = s.query(models.WatchlistItem).filter_by(user_id=uid).count()
-        item = models.WatchlistItem(user_id=uid, symbol=symbol, position=count,
-                                    target=target, alert_price=alert_price, alert_dir=alert_dir)
-        s.add(item)
-        s.commit()
-        return _wl_dict(item)
+    lid = _wl.get_or_create_primary_list(uid)
+    it = _wl.add_item(uid, lid, symbol, target=target, alert_price=alert_price, alert_dir=alert_dir)
+    return {"symbol": it["symbol"], "position": it["position"], "target": it["target"],
+            "alert_price": it["alert_price"], "alert_dir": it["alert_dir"],
+            "alert_active": bool(it["alert_active"])}
 
 
 def update_watch(symbol, **fields):
     uid = current_user_id()
-    symbol = symbol.upper()
-    with db.get_session() as s:
-        item = s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
-        if not item:
-            return None
-        for k, v in fields.items():
-            if hasattr(item, k) and v is not None:
-                setattr(item, k, v)
-        s.commit()
-        return _wl_dict(item)
+    lid = _wl.get_or_create_primary_list(uid)
+    it = _wl.update_item(uid, lid, symbol, **fields)
+    if it is None:
+        return None
+    return {"symbol": it["symbol"], "position": it["position"], "target": it["target"],
+            "alert_price": it["alert_price"], "alert_dir": it["alert_dir"],
+            "alert_active": bool(it["alert_active"])}
 
 
 def remove_watch(symbol):
     uid = current_user_id()
-    symbol = symbol.upper()
-    with db.get_session() as s:
-        item = s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
-        if not item:
-            return False
-        s.delete(item)
-        s.commit()
-        return True
+    lid = _wl.get_or_create_primary_list(uid)
+    return _wl.remove_item(uid, lid, symbol)
 
 
 def _get_or_create_settings(s, uid):
