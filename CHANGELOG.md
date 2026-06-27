@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.1] — 2026-06-27
+
+### Fixed (visual QA)
+
+- **News panel** no longer stuck on "Loading news…": per-symbol news now falls
+  back to market headlines when Finnhub returns none for a ticker, and an empty
+  result shows "No recent news" instead of a perpetual spinner.
+- **Header wordmark** no longer overlaps the nav on narrower desktop widths.
+- **Light mode** page background now follows the theme (no dark edge).
+
 ## [1.11.0] — 2026-06-27
 
 ### Added
