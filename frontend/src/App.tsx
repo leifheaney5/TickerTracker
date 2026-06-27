@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from './state/store'
-import { rootCssVars, FONT_SANS } from './theme/tokens'
+import { rootCssVars, FONT_SANS, THEMES } from './theme/tokens'
 import { Header } from './components/Header'
 import { AuthScreen } from './components/AuthScreen'
 import { ShortcutsHelp } from './components/ShortcutsHelp'
@@ -83,6 +83,12 @@ export default function App() {
     const id = setInterval(pollQuotes, 60000)
     return () => clearInterval(id)
   }, [watchlist.length, currentUser, pollQuotes])
+
+  // Keep the page body (behind the app shell) matching the active theme, so
+  // overscroll / edges aren't a hard-coded dark in light mode.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-bg', THEMES[theme].bg)
+  }, [theme])
 
   // Render the read-only shared watchlist view for /s/<token> paths.
   // This bypasses auth entirely — no header, no shell.

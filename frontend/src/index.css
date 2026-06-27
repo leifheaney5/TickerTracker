@@ -4,7 +4,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: #0a0b0d; overflow-x: hidden; }
+/* --app-bg is set on :root by App when the theme changes, so the page body
+   behind the app matches the active theme (not a hard-coded dark). */
+:root { --app-bg: #0a0b0d; }
+html, body { margin: 0; padding: 0; background: var(--app-bg); overflow-x: hidden; }
 #root { height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .09); border-radius: 8px; }
