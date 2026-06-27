@@ -4,6 +4,7 @@ import os
 import secrets
 import db
 import models
+import services.billing as billing
 from services.quotes import get_quotes
 from providers.email import _send
 
@@ -101,6 +102,8 @@ def send_weekly_digest(quote_fn=None, send_fn=None) -> int:
             user = s.get(models.User, st.user_id)
             if not user or not user.email or not user.email_verified:
                 continue
+            if not billing.is_pro(st.user_id):
+                continue  # weekly digest is a Pro feature
             items = (s.query(models.WatchlistItem)
                      .filter_by(user_id=st.user_id)
                      .order_by(models.WatchlistItem.position).all())
@@ -124,4 +127,5 @@ def _seed_for_test(email, news_digest, symbol):
         s.add(u); s.flush()
         s.add(models.Settings(user_id=u.id, news_digest=news_digest))
         s.add(models.WatchlistItem(user_id=u.id, symbol=symbol))
+        s.add(models.BillingSubscription(user_id=u.id, status="active", plan="pro"))
         s.commit()
