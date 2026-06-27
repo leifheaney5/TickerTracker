@@ -1,0 +1,14 @@
+{
+  "name": "Ticker Tracker",
+  "short_name": "Ticker Tracker",
+  "description": "Live markets, watchlists, analyst ratings, news, and sentiment in one dashboard.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0b0d",
+  "theme_color": "#0a0b0d",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] — 2026-06-26
+
+### Added
+
+- **Brand "TT" app icon** — the two-T logo mark (green up-T / red down-T on the
+  dark card) is now the browser favicon (SVG + 16/32 PNG), the iOS "Add to Home
+  Screen" icon (180px apple-touch-icon), and the Android/PWA install icon
+  (192/512 maskable) via a new web manifest. Replaces the default Vite favicon.
+
 ## [1.4.1] — 2026-06-26
 
 ### Security
