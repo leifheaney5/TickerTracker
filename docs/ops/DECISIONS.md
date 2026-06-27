@@ -114,3 +114,19 @@ Tests end state: backend 141 passing (0 deprecation warnings), frontend 24 passi
 ## What was NOT done (out of declared scope / deliberately deferred)
 - Real brokerage connect (SnapTrade/Plaid) — market doc says sequence after quick wins; not in tonight's phases.
 - The light-mode body-bg cosmetic fix (logged for follow-up).
+
+## CI uses `npm install` not `npm ci` — cross-platform rolldown lockfile — 2026-06-27
+A background security review flagged `npm install` (vs `npm ci`) as dropping
+lockfile enforcement. Investigated: the root cause is `@rolldown/binding-wasm32-
+wasi` (Vite 8's bundler) → `@emnapi/core`/`@emnapi/runtime`, Linux-only optional
+transitive deps that a Windows-generated package-lock omits, so `npm ci` fails on
+Linux CI with "Missing: @emnapi/* from lock file" (same rolldown issue this
+project hit on the first Railway deploys). DECISION: use `npm install --no-audit
+--no-fund` in CI — which is EXACTLY what the production Dockerfile already does
+(consistency between CI and the real build). Mitigation of the supply-chain
+concern: the package-lock.json IS committed and present, so npm install still
+honors pinned versions for every non-platform-optional package; only the
+platform-specific optional binaries are filled in. Removing sharp (done) cut one
+source of this; rolldown's wasm binding is intrinsic to Vite 8 and can't be
+dropped. A stricter alternative for later: generate/commit the lockfile on Linux
+(e.g. via a Docker step) so npm ci works — deferred as not worth the complexity now.
