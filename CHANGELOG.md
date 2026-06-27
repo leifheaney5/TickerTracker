@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-06-27
+
+### Changed
+
+- **Reliability & polish:** friendly empty/error states across all data views
+  (Holdings, Alerts, Screener, Crypto, At-a-Glance) so panels never render blank;
+  accessibility labels (aria-label) on icon-only buttons and alert/target inputs.
+
+### Fixed
+
+- Modernized deprecated SQLAlchemy `Query.get()` calls (0 deprecation warnings).
+
+### Tests / Docs
+
+- Backend test coverage raised to 136 (quotes mock-fallback, search cache,
+  ratings consensus thresholds). README refreshed to document auth, alerts/
+  digest, sharing, themes, earnings, and mobile.
+
 ## [1.7.0] — 2026-06-27
 
 ### Added
