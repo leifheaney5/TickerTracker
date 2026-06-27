@@ -3,11 +3,25 @@
 A sleek, dark-themed stock & crypto tracking app: a pixel-faithful React
 front-end backed by a real-data Flask API, deployable to Railway with Postgres.
 
+**Live at: https://tickertracker.info**
+
 The hero experience is a split-view **Dashboard** (curated watchlist + a large
 interactive chart, stats, news, and due-diligence), surrounded by market-wide
 tooling: At-a-Glance & Deep Dive tables, a Market overview / treemap Map /
 Sectors matrix, a Crypto world, a Screener, a Strategy cockpit, Portfolio
 holdings, price Alerts, and Settings.
+
+## Features
+
+- **Multi-user accounts:** Email + password signup with email verification, Google OAuth, and password reset (freemium: browse free; account required to save watchlist, targets, alerts, and portfolio).
+- **Price Alerts & Digest:** Automated email alerts when stocks hit your targets, plus a weekly watchlist digest delivered via Resend (powered by Railway cron service).
+- **Manage Watchlist:** Bulk add (comma/space/newline-delimited, CSV/txt import), per-row price-alert arming, and easy removal.
+- **Shareable Watchlists:** Generate read-only watchlist links (`/s/<token>`) to share your curated lists.
+- **Light/Dark Theme:** Toggle between themes (dark is the default).
+- **Onboarding Starter Watchlists:** Quick-start templates (Big Tech, AI, Crypto Majors, Dividend).
+- **Earnings Calendar, Screeners, & News Sentiment:** Saved filter results, per-watchlist "mood" chips showing sentiment.
+- **Mobile-Responsive:** Layout adapts to all screen sizes; web manifest and favicons for iOS/Android home-screen install.
+- **Security & Rate Limiting:** HTTP security headers, IP-based rate limiting on the public market API.
 
 ## Architecture
 
@@ -27,15 +41,17 @@ endpoints, so production is one process.
 
 ### Data sources
 
-| Data | Source | Key required |
-|---|---|---|
-| Quotes, OHLC history, fundamentals, 52w/ATH | yfinance / yahooquery | no |
-| Crypto quotes, market cap, BTC dominance | CoinGecko | no |
-| Crypto Fear & Greed | alternative.me | no |
-| News + sentiment, analyst ratings & price targets | **Finnhub** (free tier) | **yes** |
+| Data | Source | Fallback | Key required |
+|---|---|---|---|
+| Quotes, OHLC history | **Finnhub** (primary, fast/accurate) | yfinance / Yahoo / seeded mock | optional |
+| Fundamentals (P/E, div yield, etc.) | Yahoo | seeded mock | no |
+| News + sentiment, analyst ratings & targets | Finnhub | — | no (free tier works) |
+| Crypto quotes, market cap, BTC dominance | CoinGecko | seeded mock | no |
+| Crypto Fear & Greed | alternative.me | seeded mock | no |
 
 Every provider call falls back to a deterministic seeded mock on failure, so the
-app is always usable — it never shows a broken page.
+app is always usable — it never shows a broken page. Set `FINNHUB_API_KEY` for
+optimal speed and coverage; the app works fully keyless.
 
 ## Local development
 
@@ -149,6 +165,7 @@ cd backend && . .venv/Scripts/activate && pytest -q     # 47 tests
 - [`docs/superpowers/plans/`](docs/superpowers/plans/) — implementation plans.
 - [`docs/PROTOTYPE_HANDOFF.md`](docs/PROTOTYPE_HANDOFF.md) — the original
   high-fidelity prototype handoff (the UI this app recreates).
+- [`docs/ops/`](docs/ops/) — operations guides: cron setup, launch gates, and architectural decisions.
 - [`CHANGELOG.md`](CHANGELOG.md) — version history.
 
 ## Credits
