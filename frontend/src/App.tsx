@@ -13,7 +13,6 @@ import { AtAGlance } from './views/AtAGlance'
 import { Crypto } from './views/Crypto'
 import { MarketViews } from './views/MarketViews'
 import { Screener } from './views/Screener'
-import { Strategy } from './views/Strategy'
 import { ManageWatchlist } from './views/ManageWatchlist'
 import { Footer } from './components/Footer'
 import { SharedWatchlist } from './views/SharedWatchlist'
@@ -151,7 +150,6 @@ export default function App() {
       {view === 'map' && <MarketViews sub="map" />}
       {view === 'sectors' && <MarketViews sub="sectors" />}
       {view === 'screener' && <Screener />}
-      {view === 'strategy' && <Strategy />}
       {view === 'managewatch' && <ManageWatchlist />}
       {view === 'earnings' && <Earnings />}
       <Footer />
