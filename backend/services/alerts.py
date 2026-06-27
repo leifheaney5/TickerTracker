@@ -57,8 +57,8 @@ def check_alerts(now=None, quote_fn=None, send_fn=None) -> int:
             price = q["price"]
             if not should_fire(price, w.alert_price, w.alert_dir):
                 continue
-            user = s.query(models.User).get(w.user_id)
-            settings = s.query(models.Settings).get(w.user_id)
+            user = s.get(models.User, w.user_id)
+            settings = s.get(models.Settings, w.user_id)
             if not user or not user.email:
                 continue
             if settings is not None and not settings.alert_notifs:
