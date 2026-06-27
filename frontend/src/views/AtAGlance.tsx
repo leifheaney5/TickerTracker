@@ -137,6 +137,11 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                   </div>
                 ))}
               </div>
+              {sorted.length === 0 && (
+                <div style={{ padding: '36px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+                  Your watchlist is empty — add tickers from the Dashboard or Screener.
+                </div>
+              )}
               {sorted.map((sym) => {
                 const u = UNIVERSE[sym] || ({ name: sym, sector: '—', industry: '—' } as typeof UNIVERSE[string])
                 const f = fundOf(sym)
@@ -171,6 +176,11 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
               <div style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
                 {DEEP_COLS.map((h) => <div key={h} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>)}
               </div>
+              {sorted.length === 0 && (
+                <div style={{ padding: '36px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+                  Your watchlist is empty — add tickers from the Dashboard or Screener.
+                </div>
+              )}
               {sorted.map((sym) => {
                 const f = fundOf(sym)
                 const u = UNIVERSE[sym] || ({ name: sym } as typeof UNIVERSE[string])

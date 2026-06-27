@@ -230,6 +230,11 @@ export function Screener() {
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.4fr) 130px 96px 78px 96px 60px 124px', background: COLORS.panel, borderBottom: `1px solid ${COLORS.line}` }}>
               {['TICKER', 'SECTOR', 'PRICE', '24H', 'MKT CAP', 'P/E', ''].map((h, i) => <div key={i} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: COLORS.tx3 }}>{h}</div>)}
             </div>
+            {rows.length === 0 && (
+              <div style={{ padding: '36px 18px', textAlign: 'center', color: COLORS.tx3, fontSize: '13px' }}>
+                No tickers match these filters.
+              </div>
+            )}
             {rows.map((sym) => {
               const u = UNIVERSE[sym]
               const c = chg(sym)
