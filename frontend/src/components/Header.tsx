@@ -153,8 +153,8 @@ export function Header() {
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-              borderRadius: 9, background: COLORS.card, border: `1px solid ${COLORS.line}`,
-              color: COLORS.tx2, cursor: 'pointer', fontSize: '15px', flex: '0 0 auto',
+              borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
+              color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px', flex: '0 0 auto',
             }}
           >
             {theme === 'dark' ? '☾' : '☀'}
@@ -343,8 +343,8 @@ export function Header() {
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-            borderRadius: 9, background: COLORS.card, border: `1px solid ${COLORS.line}`,
-            color: COLORS.tx2, cursor: 'pointer', fontSize: '15px', flex: '0 0 auto',
+            borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
+            color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px', flex: '0 0 auto',
           }}
         >
           {theme === 'dark' ? '☾' : '☀'}
