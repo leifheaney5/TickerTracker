@@ -5,7 +5,7 @@
 import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
   NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
-  SharedWatchlistResponse,
+  SharedWatchlistResponse, EarningsRow,
 } from './types'
 
 export interface Result<T> {
@@ -65,4 +65,7 @@ export const api = {
 
   createShare: () => send<{ token: string }>('/api/watchlist/share', 'POST'),
   getShared: (token: string) => get<SharedWatchlistResponse>(`/api/shared/${encodeURIComponent(token)}`),
+
+  earnings: (syms: string[]) =>
+    get<EarningsRow[]>(`/api/earnings?syms=${encodeURIComponent(syms.join(','))}`),
 }

@@ -118,3 +118,10 @@ export interface SharedWatchlistResponse {
   owner_name: string
   items: SharedWatchlistItem[]
 }
+
+export interface EarningsRow {
+  symbol: string
+  date: string
+  hour: string
+  epsEstimate: number | null
+}
