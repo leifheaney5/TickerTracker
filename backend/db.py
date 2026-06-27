@@ -56,6 +56,35 @@ def _auth_schema_is_stale() -> bool:
         return False
 
 
+def _ensure_columns(conn) -> None:
+    """Additively add alert_active and alert_last_fired_at to watchlist_items
+    if they are absent.  Idempotent: safe to call on a fresh or already-migrated
+    table.  Uses ADD COLUMN IF NOT EXISTS on Postgres; falls back to PRAGMA
+    inspection on SQLite (which lacks that syntax)."""
+    from sqlalchemy import text
+    if _is_sqlite:
+        rows = conn.execute(text("PRAGMA table_info(watchlist_items)")).fetchall()
+        existing = {r[1] for r in rows}  # column name is index 1
+        if "alert_active" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN alert_active BOOLEAN DEFAULT 0"
+            ))
+        if "alert_last_fired_at" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN alert_last_fired_at DATETIME"
+            ))
+    else:
+        # Postgres 9.6+ supports ADD COLUMN IF NOT EXISTS natively.
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS alert_active BOOLEAN DEFAULT FALSE"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS alert_last_fired_at TIMESTAMP"
+        ))
+
+
 def init_db():
     # create_all builds any MISSING tables but never alters existing ones, so a
     # database created before the auth feature keeps an old `users` table without
@@ -78,3 +107,15 @@ def init_db():
         Base.metadata.create_all(engine)
     except Exception as e:  # pragma: no cover
         logging.getLogger(__name__).error("init_db failed (continuing): %s", e)
+
+    # Ensure alert columns exist on watchlist_items regardless of whether the
+    # table was just created or already existed from a prior deployment.
+    # create_all above never ALTERs existing tables, so prod databases that
+    # pre-date the aa01_alert_state Alembic migration would be missing these.
+    try:
+        from sqlalchemy import text  # noqa: F811 (may already be imported)
+        with engine.begin() as conn:
+            _ensure_columns(conn)
+    except Exception as e:  # pragma: no cover
+        logging.getLogger(__name__).error(
+            "init_db _ensure_columns failed (continuing): %s", e)
