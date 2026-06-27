@@ -41,6 +41,7 @@ interface StoreState {
   history: Record<string, Bar[]> // key `${sym}:${tf}`
   fundamentals: Record<string, Fundamentals>
   news: Record<string, NewsItem[]> // key sym or 'MARKET'
+  newsLoaded: Record<string, boolean> // keys whose news fetch has completed
   ratings: Record<string, Ratings>
   watchlist: WatchlistItem[]
   settings: Settings | null
@@ -120,6 +121,7 @@ export const useStore = create<StoreState>((set, get) => ({
   history: {},
   fundamentals: {},
   news: {},
+  newsLoaded: {},
   ratings: {},
   watchlist: [],
   settings: null,
@@ -313,11 +315,17 @@ export const useStore = create<StoreState>((set, get) => ({
 
   loadNews: async (sym) => {
     const key = sym || 'MARKET'
-    if (get().news[key]) return
+    if (get().newsLoaded[key]) return // already fetched (even if it returned 0 items)
     try {
       const { data } = await api.news(sym)
-      set((st) => ({ news: { ...st.news, [key]: data } }))
-    } catch { /* leave empty */ }
+      set((st) => ({
+        news: { ...st.news, [key]: data },
+        newsLoaded: { ...st.newsLoaded, [key]: true },
+      }))
+    } catch {
+      // mark loaded so the UI shows an empty state, not a perpetual spinner
+      set((st) => ({ newsLoaded: { ...st.newsLoaded, [key]: true } }))
+    }
   },
 
   loadRatings: async (sym) => {

@@ -27,6 +27,7 @@ function safeHref(url: string): string | undefined {
 export function NewsCard() {
   const selected = useStore((s) => s.selected)
   const news = useStore((s) => s.news)
+  const newsLoaded = useStore((s) => s.newsLoaded)
   const loadNews = useStore((s) => s.loadNews)
   const [tab, setTab] = useState<'sym' | 'market'>('sym')
 
@@ -35,7 +36,9 @@ export function NewsCard() {
     else loadNews(undefined)
   }, [tab, selected, loadNews])
 
-  const items = tab === 'sym' ? news[selected] || [] : news['MARKET'] || []
+  const key = tab === 'sym' ? selected : 'MARKET'
+  const items = news[key] || []
+  const loaded = !!newsLoaded[key]
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '6px 11px', borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: FONT_SANS,
@@ -71,7 +74,11 @@ export function NewsCard() {
             </a>
           )
         })}
-        {items.length === 0 && <div style={{ padding: '24px 4px', color: 'var(--tx3)', fontSize: 12 }}>Loading news…</div>}
+        {items.length === 0 && (
+          <div style={{ padding: '24px 4px', color: 'var(--tx3)', fontSize: 12 }}>
+            {loaded ? 'No recent news for this ticker.' : 'Loading news…'}
+          </div>
+        )}
       </div>
     </div>
   )
