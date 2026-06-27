@@ -97,3 +97,12 @@ class LoginAttempt(Base):
     ip = Column(String, default="")
     created_at = Column(DateTime, server_default=func.now(), index=True)
     success = Column(Boolean, default=False)
+
+
+class SavedScreen(Base):
+    __tablename__ = "saved_screens"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    filters_json = Column(String, default="")
+    created_at = Column(DateTime, server_default=func.now())

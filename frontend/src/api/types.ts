@@ -125,3 +125,9 @@ export interface EarningsRow {
   hour: string
   epsEstimate: number | null
 }
+
+export interface SavedScreen {
+  id: number
+  name: string
+  filters: Record<string, string>
+}
