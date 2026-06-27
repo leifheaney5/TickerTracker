@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStore, type ChartType } from '../state/store'
+import { useStore, type ChartType, isAuthed } from '../state/store'
 import { COLORS, FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import type { Timeframe } from '../api/types'
@@ -22,6 +22,8 @@ export function ChartControls() {
   const toggleCompare = useStore((s) => s.toggleCompare)
   const selected = useStore((s) => s.selected)
   const watchSymbols = useStore((s) => s.watchSymbols)
+  const openAuth = useStore((s) => s.openAuth)
+  const authed = useStore(isAuthed)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const compareActive = compare.length > 0
@@ -84,7 +86,11 @@ export function ChartControls() {
                 </div>
               ))}
               {candidates.length === 0 && compare.length === 0 && (
-                <div style={{ padding: '14px 11px', fontSize: 11.5, color: COLORS.tx3, textAlign: 'center' }}>No tickers to compare</div>
+                authed
+                  ? <div style={{ padding: '14px 11px', fontSize: '12.5px', color: COLORS.tx3, textAlign: 'center' }}>Add tickers with the ⊕ Compare button on any chart to compare them here.</div>
+                  : <div style={{ padding: '12px 11px', textAlign: 'center' }}>
+                      <button onClick={() => openAuth('signup')} style={{ height: 40, padding: '0 20px', borderRadius: 11, border: 'none', background: COLORS.accent, color: COLORS.accentInk, fontFamily: FONT_SANS, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>Sign in to compare tickers</button>
+                    </div>
               )}
             </div>
           )}
