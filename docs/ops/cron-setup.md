@@ -1,22 +1,43 @@
-# Cron jobs (Railway)
+# Cron jobs (Railway) — LIVE
 
-Two scheduled jobs run the alert + digest engine. They share the web service's
-Docker image and DATABASE_URL/FINNHUB_API_KEY/RESEND_API_KEY/MAIL_FROM env.
+Two scheduled services run the alert + digest engine in the `tickertracker-website`
+project (env `production`). **Both are created and running** as of 2026-06-27.
 
-## Create in Railway (per job)
-1. New service → "Empty service" in the SAME project (so it inherits the shared
-   Postgres + variables via reference variables).
-2. Set the service's **Start Command**:
-   - Alerts (every 5 min):   `python backend/jobs.py check-alerts`
-   - Weekly digest (Mon 13:00 UTC): `python backend/jobs.py weekly-digest`
-3. Set the service's **Cron Schedule** (Railway → service → Settings → Cron):
-   - Alerts:   `*/5 * * * *`
-   - Digest:   `0 13 * * 1`
-4. Ensure the service references the same variables as the web service
-   (DATABASE_URL, FINNHUB_API_KEY, RESEND_API_KEY, MAIL_FROM).
+| Service | Schedule | Start command | Purpose |
+|---|---|---|---|
+| `cron-alerts` | `*/5 * * * *` (every 5 min) | `sh -c 'cd backend && python jobs.py check-alerts'` | Fire price alerts |
+| `cron-digest` | `0 13 * * 1` (Mon 13:00 UTC) | `sh -c 'cd backend && python jobs.py weekly-digest'` | Weekly watchlist digest |
 
-## Verify
-- Trigger once manually (Railway → service → Deploy / Run) and check logs for
-  `alerts fired: N` / `digests sent: N`.
-- Locally: `cd backend && python jobs.py check-alerts` (uses local DATABASE_URL).
-- IMPORTANT: Deploy/activate the web service FIRST so its boot runs migrations; only then activate the cron services, otherwise the alert columns may not yet exist on the shared database.
+Both build from the same GitHub repo (`leifheaney5/TickerTracker`) as the web
+service, and have these variables set: `DATABASE_URL` (the internal
+`postgres.railway.internal` URL), `FINNHUB_API_KEY`, `RESEND_API_KEY`,
+`MAIL_FROM`, `APP_BASE_URL`.
+
+> **Start-command nuance:** the start command must `cd backend` first, because
+> `jobs.py` imports `services.*` / `db` which resolve relative to `backend/`
+> (the same reason the web service runs gunicorn with `--chdir backend`). A bare
+> `python backend/jobs.py` from `/app` would fail on imports.
+
+## Verified working
+`cron-alerts` logged `INFO:jobs:alerts fired: 0` on its first scheduled run
+(0 because no alerts are armed yet — no error). Check logs anytime:
+```bash
+railway logs --service cron-alerts     # (with RAILWAY_API_TOKEN set)
+railway logs --service cron-digest
+```
+
+## To recreate (if ever needed)
+A cron service = a normal service from the repo with a **Cron Schedule** + a
+custom **Start Command** (Railway → service → Settings). It builds the Dockerfile
+but the start command overrides the gunicorn CMD so it runs the job once per tick.
+
+## Email deliverability caveat
+`MAIL_FROM` is currently `onboarding@resend.dev` (Resend **sandbox**), which only
+delivers to the account owner's verified address. Alerts/digests will only reach
+**you** until a real sending domain is verified in Resend — see
+[`launch-gates.md`](launch-gates.md).
+
+## Database backups (manual — dashboard only)
+Railway backups can't be set via CLI/API. Enable them once in the dashboard:
+**Postgres service → Backups tab → enable Daily** (kept 6 days; optionally add
+Weekly/Monthly). Recommended before real signups grow.
