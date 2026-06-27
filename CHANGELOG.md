@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-06-27
+
+### Added
+
+- **Real per-page URLs (routing).** Every view now has its own URL —
+  `/dashboard`, `/at-a-glance`, `/market`, `/crypto`, `/earnings`, `/screener`,
+  `/watchlist`, `/settings`, etc. — and each ticker has a page at
+  `/ticker/<SYMBOL>` (e.g. `/ticker/NVDA`). Pages are bookmarkable and
+  shareable, the browser **back/forward buttons work**, alert emails deep-link
+  straight to the ticker, and the sitemap lists the public routes for SEO.
+
 ### Removed
 
 - **Screener page pulled from prod nav** — it filtered a hardcoded 18-ticker
