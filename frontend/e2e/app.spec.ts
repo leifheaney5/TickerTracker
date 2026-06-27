@@ -16,15 +16,15 @@ test.describe('App shell', () => {
 
   test('clicking a nav item switches view', async ({ page }) => {
     await page.goto('/')
-    // Click Screener nav — scoped to banner; force:true bypasses any z-index overlap
-    const header = page.getByRole('banner')
-    await header.getByRole('button', { name: 'Screener' }).click({ force: true })
-    // Wait a tick — the view store updates synchronously
-    await page.waitForTimeout(200)
-    // The Screener nav button should now be visually active (background accent)
-    // We can't easily assert CSS vars, so just assert the click didn't crash the app
-    // and a different nav button is still visible
-    await expect(header.getByRole('button', { name: 'Dashboard' })).toBeVisible()
+    // Dispatch a direct click on the Screener nav button via JS to avoid any
+    // pointer-event occlusion from the overlapping Search button at this viewport
+    await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('header button'))
+      const btn = btns.find((b) => b.textContent?.trim() === 'Screener') as HTMLButtonElement | undefined
+      btn?.click()
+    })
+    // Assert the Screener view actually mounted: subtitle text is unique to this view
+    await expect(page.getByText(/matches · tap/)).toBeVisible({ timeout: 5000 })
   })
 
   test('search button opens search input', async ({ page }) => {
