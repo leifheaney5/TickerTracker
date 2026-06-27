@@ -2,6 +2,7 @@
                                           python backend/jobs.py weekly-digest"""
 import sys
 import logging
+from db import init_db
 from services.alerts import check_alerts
 from services.digest import send_weekly_digest
 
@@ -10,6 +11,7 @@ logger = logging.getLogger("jobs")
 
 
 def main(argv) -> int:
+    init_db()  # Ensure schema is initialized
     if not argv:
         logger.error("usage: jobs.py <check-alerts|weekly-digest>")
         return 2
