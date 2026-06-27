@@ -5,7 +5,8 @@ from auth import current_user_id
 
 def _wl_dict(w):
     return {"symbol": w.symbol, "position": w.position, "target": w.target,
-            "alert_price": w.alert_price, "alert_dir": w.alert_dir}
+            "alert_price": w.alert_price, "alert_dir": w.alert_dir,
+            "alert_active": bool(w.alert_active)}
 
 
 def get_watchlist():

@@ -87,6 +87,7 @@ export interface WatchlistItem {
   target: number
   alert_price: number
   alert_dir: AlertDir
+  alert_active: boolean
 }
 
 export interface Settings {
