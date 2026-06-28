@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   DndContext,
   PointerSensor,
@@ -61,7 +61,7 @@ interface TickerRowProps {
   chg: (s: string) => number
   setSelected: (s: string) => void
   setView: (v: 'dashboard') => void
-  updateWatch: (s: string, f: Partial<WatchlistItemFull>) => void
+  updateListWatch: (listId: number, s: string, f: Partial<WatchlistItemFull>) => void
   removeFromList: (listId: number, sym: string) => void
 }
 
@@ -72,7 +72,7 @@ function TickerRow({
   chg,
   setSelected,
   setView,
-  updateWatch,
+  updateListWatch,
   removeFromList,
 }: TickerRowProps) {
   const [editSym, setEditSym] = useState<string | null>(null)
@@ -103,7 +103,7 @@ function TickerRow({
 
   const saveTarget = (sym: string) => {
     const v = parseFloat(editVal)
-    if (!isNaN(v)) updateWatch(sym, { target: v })
+    if (!isNaN(v)) updateListWatch(lid, sym, { target: v })
     setEditSym(null)
   }
 
@@ -199,11 +199,11 @@ function TickerRow({
           placeholder="$"
           defaultValue={item.alert_price || ''}
           disabled={item.locked}
-          onBlur={(e) => !item.locked && updateWatch(item.symbol, { alert_price: parseFloat(e.target.value) || 0 })}
+          onBlur={(e) => !item.locked && updateListWatch(lid, item.symbol, { alert_price: parseFloat(e.target.value) || 0 })}
           style={{ width: 64, height: 28, padding: '0 7px', borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '12px', opacity: item.locked ? 0.5 : 1 }}
         />
         <button
-          onClick={() => !item.locked && updateWatch(item.symbol, { alert_active: !item.alert_active })}
+          onClick={() => !item.locked && updateListWatch(lid, item.symbol, { alert_active: !item.alert_active })}
           disabled={item.locked}
           title={item.alert_active ? 'Alert on' : 'Alert off'}
           aria-label={`Toggle price alert for ${item.symbol}`}
@@ -239,7 +239,7 @@ interface WatchlistCardProps {
   chg: (s: string) => number
   setSelected: (s: string) => void
   setView: (v: 'dashboard') => void
-  updateWatch: (s: string, f: Partial<WatchlistItemFull>) => void
+  updateListWatch: (listId: number, s: string, f: Partial<WatchlistItemFull>) => void
   removeFromList: (listId: number, sym: string) => void
   renameList: (id: number, name: string) => void
   deleteList: (id: number) => void
@@ -254,7 +254,7 @@ function WatchlistCard({
   chg,
   setSelected,
   setView,
-  updateWatch,
+  updateListWatch,
   removeFromList,
   renameList,
   deleteList,
@@ -267,6 +267,16 @@ function WatchlistCard({
   const [addSym, setAddSym] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close the ⋯ menu on any click outside it.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [menuOpen])
 
   const sortableId = listId(list.id)
   const {
@@ -359,7 +369,6 @@ function WatchlistCard({
           {menuOpen && (
             <div
               style={{ position: 'absolute', top: 32, right: 0, zIndex: 200, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.25)', minWidth: 140, overflow: 'hidden' }}
-              onMouseLeave={() => setMenuOpen(false)}
             >
               <button
                 onClick={() => { setRenameVal(list.name); setRenaming(true); setMenuOpen(false) }}
@@ -407,7 +416,7 @@ function WatchlistCard({
                 chg={chg}
                 setSelected={setSelected}
                 setView={setView}
-                updateWatch={updateWatch}
+                updateListWatch={updateListWatch}
                 removeFromList={removeFromList}
               />
             ))}
@@ -460,7 +469,7 @@ export function ManageWatchlist() {
   const chg = useStore((s) => s.chg)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
-  const updateWatch = useStore((s) => s.updateWatch)
+  const updateListWatch = useStore((s) => s.updateListWatch)
   const removeFromList = useStore((s) => s.removeFromList)
   const renameList = useStore((s) => s.renameList)
   const deleteList = useStore((s) => s.deleteList)
@@ -630,7 +639,7 @@ export function ManageWatchlist() {
                   chg={chg}
                   setSelected={setSelected}
                   setView={(v) => setView(v)}
-                  updateWatch={updateWatch}
+                  updateListWatch={updateListWatch}
                   removeFromList={removeFromList}
                   renameList={renameList}
                   deleteList={deleteList}
