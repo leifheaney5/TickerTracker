@@ -114,8 +114,7 @@ def valid_symbol(sym: str) -> bool:
     return bool(_SYMBOL_RE.match(sym or ""))
 
 
-import re as _re_coin
-_COIN_ID_RE = _re_coin.compile(r"^[a-z0-9-]{1,64}$")
+_COIN_ID_RE = re.compile(r"^[a-z0-9-]{1,64}$")
 
 
 def valid_coin_id(s: str) -> bool:

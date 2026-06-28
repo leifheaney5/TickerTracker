@@ -18,7 +18,7 @@ export function Crypto() {
   const loadFng = useStore((s) => s.loadFng)
   const cryptoLimit = useStore((s) => s.cryptoLimit)
   const setCryptoLimit = useStore((s) => s.setCryptoLimit)
-  const watch = useStore((s) => s.cryptoWatchIds)()
+  const watch = useStore((s) => s.watchlist).filter((w) => w.kind === 'crypto').map((w) => w.symbol)
   const addCryptoWatch = useStore((s) => s.addCryptoWatch)
   const removeCryptoWatch = useStore((s) => s.removeCryptoWatch)
   const currentUser = useStore((s) => s.currentUser)
