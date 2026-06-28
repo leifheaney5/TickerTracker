@@ -148,3 +148,27 @@ export interface WatchlistSentiment {
   total: number
   mood: string
 }
+
+export interface BillingLimits {
+  watchlist: number
+  alerts: number
+  screens: number
+  digest: boolean
+  compare: number
+}
+
+export interface BillingUsage {
+  watchlist: number
+  alerts: number
+  screens: number
+}
+
+export interface BillingState {
+  plan: 'free' | 'pro'
+  status: string
+  is_pro: boolean
+  limits: BillingLimits
+  usage: BillingUsage
+  current_period_end: string | null
+  cancel_at_period_end: boolean
+}

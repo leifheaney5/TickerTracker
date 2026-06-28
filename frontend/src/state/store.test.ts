@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useStore } from './store'
+import type { EarningsRow } from '../api/types'
 
 beforeEach(() => {
   useStore.setState({ currentUser: null, watchlist: [], holdings: [], settings: null })
@@ -88,5 +89,38 @@ describe('auth store', () => {
     const res = await useStore.getState().reset('badtok', 'newpass')
     expect(res.ok).toBe(false)
     expect(res.error).toBe('invalid token')
+  })
+})
+
+describe('loadEarnings', () => {
+  beforeEach(() => {
+    useStore.setState({ earnings: {} })
+  })
+
+  it('stores the first upcoming row at earnings[sym]', async () => {
+    const row: EarningsRow = { symbol: 'AAPL', date: '2026-07-10', hour: 'amc', epsEstimate: 1.55 }
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [row], meta: { source: 'finnhub', stale: false } }),
+    }) as never
+    await useStore.getState().loadEarnings('AAPL')
+    expect(useStore.getState().earnings['AAPL']).toEqual(row)
+  })
+
+  it('stores null (not undefined) when there is no upcoming report', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [], meta: { source: 'finnhub', stale: false } }),
+    }) as never
+    await useStore.getState().loadEarnings('TSLA')
+    expect(useStore.getState().earnings['TSLA']).toBeNull()
+  })
+
+  it('does not re-fetch when the symbol is already cached (incl. null)', async () => {
+    useStore.setState({ earnings: { TSLA: null } })
+    const spy = vi.fn()
+    global.fetch = spy as never
+    await useStore.getState().loadEarnings('TSLA')
+    expect(spy).not.toHaveBeenCalled()
   })
 })

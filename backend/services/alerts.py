@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 import db
 import models
+import services.billing as billing
 from services.quotes import get_quotes
 from providers.email import _send
 
@@ -105,7 +106,7 @@ def _alert_email_html(symbol, price, level, direction, kind):
         f'color:{color}">{_fmt(price)}</td></tr>'
         '</table>'
 
-        f'{t.button(f"View {symbol} on Ticker Tracker", f"{t.APP_URL}/?sym={symbol}")}'
+        f'{t.button(f"View {symbol} on Ticker Tracker", f"{t.APP_URL}/ticker/{symbol}")}'
         '<p style="margin:16px 0 0;font-size:12px;color:#8b93a0">'
         "You're receiving this because you set an alert on this ticker. "
         'Manage alerts in your watchlist, or turn off alert emails in Settings.</p>'
@@ -149,6 +150,8 @@ def check_alerts(now=None, quote_fn=None, send_fn=None, crypto_price_fn=None) ->
                 continue
             if settings is not None and not settings.alert_notifs:
                 continue
+            if not billing.is_pro(w.user_id):
+                continue  # price-hit alert emails are a Pro feature
             label = "price target" if kind == "target" else "alert price"
             display = w.coin_name or w.symbol
             ok = send_fn(user.email,
@@ -172,4 +175,5 @@ def _seed_for_test(user_email, symbol, alert_price=0, alert_dir="above",
         s.add(models.WatchlistItem(user_id=u.id, symbol=symbol,
                                    alert_price=alert_price, alert_dir=alert_dir,
                                    alert_active=alert_active, target=target))
+        s.add(models.BillingSubscription(user_id=u.id, status="active", plan="pro"))
         s.commit()

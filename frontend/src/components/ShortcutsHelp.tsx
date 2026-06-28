@@ -16,7 +16,6 @@ const SHORTCUTS: { keys: string[]; desc: string }[] = [
   { keys: ['g', 'd'], desc: 'Go to Dashboard' },
   { keys: ['g', 'w'], desc: 'Go to Manage Watchlist' },
   { keys: ['g', 's'], desc: 'Go to Screener' },
-  { keys: ['g', 'e'], desc: 'Go to Earnings' },
   { keys: ['g', 'c'], desc: 'Go to Crypto' },
   { keys: ['g', 'm'], desc: 'Go to Market' },
   { keys: ['Esc'], desc: 'Close this overlay' },

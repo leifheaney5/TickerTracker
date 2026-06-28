@@ -9,6 +9,9 @@ def _seed(email, symbol, kind, target):
         u = models.User(email=email, name="t", email_verified=True)
         s.add(u); s.flush()
         s.add(models.Settings(user_id=u.id, alert_notifs=True))
+        # Price-hit alert emails are a Pro feature (billing.is_pro gate in
+        # check_alerts), so seed an active Pro subscription for the alert to fire.
+        s.add(models.BillingSubscription(user_id=u.id, status="active", plan="pro"))
         s.add(models.WatchlistItem(user_id=u.id, symbol=symbol, kind=kind, target=target))
         s.commit()
 

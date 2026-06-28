@@ -6,6 +6,7 @@ import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, CryptoSearchResult, Fng,
   NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
   SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
+  BillingState,
 } from './types'
 
 export interface Result<T> {
@@ -15,9 +16,22 @@ export interface Result<T> {
   fetchedAt: string
 }
 
+// Carries the parsed response body so callers can inspect 402 limit errors
+// ({error:"limit_exceeded", feature, limit, plan, message}).
+export class ApiError extends Error {
+  status: number
+  body: any
+  constructor(status: number, body: any, path: string) {
+    super(`${path} → ${status}`)
+    this.name = 'ApiError'
+    this.status = status
+    this.body = body
+  }
+}
+
 async function get<T>(path: string): Promise<Result<T>> {
   const r = await fetch(path, { credentials: 'include' })
-  if (!r.ok) throw new Error(`${path} → ${r.status}`)
+  if (!r.ok) throw new ApiError(r.status, await r.json().catch(() => null), path)
   const env = (await r.json()) as Envelope<T>
   return { data: env.data, source: env.meta.source, stale: env.meta.stale, fetchedAt: env.meta.fetched_at }
 }
@@ -29,7 +43,7 @@ async function send<T>(path: string, method: string, body?: unknown): Promise<Re
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (!r.ok) throw new Error(`${path} → ${r.status}`)
+  if (!r.ok) throw new ApiError(r.status, await r.json().catch(() => null), path)
   const env = (await r.json()) as Envelope<T>
   return { data: env.data, source: env.meta.source, stale: env.meta.stale, fetchedAt: env.meta.fetched_at }
 }
@@ -85,4 +99,9 @@ export const api = {
 
   sentiment: (syms: string[]) =>
     get<WatchlistSentiment>(`/api/sentiment?syms=${encodeURIComponent(syms.join(','))}`),
+
+  getBilling: () => get<BillingState>('/api/billing'),
+  checkout: (interval: 'monthly' | 'annual') =>
+    send<{ url: string }>('/api/billing/checkout', 'POST', { interval }),
+  portal: () => send<{ url: string }>('/api/billing/portal', 'POST'),
 }
