@@ -119,3 +119,24 @@ class SavedScreen(Base):
     name = Column(String, nullable=False)
     filters_json = Column(String, default="")
     created_at = Column(DateTime, server_default=func.now())
+
+
+class BillingSubscription(Base):
+    __tablename__ = "billing_subscriptions"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    plan = Column(String, default="free")
+    status = Column(String, default="")
+    stripe_customer_id = Column(String, nullable=True, index=True)
+    stripe_subscription_id = Column(String, nullable=True, index=True)
+    stripe_price_id = Column(String, nullable=True)
+    current_period_end = Column(DateTime, nullable=True)
+    cancel_at_period_end = Column(Boolean, default=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class StripeEvent(Base):
+    __tablename__ = "stripe_events"
+    event_id = Column(String, primary_key=True)
+    event_type = Column(String, default="")
+    received_at = Column(DateTime, server_default=func.now())

@@ -474,7 +474,6 @@ export function ManageWatchlist() {
   const authed = useStore(isAuthed)
   const openAuth = useStore((s) => s.openAuth)
   const watchlists = useStore((s) => s.watchlists)
-  const currentUser = useStore((s) => s.currentUser)
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
   const setSelected = useStore((s) => s.setSelected)
@@ -539,12 +538,9 @@ export function ManageWatchlist() {
   }, [])
 
   const handleNewList = async () => {
-    const isPremium = currentUser?.plan === 'premium'
-    if (!isPremium && watchlists.length >= 1) {
-      // Non-premium with 1+ list: show upgrade gate instead of creating
-      useStore.setState({ lastLimitError: 'premium_required' })
-      return
-    }
+    // Attempt to create; the backend is the source of truth on plan limits and
+    // returns 402 when a free (billing-enforced) user already has a list — the
+    // store turns that into lastLimitError, which renders the upgrade banner.
     await createList('New list')
   }
 
@@ -626,23 +622,13 @@ export function ManageWatchlist() {
             </span>
           </div>
 
-          {/* + New list button / upgrade gate */}
-          {currentUser?.plan !== 'premium' && watchlists.length >= 1 ? (
-            <button
-              onClick={handleNewList}
-              title="Upgrade for unlimited lists"
-              style={{ height: 36, padding: '0 16px', borderRadius: 9, border: '1px solid var(--line2)', background: 'var(--cardHi)', color: 'var(--tx3)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
-            >
-              🔒 New list
-            </button>
-          ) : (
-            <button
-              onClick={handleNewList}
-              style={{ height: 36, padding: '0 16px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
-            >
-              + New list
-            </button>
-          )}
+          {/* + New list button (backend enforces plan limits → 402 → banner) */}
+          <button
+            onClick={handleNewList}
+            style={{ height: 36, padding: '0 16px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+          >
+            + New list
+          </button>
         </div>
 
         {/* Limit error banner */}
@@ -651,7 +637,7 @@ export function ManageWatchlist() {
             <span style={{ color: 'var(--tx)', flex: 1 }}>
               {lastLimitError === 'premium_required'
                 ? 'Multiple watchlists are a premium feature. Upgrade to create more.'
-                : 'Free watchlists hold 10 tickers. Upgrade for unlimited.'}
+                : 'Free watchlists hold 15 tickers. Upgrade to Pro for unlimited.'}
             </span>
             <a
               href="#pricing"
