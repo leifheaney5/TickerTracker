@@ -36,7 +36,7 @@ export function ManageWatchlist() {
   const shareCardRef = useRef<HTMLDivElement>(null)
 
   const handleShare = async () => {
-    if (!shareCardRef.current) return
+    if (!shareCardRef.current || items.length === 0) return
     setShareLabel('Rendering…')
     try {
       await shareImage(shareCardRef.current, 'my-watchlist.png')
@@ -112,12 +112,14 @@ export function ManageWatchlist() {
           </div>
           <button
             onClick={handleShare}
-            disabled={shareLabel === 'Rendering…'}
+            disabled={shareLabel === 'Rendering…' || items.length === 0}
+            title={items.length === 0 ? 'Add a ticker to share your watchlist' : 'Share your watchlist as an image'}
             style={{
               height: 36, padding: '0 16px', borderRadius: 9, border: '1px solid var(--line2)',
               background: shareLabel === 'Done!' ? 'var(--up)' : 'var(--card)',
               color: shareLabel === 'Done!' ? 'var(--accentInk)' : 'var(--tx2)',
-              fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600,
+              cursor: items.length === 0 ? 'default' : 'pointer', opacity: items.length === 0 ? 0.5 : 1,
               transition: 'background 0.2s, color 0.2s', flexShrink: 0,
             }}
           >
