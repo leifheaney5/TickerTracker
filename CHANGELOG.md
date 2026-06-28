@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.15.0] — 2026-06-28
+## [1.16.0] — 2026-06-28
 
 > **Moat: the Signal Intelligence layer.** Introduces **Pulse** — a transparent, explainable
 > composite score — plus a durable first-party signal history and smart multi-signal alerts.
