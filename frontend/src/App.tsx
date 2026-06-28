@@ -14,6 +14,7 @@ import { Crypto } from './views/Crypto'
 import { MarketViews } from './views/MarketViews'
 import { ManageWatchlist } from './views/ManageWatchlist'
 import { Footer } from './components/Footer'
+import { UpgradePrompt } from './components/UpgradePrompt'
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // The active view + selected ticker come from the URL via RouterBridge.
@@ -21,6 +22,7 @@ export default function App() {
   const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
+  const loadBilling = useStore((s) => s.loadBilling)
   const loadMe = useStore((s) => s.loadMe)
   const pollQuotes = useStore((s) => s.pollQuotes)
   const watchlist = useStore((s) => s.watchlist)
@@ -41,12 +43,18 @@ export default function App() {
         loadWatchlist()
         loadSettings()
         loadHoldings()
+        loadBilling()
       }
     })
 
     // Handle URL query params on first mount (verify/reset). Ticker + view
     // deep-links are handled by RouterBridge via the path.
     const params = new URLSearchParams(window.location.search)
+
+    // Returning from Stripe Checkout (/?checkout=success|cancel): refresh billing.
+    const checkout = params.get('checkout')
+    if (checkout === 'success') loadBilling()
+
     const verify = params.get('verify')
     if (verify === 'ok' || verify === 'failed') {
       setVerifyBanner(verify)
@@ -55,10 +63,11 @@ export default function App() {
     if (params.get('reset_token')) {
       openAuth()
     }
-    if (verify === 'ok' || verify === 'failed') {
+    // Clean handled params from the URL without reload (keep the path + hash).
+    if (verify === 'ok' || verify === 'failed' || checkout === 'success' || checkout === 'cancel') {
       window.history.replaceState(null, '', window.location.pathname + window.location.hash)
     }
-  }, [loadMe, loadWatchlist, loadSettings, loadHoldings, openAuth])
+  }, [loadMe, loadWatchlist, loadSettings, loadHoldings, loadBilling, openAuth])
 
   // Poll quotes for the effective symbol list (the user's watchlist, or the
   // demo list when anonymous) so cards/movers/At-a-Glance always show LIVE
@@ -84,6 +93,7 @@ export default function App() {
       }}
     >
       <AuthScreen />
+      <UpgradePrompt />
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
       {verifyBanner && (
         <div

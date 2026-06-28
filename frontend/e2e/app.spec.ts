@@ -16,15 +16,15 @@ test.describe('App shell', () => {
 
   test('clicking a nav item switches view', async ({ page }) => {
     await page.goto('/')
-    // Dispatch a direct click on the Earnings nav button via JS to avoid any
+    // Dispatch a direct click on the Crypto nav button via JS to avoid any
     // pointer-event occlusion from the overlapping Search button at this viewport
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('header button'))
-      const btn = btns.find((b) => b.textContent?.trim() === 'Earnings') as HTMLButtonElement | undefined
+      const btn = btns.find((b) => b.textContent?.trim() === 'Crypto') as HTMLButtonElement | undefined
       btn?.click()
     })
-    // Assert the Earnings view actually mounted: heading text is unique to this view
-    await expect(page.getByText('Earnings Calendar')).toBeVisible({ timeout: 5000 })
+    // Assert the Crypto view actually mounted (the URL reflects the active view)
+    await expect(page).toHaveURL(/\/crypto$/, { timeout: 5000 })
   })
 
   test('search button opens search input', async ({ page }) => {
@@ -61,13 +61,6 @@ test.describe('Routing', () => {
   test('/ redirects to /dashboard', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveURL(/\/dashboard$/)
-  })
-
-  test('deep-link to /earnings renders Earnings and keeps the URL', async ({ page }) => {
-    await page.goto('/earnings')
-    await expect(page).toHaveURL(/\/earnings$/)
-    // Earnings view header is present
-    await expect(page.getByRole('banner').getByRole('button', { name: 'Earnings' })).toBeVisible()
   })
 
   test('/ticker/AAPL selects AAPL on the dashboard', async ({ page }) => {

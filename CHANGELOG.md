@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-06-27
+
+### Added
+
+- **Real Stripe-backed Pro subscriptions (freemium).** Public market browsing
+  stays free; paid value is saved-personalization scale plus automation.
+  - Free vs Pro limits: watchlist 15/250, active alerts 3/100, saved screeners
+    1/25, compare 2/10, price-hit alert emails Pro-only, weekly digest Pro-only.
+  - Pricing: **$7/mo** or **$59/yr** (annual is the primary upgrade CTA).
+  - New `billing_subscriptions` + `stripe_events` tables (Alembic `ee01_billing`).
+  - `services/billing.py`: plan limits, billing state/usage, Stripe Checkout +
+    Customer Portal sessions, and idempotent webhook sync.
+  - Routes: `GET /api/billing`, `POST /api/billing/checkout`,
+    `POST /api/billing/portal`, `POST /api/stripe/webhook`.
+  - Server-side limit enforcement returns HTTP `402 {error:"limit_exceeded",…}`
+    on watchlist/alerts/screens adds and on enabling the weekly digest.
+  - Settings **Plan & Billing** card (usage rows + Upgrade/Manage CTAs), a
+    reusable upgrade prompt, usage indicators on Manage Watchlist and Screener,
+    and a Pro-locked weekly-digest toggle.
+- New env vars: `BILLING_ENABLED`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+  `STRIPE_PRO_MONTHLY_PRICE_ID`, `STRIPE_PRO_ANNUAL_PRICE_ID`. Setup guide:
+  `docs/ops/stripe-billing-setup.md`.
+- **Real per-page URLs (routing).** Every view now has its own URL —
+  `/dashboard`, `/at-a-glance`, `/market`, `/crypto`, `/earnings`, `/screener`,
+  `/watchlist`, `/settings`, etc. — and each ticker has a page at
+  `/ticker/<SYMBOL>` (e.g. `/ticker/NVDA`). Pages are bookmarkable and
+  shareable, the browser **back/forward buttons work**, alert emails deep-link
+  straight to the ticker, and the sitemap lists the public routes for SEO.
+
 ### Changed
 
 - **Earnings moved onto the stock card** — the per-stock Due Diligence panel now
@@ -22,17 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   most "missing" tickers simply have nothing to report in the next 30 days
   (and crypto/most non-US tickers have no earnings events at all).
 
-## [1.14.0] — 2026-06-27
-
-### Added
-
-- **Real per-page URLs (routing).** Every view now has its own URL —
-  `/dashboard`, `/at-a-glance`, `/market`, `/crypto`, `/earnings`, `/screener`,
-  `/watchlist`, `/settings`, etc. — and each ticker has a page at
-  `/ticker/<SYMBOL>` (e.g. `/ticker/NVDA`). Pages are bookmarkable and
-  shareable, the browser **back/forward buttons work**, alert emails deep-link
-  straight to the ticker, and the sitemap lists the public routes for SEO.
-
 ### Removed
 
 - **Screener page pulled from prod nav** — it filtered a hardcoded 18-ticker
@@ -43,6 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the Connect-account button. Removed from the nav and view router; source kept
   at `frontend/src/views/Screener.tsx` and the feature is parked on `ROADMAP.md`
   with what a genuine market-wide screener would require.
+
+### Notes
+
+- **Launch gate:** `BILLING_ENABLED` defaults to false; while false, plan limits
+  are not enforced (app behaves as pre-launch). Do not enable live billing in
+  production until market-data provider commercial-use rights are confirmed.
 
 ## [1.13.1] — 2026-06-27
 
