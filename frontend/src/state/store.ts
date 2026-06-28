@@ -6,9 +6,15 @@ import { create } from 'zustand'
 import { api } from '../api/client'
 import type {
   Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
-  CryptoResponse, Fng, Timeframe, AuthUser,
+  CryptoResponse, Fng, Timeframe, AuthUser, WatchlistWithItems,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
+import { reorderLists, moveItem, reorderWithinList, flattenActive } from './watchlistReducers'
+
+function errStatus(e: unknown): number | null {
+  const m = String((e as Error)?.message || '').match(/→\s*(\d+)/)
+  return m ? Number(m[1]) : null
+}
 
 export type View =
   | 'dashboard' | 'overview' | 'deep' | 'market' | 'map' | 'sectors'
@@ -44,6 +50,8 @@ interface StoreState {
   newsLoaded: Record<string, boolean> // keys whose news fetch has completed
   ratings: Record<string, Ratings>
   watchlist: WatchlistItem[]
+  watchlists: WatchlistWithItems[]
+  lastLimitError: 'free_limit' | 'premium_required' | null
   settings: Settings | null
   holdings: Holding[]
   crypto: CryptoResponse | null
@@ -64,6 +72,16 @@ interface StoreState {
   toggleCompare: (sym: string) => void
 
   loadWatchlist: () => Promise<void>
+  loadWatchlists: () => Promise<void>
+  createList: (name: string) => Promise<boolean>
+  renameList: (id: number, name: string) => Promise<void>
+  deleteList: (id: number) => Promise<void>
+  reorderListCards: (activeId: number, overId: number) => Promise<void>
+  moveTicker: (sym: string, fromId: number, toId: number, toIndex: number) => Promise<void>
+  reorderTicker: (listId: number, fromIndex: number, toIndex: number) => Promise<void>
+  addToList: (listId: number, sym: string) => Promise<boolean>
+  removeFromList: (listId: number, sym: string) => Promise<void>
+  clearLimitError: () => void
   loadSettings: () => Promise<void>
   updateSettings: (fields: Partial<Settings>) => Promise<void>
   loadHoldings: () => Promise<void>
@@ -124,6 +142,8 @@ export const useStore = create<StoreState>((set, get) => ({
   newsLoaded: {},
   ratings: {},
   watchlist: [],
+  watchlists: [],
+  lastLimitError: null,
   settings: null,
   holdings: [],
   crypto: null,
@@ -159,7 +179,7 @@ export const useStore = create<StoreState>((set, get) => ({
     const j = await r.json(); set({ currentUser: j.user ?? null })
     // Re-fetch personalized data so the newly-logged-in user sees their own
     // watchlist/settings/holdings without a page reload.
-    await get().loadWatchlist(); await get().loadSettings(); await get().loadHoldings()
+    await get().loadWatchlist(); await get().loadWatchlists(); await get().loadSettings(); await get().loadHoldings()
     return { ok: true }
   },
   signup: async (email, password, name) => {
@@ -228,6 +248,70 @@ export const useStore = create<StoreState>((set, get) => ({
       })
     }
   },
+
+  loadWatchlists: async () => {
+    try {
+      const { data } = await api.getWatchlists()
+      set({ watchlists: data, watchlist: flattenActive(data) })
+    } catch { /* offline: keep existing */ }
+  },
+  createList: async (name) => {
+    try {
+      await api.createWatchlist(name)
+      await get().loadWatchlists()
+      return true
+    } catch (e) {
+      if (errStatus(e) === 402) set({ lastLimitError: 'premium_required' })
+      return false
+    }
+  },
+  renameList: async (id, name) => {
+    set((st) => ({ watchlists: st.watchlists.map((l) => (l.id === id ? { ...l, name } : l)) }))
+    try { await api.patchWatchlist(id, { name }) } catch { /* keep optimistic */ }
+  },
+  deleteList: async (id) => {
+    try {
+      await api.deleteWatchlist(id)
+      await get().loadWatchlists()
+    } catch { /* last_list 409: surface via reload (button disabled in UI) */ }
+  },
+  reorderListCards: async (activeId, overId) => {
+    const next = reorderLists(get().watchlists, activeId, overId)
+    set({ watchlists: next })
+    const list = next.find((l) => l.id === activeId)
+    if (list) { try { await api.patchWatchlist(activeId, { position: list.position }) } catch { await get().loadWatchlists() } }
+  },
+  moveTicker: async (sym, fromId, toId, toIndex) => {
+    const prev = get().watchlists
+    const next = moveItem(prev, sym, fromId, toId, toIndex)
+    set({ watchlists: next, watchlist: flattenActive(next) })
+    try {
+      await api.patchListItem(fromId, sym, { watchlist_id: toId, position: toIndex })
+    } catch { set({ watchlists: prev, watchlist: flattenActive(prev) }) }
+  },
+  reorderTicker: async (listId, fromIndex, toIndex) => {
+    const prev = get().watchlists
+    const next = reorderWithinList(prev, listId, fromIndex, toIndex)
+    set({ watchlists: next, watchlist: flattenActive(next) })
+    const item = next.find((l) => l.id === listId)?.items[toIndex]
+    if (item) { try { await api.patchListItem(listId, item.symbol, { position: toIndex }) } catch { set({ watchlists: prev }) } }
+  },
+  addToList: async (listId, sym) => {
+    try {
+      await api.addListItem(listId, { symbol: sym })
+      await get().loadWatchlists()
+      return true
+    } catch (e) {
+      if (errStatus(e) === 402) set({ lastLimitError: 'free_limit' })
+      return false
+    }
+  },
+  removeFromList: async (listId, sym) => {
+    set((st) => ({ watchlists: st.watchlists.map((l) => (l.id === listId ? { ...l, items: l.items.filter((i) => i.symbol !== sym) } : l)) }))
+    try { await api.removeListItem(listId, sym) } catch { /* ignore */ }
+    set((st) => ({ watchlist: flattenActive(st.watchlists) }))
+  },
+  clearLimitError: () => set({ lastLimitError: null }),
 
   loadSettings: async () => {
     try {
