@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.1] — 2026-06-28
+
+### Fixed
+
+- **Market data no longer silently degrades to wrong mock data.** Yahoo's
+  unauthenticated endpoints rate-limit (HTTP 429) a single server IP under load;
+  previously history and fundamentals fell straight through to fabricated mock on
+  any failure (e.g. NVDA shown as sector *Financials* / industry *Banks*, fake
+  price charts). Now:
+  - **Fundamentals:** Yahoo → Finnhub (free `profile2`+`metric`, real) → mock only
+    as a last resort, so a cold cache during a Yahoo 429 still returns real data.
+  - **History:** retry-with-backoff on 429, plus stale-while-error (serve the last
+    good cached bars instead of fabricated mock), with an honest `stale` flag.
+
+### Verification
+
+- Added end-to-end billing data-flow + HTTP enforcement tests (subscription
+  lifecycle, idempotency, Pro unlock, 402 contract).
+
 ## [1.14.0] — 2026-06-27
 
 ### Added
