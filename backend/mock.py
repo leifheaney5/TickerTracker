@@ -53,6 +53,7 @@ def mock_fundamentals(sym: str) -> dict:
         "beta": round(0.4 + r() * 1.8, 2),
         "dividend_yield": round(r() * 4, 2),
         "eps": round(price / (8 + r() * 30), 2),
+        "website": "",
     }
 
 

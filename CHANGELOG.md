@@ -5,6 +5,32 @@ All notable changes to Ticker Tracker are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Real brand logos (Finnhub).** New `GET /api/logos?syms=…` endpoint returns
+  each company's official logo URL from Finnhub's `profile2` (cached a week,
+  fetched concurrently). The store loads logos for everything currently visible
+  and the `Logo` component prefers them, so tiles show the *actual* brand mark
+  (e.g. the red Coca-Cola logo for `KO`, which a favicon could only render as a
+  dark box). Logos degrade gracefully on load failure: **Finnhub brand logo →
+  Google favicon (by domain) → colored monogram.**
+
+### Fixed
+
+- **Stock logos: wrong or missing icons.** Logos were guessed from the ticker
+  symbol (`<symbol>.com`), so e.g. `WMT` resolved to `wmt.com` (an unrelated
+  company's logo) and `KO` to `ko.com` (a generic placeholder the favicon CDN
+  returns with HTTP 200, defeating the image-error fallback). The `Logo`
+  component now resolves a domain from a curated map plus the company website
+  surfaced from fundamentals (new `website` field on the fundamentals API),
+  **never guesses `<symbol>.com`** (unknown tickers cleanly show the colored
+  monogram instead of a wrong logo), and fetches icons from Google's favicon
+  service (colored/higher-res, broader coverage than DuckDuckGo). The curated
+  domain map was expanded to cover common large-caps for the watchlist/movers
+  tiles.
+
 ## [1.15.0] — 2026-06-28
 
 ### Added

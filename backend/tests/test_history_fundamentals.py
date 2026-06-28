@@ -1,5 +1,6 @@
 import services.history as h
 import services.fundamentals as f
+from providers.yahoo import domain_from_url
 import cache
 
 
@@ -24,3 +25,13 @@ def test_fundamentals_fallback_to_mock(monkeypatch):
     monkeypatch.setattr(f, "fetch_fundamentals", lambda s: (_ for _ in ()).throw(RuntimeError("down")))
     data, source = f.get_fundamentals("AAPL")
     assert source == "mock" and data["week52_high"] >= data["week52_low"]
+    # website key is always present so the frontend logo resolver is happy
+    assert data["website"] == ""
+
+
+def test_domain_from_url_strips_scheme_www_and_path():
+    assert domain_from_url("https://www.coca-cola.com/us/en") == "coca-cola.com"
+    assert domain_from_url("http://walmart.com") == "walmart.com"
+    assert domain_from_url("coca-cola.com") == "coca-cola.com"
+    assert domain_from_url("") == ""
+    assert domain_from_url(None) == ""
