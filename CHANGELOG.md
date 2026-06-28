@@ -7,10 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.14.1] — 2026-06-28
+## [1.15.1] — 2026-06-28
+
+### Added
+
+- **Real brand logos (Finnhub).** New `GET /api/logos?syms=…` endpoint returns
+  each company's official logo URL from Finnhub's `profile2` (cached a week,
+  fetched concurrently). The store loads logos for everything currently visible
+  and the `Logo` component prefers them, so tiles show the *actual* brand mark
+  (e.g. the red Coca-Cola logo for `KO`, which a favicon could only render as a
+  dark box). Logos degrade gracefully on load failure: **Finnhub brand logo →
+  Google favicon (by domain) → colored monogram.**
 
 ### Fixed
 
+- **Stock logos: wrong or missing icons.** Logos were guessed from the ticker
+  symbol (`<symbol>.com`), so e.g. `WMT` resolved to `wmt.com` (an unrelated
+  company's logo) and `KO` to `ko.com` (a generic placeholder the favicon CDN
+  returns with HTTP 200, defeating the image-error fallback). The `Logo`
+  component now resolves a domain from a curated map plus the company website
+  surfaced from fundamentals (new `website` field on the fundamentals API),
+  **never guesses `<symbol>.com`** (unknown tickers cleanly show the colored
+  monogram instead of a wrong logo), and fetches icons from Google's favicon
+  service (colored/higher-res, broader coverage than DuckDuckGo). The curated
+  domain map was expanded to cover common large-caps for the watchlist/movers
+  tiles.
 - **Market data no longer silently degrades to wrong mock data.** Yahoo's
   unauthenticated endpoints rate-limit (HTTP 429) a single server IP under load;
   previously history and fundamentals fell straight through to fabricated mock on
@@ -25,6 +46,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added end-to-end billing data-flow + HTTP enforcement tests (subscription
   lifecycle, idempotency, Pro unlock, 402 contract).
+
+## [1.15.0] — 2026-06-28
+
+### Added
+
+- **Crypto watchlist** — star any coin to track it; a "My Coins" section shows
+  live price and 24 h change for all starred coins. Search any coin via CoinGecko
+  to add coins beyond the top-25 default list.
+- **Expandable Crypto Map** — choose top 25, 50, or 100 coins by market cap via
+  a selector above the treemap; watchlisted coins are highlighted on the map.
+- **Crypto price-target alerts** — set a target price on a crypto coin and get
+  the same branded HTML email alert as stocks; sub-$1 coins display with extra
+  decimal precision.
 
 ## [1.14.0] — 2026-06-27
 
