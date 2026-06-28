@@ -263,6 +263,7 @@ from services.store import (get_watchlist, add_watch, update_watch, remove_watch
 from services.share import create_share, resolve_share
 from services.screens import list_screens, save_screen, delete_screen
 from services import digest as _digest
+from services import billing as _billing
 
 
 @app.route("/api/watchlist", methods=["GET"])
@@ -274,7 +275,8 @@ def watchlist_get():
 
 @app.route("/api/watchlist", methods=["POST"])
 def watchlist_post():
-    if _require_user() is None:
+    uid = _require_user()
+    if uid is None:
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     kind = b.get("kind", "stock")
@@ -286,6 +288,10 @@ def watchlist_post():
         sym = (b.get("symbol") or "").upper()
         if not valid_symbol(sym):
             return envelope({"error": "invalid symbol"}), 400
+    # Free-plan watchlist limit applies to both stocks and crypto coins.
+    err = _billing.check_watchlist_add(uid, sym)
+    if err:
+        return jsonify(err), 402
     item = add_watch(sym, target=float(b.get("target", 0) or 0),
                      alert_price=float(b.get("alert_price", 0) or 0),
                      alert_dir=b.get("alert_dir", "above"),
@@ -295,12 +301,17 @@ def watchlist_post():
 
 @app.route("/api/watchlist/<sym>", methods=["PATCH"])
 def watchlist_patch(sym):
-    if _require_user() is None:
+    uid = _require_user()
+    if uid is None:
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     # Explicit allowlist of client-patchable fields (avoid mass-assignment).
     allowed = {"target", "alert_price", "alert_dir", "alert_active"}
     fields = {k: v for k, v in b.items() if k in allowed}
+    if fields.get("alert_active") is True:
+        err = _billing.check_alert_activate(uid, sym.upper())
+        if err:
+            return jsonify(err), 402
     item = update_watch(sym, **fields)
     if item is None:
         return envelope({"error": "not found"}, source="db"), 404
@@ -323,7 +334,8 @@ def settings_get():
 
 @app.route("/api/settings", methods=["PATCH"])
 def settings_patch():
-    if _require_user() is None:
+    uid = _require_user()
+    if uid is None:
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     # Explicit allowlist of client-patchable settings (avoid mass-assignment).
@@ -333,6 +345,10 @@ def settings_patch():
     allowed = {"live_updates", "alert_notifs", "news_digest", "hide_balances",
                "currency", "broker_connected", "broker_name"}
     fields = {k: v for k, v in b.items() if k in allowed}
+    if fields.get("news_digest") is True:
+        err = _billing.check_digest_enable(uid)
+        if err:
+            return jsonify(err), 402
     return envelope(update_settings(**fields), source="db")
 
 
@@ -385,6 +401,9 @@ def screens_post():
         return envelope({"error": "name is required"}), 400
     if not isinstance(filters, dict):
         return envelope({"error": "filters must be an object"}), 400
+    err = _billing.check_screen_add(uid)
+    if err:
+        return jsonify(err), 402
     return envelope(save_screen(uid, name, filters), source="db")
 
 
@@ -442,6 +461,56 @@ def shared_watchlist(token):
     if result is None:
         return envelope({"error": "not found"}), 404
     return envelope(result, source="db")
+
+
+# ─── Billing (Stripe subscriptions) ──────────────────────────────────────────
+
+@app.route("/api/billing", methods=["GET"])
+def billing_get():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    return envelope(_billing.get_billing_state(uid), source="db")
+
+
+@app.route("/api/billing/checkout", methods=["POST"])
+def billing_checkout():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    interval = "annual" if b.get("interval") == "annual" else "monthly"
+    try:
+        url = _billing.create_checkout_session(uid, interval)
+    except _billing.BillingNotConfigured as e:
+        return envelope({"error": "billing unavailable", "detail": str(e)}), 503
+    return envelope({"url": url}, source="stripe")
+
+
+@app.route("/api/billing/portal", methods=["POST"])
+def billing_portal():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    try:
+        url = _billing.create_portal_session(uid)
+    except _billing.BillingNotConfigured as e:
+        return envelope({"error": "billing unavailable", "detail": str(e)}), 503
+    return envelope({"url": url}, source="stripe")
+
+
+@app.route("/api/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    import stripe
+    payload = request.get_data()
+    sig = request.headers.get("Stripe-Signature", "")
+    secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, secret)
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 400
+    _billing.handle_webhook_event(event)
+    return jsonify({"received": True}), 200
 
 
 # ─── SPA fallback ────────────────────────────────────────────────────────────
