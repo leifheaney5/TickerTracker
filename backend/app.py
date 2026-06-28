@@ -70,7 +70,7 @@ _rl_lock = _threading.Lock()
 # Only throttle the public provider-proxy routes (read-only market data).
 _RL_PREFIXES = ("/api/quotes", "/api/history", "/api/fundamentals",
                 "/api/news", "/api/ratings", "/api/crypto", "/api/fng",
-                "/api/search", "/api/earnings", "/api/sentiment")
+                "/api/search", "/api/earnings", "/api/sentiment", "/api/pulse")
 
 
 def _client_ip():
@@ -223,6 +223,18 @@ def ratings_route(sym):
         return envelope({"error": "invalid symbol"}), 400
     data, source = get_ratings(sym)
     return envelope(data, source=source)
+
+
+from services import pulse as pulse_svc
+
+
+@app.route("/api/pulse/<sym>")
+def pulse_route(sym):
+    sym = sym.upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    data = pulse_svc.compute_pulse(sym)
+    return envelope(data, source="composite")
 
 
 # ─── Persistence (Postgres/SQLite via DATABASE_URL) ──────────────────────────
