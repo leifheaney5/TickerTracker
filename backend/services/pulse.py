@@ -187,6 +187,7 @@ def compute_pulse(sym):
         "score": score,
         "band": _band(score),
         "components": components,
+        "price": price,
         "asOf": datetime.datetime.utcnow().isoformat() + "Z",
         "kind": "stock",
         "disclaimer": DISCLAIMER,
