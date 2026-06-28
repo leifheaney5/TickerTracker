@@ -277,7 +277,7 @@ export const useStore = create<StoreState>((set, get) => ({
   },
   reorderListCards: async (activeId, overId) => {
     const next = reorderLists(get().watchlists, activeId, overId)
-    set({ watchlists: next })
+    set({ watchlists: next, watchlist: flattenActive(next) })
     const list = next.find((l) => l.id === activeId)
     if (list) { try { await api.patchWatchlist(activeId, { position: list.position }) } catch { await get().loadWatchlists() } }
   },
@@ -294,7 +294,7 @@ export const useStore = create<StoreState>((set, get) => ({
     const next = reorderWithinList(prev, listId, fromIndex, toIndex)
     set({ watchlists: next, watchlist: flattenActive(next) })
     const item = next.find((l) => l.id === listId)?.items[toIndex]
-    if (item) { try { await api.patchListItem(listId, item.symbol, { position: toIndex }) } catch { set({ watchlists: prev }) } }
+    if (item) { try { await api.patchListItem(listId, item.symbol, { position: toIndex }) } catch { set({ watchlists: prev, watchlist: flattenActive(prev) }) } }
   },
   addToList: async (listId, sym) => {
     try {
