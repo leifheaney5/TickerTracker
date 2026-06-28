@@ -37,6 +37,10 @@ export type SortBy = 'manual' | 'change' | 'price' | 'az'
 // loadWatchlist is invoked twice (React StrictMode double-invokes effects).
 let seedInFlight = false
 
+// Symbols whose brand logo we've already requested this session (success or a
+// confirmed "no logo"), so repeated polls don't re-hit /api/logos for them.
+const logosAttempted = new Set<string>()
+
 interface StoreState {
   // ── UI state (mirrors prototype state) ──
   view: View
@@ -55,6 +59,7 @@ interface StoreState {
   marketStatus: string
   history: Record<string, Bar[]> // key `${sym}:${tf}`
   fundamentals: Record<string, Fundamentals>
+  logos: Record<string, string> // symbol → Finnhub brand-logo URL
   news: Record<string, NewsItem[]> // key sym or 'MARKET'
   newsLoaded: Record<string, boolean> // keys whose news fetch has completed
   ratings: Record<string, Ratings>
@@ -65,6 +70,7 @@ interface StoreState {
   billing: BillingState | null
   upgradePrompt: { feature: string; message: string } | null
   crypto: CryptoResponse | null
+  cryptoLimit: 25 | 50 | 100
   fng: Fng | null
   flash: Record<string, 'up' | 'down' | null>
   quotesFetchedAt: string
@@ -89,10 +95,15 @@ interface StoreState {
   openUpgrade: (feature?: string, message?: string) => void
   closeUpgrade: () => void
   loadCrypto: () => Promise<void>
+  setCryptoLimit: (n: 25 | 50 | 100) => Promise<void>
+  cryptoWatchIds: () => string[]
+  addCryptoWatch: (coin: { id: string; symbol: string; name: string }) => Promise<void>
+  removeCryptoWatch: (id: string) => Promise<void>
   loadFng: () => Promise<void>
   pollQuotes: () => Promise<void>
   loadHistory: (sym: string, tf: Timeframe) => Promise<void>
   loadFundamentals: (sym: string) => Promise<void>
+  loadLogos: (syms: string[]) => Promise<void>
   loadNews: (sym?: string) => Promise<void>
   loadRatings: (sym: string) => Promise<void>
   loadEarnings: (sym: string) => Promise<void>
@@ -142,6 +153,7 @@ export const useStore = create<StoreState>((set, get) => ({
   marketStatus: 'Unknown',
   history: {},
   fundamentals: {},
+  logos: {},
   news: {},
   newsLoaded: {},
   ratings: {},
@@ -152,6 +164,7 @@ export const useStore = create<StoreState>((set, get) => ({
   billing: null,
   upgradePrompt: null,
   crypto: null,
+  cryptoLimit: 50,
   fng: null,
   flash: {},
   quotesFetchedAt: '',
@@ -267,6 +280,7 @@ export const useStore = create<StoreState>((set, get) => ({
         watchlist: DEFAULT_WATCH.map((symbol, i) => ({
           symbol, position: i, target: UNIVERSE[symbol]?.target ?? 0,
           alert_price: 0, alert_dir: 'above' as const, alert_active: false,
+          kind: 'stock' as const,
         })),
       })
     }
@@ -314,9 +328,33 @@ export const useStore = create<StoreState>((set, get) => ({
 
   loadCrypto: async () => {
     try {
-      const { data } = await api.crypto()
+      const { data } = await api.crypto(get().cryptoLimit, get().cryptoWatchIds())
       set({ crypto: data })
     } catch { /* leave null */ }
+  },
+
+  setCryptoLimit: async (n) => {
+    set({ cryptoLimit: n })
+    await get().loadCrypto()
+  },
+
+  cryptoWatchIds: () =>
+    get().watchlist.filter((w) => w.kind === 'crypto').map((w) => w.symbol),
+
+  addCryptoWatch: async (coin) => {
+    try {
+      await api.addWatch({ symbol: coin.id, kind: 'crypto', coin_name: coin.name })
+      const { data } = await api.getWatchlist()
+      set({ watchlist: data })
+      await get().loadCrypto()   // surface a newly-added off-top-N coin
+    } catch { /* ignore offline */ }
+  },
+
+  removeCryptoWatch: async (id) => {
+    try {
+      await api.removeWatch(id)
+      set((st) => ({ watchlist: st.watchlist.filter((w) => w.symbol !== id) }))
+    } catch { /* ignore */ }
   },
 
   loadFng: async () => {
@@ -331,6 +369,8 @@ export const useStore = create<StoreState>((set, get) => ({
     const selected = get().selected
     const all = Array.from(new Set([...syms, selected])).filter(Boolean)
     if (!all.length) return
+    // Fire-and-forget: ensure brand logos exist for everything currently visible.
+    get().loadLogos(all)
     try {
       const { data, fetchedAt } = await api.quotes(all)
       const prev = get().quotes
@@ -365,6 +405,21 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data } = await api.fundamentals(sym)
       set((st) => ({ fundamentals: { ...st.fundamentals, [sym]: data } }))
     } catch { /* uses UNIVERSE */ }
+  },
+
+  loadLogos: async (syms) => {
+    // Fetch brand logos only for symbols we haven't tried yet (logos are stable,
+    // so one attempt per symbol per session is enough; the backend caches too).
+    const fresh = Array.from(new Set(syms)).filter((s) => s && !logosAttempted.has(s))
+    if (!fresh.length) return
+    fresh.forEach((s) => logosAttempted.add(s))
+    try {
+      const { data } = await api.logos(fresh)
+      set((st) => ({ logos: { ...st.logos, ...data } }))
+    } catch {
+      // On failure, allow a later retry and let Logo fall back to favicon/monogram.
+      fresh.forEach((s) => logosAttempted.delete(s))
+    }
   },
 
   loadNews: async (sym) => {

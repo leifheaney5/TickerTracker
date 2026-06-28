@@ -12,6 +12,16 @@ def _key():
     return k
 
 
+def fetch_logo(sym: str) -> str:
+    """Company brand logo URL from Finnhub's /stock/profile2. Returns "" when
+    the profile has no logo (e.g. unknown ticker, ETF, most non-US names)."""
+    key = _key()
+    r = requests.get(f"{_BASE}/stock/profile2",
+                     params={"symbol": sym, "token": key}, timeout=8)
+    r.raise_for_status()
+    return (r.json().get("logo") or "").strip()
+
+
 def fetch_quote(sym: str) -> dict:
     """One fast Finnhub /quote call. Returns the standard quote shape, or raises."""
     key = _key()
@@ -59,6 +69,7 @@ def fetch_fundamentals(sym: str) -> dict:
         except (TypeError, ValueError):
             return 0.0
 
+    from providers.yahoo import domain_from_url  # local import avoids import cycle
     pe = met.get("peTTM")
     return {
         "pe": round(float(pe), 1) if pe else None,
@@ -73,6 +84,7 @@ def fetch_fundamentals(sym: str) -> dict:
         "dividend_yield": _f(met.get("dividendYieldIndicatedAnnual")
                              or met.get("currentDividendYieldTTM")),
         "eps": _f(met.get("epsTTM")),
+        "website": domain_from_url(prof.get("weburl")),  # for the brand-logo resolver
     }
 
 

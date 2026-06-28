@@ -1,6 +1,7 @@
 import services.history as h
 import services.fundamentals as f
 from providers import finnhub as fh
+from providers.yahoo import domain_from_url
 import cache
 
 
@@ -59,7 +60,7 @@ def test_fundamentals_uses_yahoo(monkeypatch):
     cache.clear()
     data = {"pe": 30.0, "market_cap": 1, "sector": "Technology", "industry": "Semiconductors",
             "week52_high": 9, "week52_low": 1, "all_time_high": 9, "all_time_low": 1,
-            "beta": 1.1, "dividend_yield": 0.0, "eps": 5.0}
+            "beta": 1.1, "dividend_yield": 0.0, "eps": 5.0, "website": "nvidia.com"}
     monkeypatch.setattr(f, "fetch_fundamentals", lambda s: data)
     out, source, stale = f.get_fundamentals("NVDA")
     assert out["sector"] == "Technology" and source == "yahoo" and stale is False
@@ -73,7 +74,7 @@ def test_fundamentals_falls_back_to_finnhub_not_mock(monkeypatch):
     real = {"pe": 29.2, "market_cap": 4_659_000_000_000, "sector": "Semiconductors",
             "industry": "Semiconductors", "week52_high": 236.54, "week52_low": 151.49,
             "all_time_high": 236.54, "all_time_low": 151.49, "beta": 2.0,
-            "dividend_yield": 0.0, "eps": 3.0}
+            "dividend_yield": 0.0, "eps": 3.0, "website": "nvidia.com"}
     monkeypatch.setattr(fh, "fetch_fundamentals", lambda s: real)
     out, source, stale = f.get_fundamentals("NVDA")
     assert source == "finnhub" and out["industry"] == "Semiconductors"
@@ -89,3 +90,13 @@ def test_fundamentals_mock_only_when_both_real_sources_fail(monkeypatch):
     data, source, stale = f.get_fundamentals("AAPL")
     assert source == "mock" and stale is False
     assert data["week52_high"] >= data["week52_low"]
+    # website key is always present so the frontend logo resolver is happy
+    assert data["website"] == ""
+
+
+def test_domain_from_url_strips_scheme_www_and_path():
+    assert domain_from_url("https://www.coca-cola.com/us/en") == "coca-cola.com"
+    assert domain_from_url("http://walmart.com") == "walmart.com"
+    assert domain_from_url("coca-cola.com") == "coca-cola.com"
+    assert domain_from_url("") == ""
+    assert domain_from_url(None) == ""
