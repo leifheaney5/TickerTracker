@@ -5,7 +5,8 @@ import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { StarterPicker } from '../components/StarterPicker'
 import { money, pct } from '../lib/format'
-import { api } from '../api/client'
+import { ShareCard } from '../components/ShareCard'
+import { shareImage } from '../lib/shareImage'
 
 // Dedicated full-screen watchlist manager: a clean editable list of the user's
 // tickers (price/%, inline target edit, remove) plus a comma-separated bulk-add
@@ -30,16 +31,16 @@ export function ManageWatchlist() {
   const [addResult, setAddResult] = useState<string | null>(null)
   const [editSym, setEditSym] = useState<string | null>(null)
   const [editVal, setEditVal] = useState('')
-  const [shareLabel, setShareLabel] = useState<'Share' | 'Copying…' | 'Copied!'>('Share')
+  const [shareLabel, setShareLabel] = useState<'Share' | 'Rendering…' | 'Done!'>('Share')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const shareCardRef = useRef<HTMLDivElement>(null)
 
   const handleShare = async () => {
-    setShareLabel('Copying…')
+    if (!shareCardRef.current || items.length === 0) return
+    setShareLabel('Rendering…')
     try {
-      const res = await api.createShare()
-      const url = `${location.origin}/s/${res.data.token}`
-      await navigator.clipboard.writeText(url)
-      setShareLabel('Copied!')
+      await shareImage(shareCardRef.current, 'my-watchlist.png')
+      setShareLabel('Done!')
       setTimeout(() => setShareLabel('Share'), 2500)
     } catch {
       setShareLabel('Share')
@@ -99,6 +100,10 @@ export function ManageWatchlist() {
 
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)' }}>
+      {/* Off-screen render target for the share PNG (never visible to the user). */}
+      <div ref={shareCardRef} style={{ position: 'absolute', left: -99999, top: 0, pointerEvents: 'none' }} aria-hidden>
+        <ShareCard items={items} price={price} chg={chg} />
+      </div>
       <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -107,16 +112,18 @@ export function ManageWatchlist() {
           </div>
           <button
             onClick={handleShare}
-            disabled={shareLabel === 'Copying…'}
+            disabled={shareLabel === 'Rendering…' || items.length === 0}
+            title={items.length === 0 ? 'Add a ticker to share your watchlist' : 'Share your watchlist as an image'}
             style={{
               height: 36, padding: '0 16px', borderRadius: 9, border: '1px solid var(--line2)',
-              background: shareLabel === 'Copied!' ? 'var(--up)' : 'var(--card)',
-              color: shareLabel === 'Copied!' ? 'var(--accentInk)' : 'var(--tx2)',
-              fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              background: shareLabel === 'Done!' ? 'var(--up)' : 'var(--card)',
+              color: shareLabel === 'Done!' ? 'var(--accentInk)' : 'var(--tx2)',
+              fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600,
+              cursor: items.length === 0 ? 'default' : 'pointer', opacity: items.length === 0 ? 0.5 : 1,
               transition: 'background 0.2s, color 0.2s', flexShrink: 0,
             }}
           >
-            {shareLabel === 'Copied!' ? '✓ Copied!' : shareLabel}
+            {shareLabel === 'Done!' ? '✓ Done!' : shareLabel}
           </button>
         </div>
 
