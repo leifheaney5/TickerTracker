@@ -69,3 +69,19 @@ describe('loadPulseHistory', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 })
+
+describe('loadSignalAlerts', () => {
+  it('fetches and stores the active smart-signal conditions', async () => {
+    const payload = {
+      symbol: 'AAPL', pulse: { score: 80, band: 'Hot' },
+      conditions: [{ key: 'near_target', title: 'Near analyst target', detail: '...' }],
+      disclaimer: 'not advice',
+    }
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: payload, meta: { source: 'signal_alerts', stale: false, fetched_at: '' } }),
+    }) as never
+    await useStore.getState().loadSignalAlerts('AAPL')
+    expect(useStore.getState().signalAlerts['AAPL']?.conditions[0].key).toBe('near_target')
+  })
+})

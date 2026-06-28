@@ -113,6 +113,20 @@ export interface PulsePoint {
   price?: number
 }
 
+// A named, explainable smart-signal condition (F4).
+export interface SignalCondition {
+  key: string
+  title: string
+  detail: string
+}
+
+export interface SignalAlerts {
+  symbol: string
+  pulse: { score: number; band: PulseBandName }
+  conditions: SignalCondition[]
+  disclaimer: string
+}
+
 export type AlertDir = 'above' | 'below'
 
 export interface WatchlistItem {

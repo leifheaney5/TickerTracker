@@ -3,6 +3,7 @@ import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { pulseColor, type PulseBand } from '../lib/pulse'
 import { PulseTrend } from './PulseTrend'
+import { SignalChips } from './SignalChips'
 
 // PulseWhy — the explainability panel. This is the honesty surface: it shows EACH signal that
 // fed the Pulse score, its raw reading, and its contribution. There is no black box. A missing
@@ -41,6 +42,10 @@ export function PulseWhy() {
         </span>
         <span style={{ fontSize: 12, color: 'var(--tx3)' }}>{open ? '▲ Hide' : '▼ See the math'}</span>
       </button>
+
+      <div style={{ padding: '0 15px 4px' }}>
+        <SignalChips symbol={selected} />
+      </div>
 
       {open && (
         <div id="pulse-why-region" role="region" aria-label="Pulse breakdown" style={{ padding: '4px 15px 14px' }}>
