@@ -7,6 +7,7 @@ import models
 import services.billing as billing
 from services.quotes import get_quotes
 from providers.email import _send
+from services import watchlists as _wl
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,8 @@ def send_weekly_digest(quote_fn=None, send_fn=None) -> int:
             items = (s.query(models.WatchlistItem)
                      .filter_by(user_id=st.user_id)
                      .order_by(models.WatchlistItem.position).all())
+            locked = _wl.locked_symbols(st.user_id)
+            items = [w for w in items if w.symbol not in locked]
             syms = [w.symbol for w in items]
             quotes, _ = quote_fn(syms) if syms else ({}, "none")
             rows = [{"symbol": w.symbol,
@@ -126,6 +129,10 @@ def _seed_for_test(email, news_digest, symbol):
         u = models.User(email=email, name="t", email_verified=True)
         s.add(u); s.flush()
         s.add(models.Settings(user_id=u.id, news_digest=news_digest))
-        s.add(models.WatchlistItem(user_id=u.id, symbol=symbol))
+        wl = models.Watchlist(user_id=u.id, name="My Watchlist", position=0)
+        s.add(wl); s.flush()
+        s.add(models.WatchlistItem(user_id=u.id, watchlist_id=wl.id,
+                                   symbol=symbol, position=0))
+        # Pro subscription so the digest's is_pro() gate passes for this user.
         s.add(models.BillingSubscription(user_id=u.id, status="active", plan="pro"))
         s.commit()

@@ -13,12 +13,14 @@ class User(UserMixin, Base):
     created_at = Column(DateTime, server_default=func.now())
     password_hash = Column(String, nullable=True)
     email_verified = Column(Boolean, default=False)
+    plan = Column(String, default="free")  # 'free' | 'premium'
 
 
 class WatchlistItem(Base):
     __tablename__ = "watchlist_items"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    watchlist_id = Column(Integer, ForeignKey("watchlists.id"), nullable=True, index=True)
     symbol = Column(String, nullable=False)
     position = Column(Integer, default=0)
     target = Column(Float, default=0.0)
@@ -28,6 +30,16 @@ class WatchlistItem(Base):
     alert_last_fired_at = Column(DateTime, nullable=True)
     kind = Column(String, default="stock")            # "stock" | "crypto"
     coin_name = Column(String, default="")            # cached display name (crypto)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class Watchlist(Base):
+    __tablename__ = "watchlists"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String, nullable=False, default="My Watchlist")
+    position = Column(Integer, default=0)
+    share_token = Column(String, nullable=True, index=True)
     created_at = Column(DateTime, server_default=func.now())
 
 

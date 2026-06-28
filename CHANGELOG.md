@@ -35,6 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Multiple watchlists** — Pro users can create, rename, reorder (drag-and-drop),
+  and delete unlimited watchlists; free users are gated at one list with an upgrade
+  nudge. Tickers can be dragged between lists. The last remaining list cannot be
+  deleted. (Builds on, and defers premium status to, the Stripe billing feature.)
+- **Per-list sharing** — each watchlist has its own shareable `/s/<token>` link;
+  the shared view shows the list's name (falling back to "{owner}'s Watchlist")
+  with an "by {owner}" subline.
+- **Branded PNG export** — the ⋯ list menu offers "Download image", which
+  snapshots a styled ShareCard (list name, tickers with prices and % change, QR
+  code, and the Ticker Tracker logo) as a 2× PNG.
+- **Free / Pro gating** — `free_limit` (15-ticker cap) and `premium_required`
+  (multiple-list gate) surface as a dismissible banner with an Upgrade button
+  (`#pricing`). Premium status defers to the shipped Stripe billing
+  (`billing.is_pro`); enforcement is active only when `BILLING_ENABLED`.
 - **Crypto watchlist** — star any coin to track it; a "My Coins" section shows
   live price and 24 h change for all starred coins. Search any coin via CoinGecko
   to add coins beyond the top-25 default list.
