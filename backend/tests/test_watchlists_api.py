@@ -7,12 +7,16 @@ from app import app
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    monkeypatch.setenv("BILLING_ENABLED", "1")  # enforce plan limits in tests
     models.Base.metadata.drop_all(db.engine)
     models.Base.metadata.create_all(db.engine)
     with db.get_session() as s:
-        for email, plan in [("free@x.com", "free"), ("prem@x.com", "premium")]:
-            s.add(models.User(email=email, name=email.split("@")[0], plan=plan, email_verified=True))
+        free = models.User(email="free@x.com", name="free", email_verified=True)
+        prem = models.User(email="prem@x.com", name="prem", email_verified=True)
+        s.add(free); s.add(prem); s.flush()
+        # prem is Pro via an active Stripe subscription; free has none.
+        s.add(models.BillingSubscription(user_id=prem.id, status="active", plan="pro"))
         s.commit()
     app.config["TESTING"] = True
     return app.test_client()
@@ -42,10 +46,12 @@ def test_premium_user_creates_list(client):
     assert r.get_json()["data"]["name"] == "Tech Only"
 
 
-def test_free_user_11th_item_blocked(client):
+def test_free_user_over_cap_item_blocked(client):
+    from services import premium
+    cap = premium.FREE_MAX_ACTIVE_ITEMS
     _login(client, "free@x.com")
     lid = client.get("/api/watchlists").get_json()["data"][0]["id"]
-    for i in range(10):
+    for i in range(cap):
         assert client.post(f"/api/watchlists/{lid}/items", json={"symbol": f"AA{i}"}).status_code == 200
     r = client.post(f"/api/watchlists/{lid}/items", json={"symbol": "OVER"})
     assert r.status_code == 402

@@ -178,3 +178,15 @@ def active_symbols(uid: int) -> list[str]:
             if it["symbol"] not in seen:
                 seen.add(it["symbol"]); out.append(it["symbol"])
     return out
+
+
+def locked_symbols(uid: int) -> set[str]:
+    """Symbols that are LOCKED (free-user overflow beyond the active cap). Empty
+    for Pro users and when billing is disabled. Used by alerts/digest to exclude
+    only locked items — items not in any list are NOT locked, so they're kept."""
+    locked = set()
+    for lst in list_watchlists(uid):
+        for it in lst["items"]:
+            if it["locked"]:
+                locked.add(it["symbol"])
+    return locked

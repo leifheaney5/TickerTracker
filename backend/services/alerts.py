@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 import db
 import models
+import services.billing as billing
 from services.quotes import get_quotes
 from providers.email import _send
 from services import watchlists as _wl
@@ -26,9 +27,10 @@ def due_alerts(session, now=None):
     Locked items (free-user overflow beyond FREE_MAX_ACTIVE_ITEMS) are excluded."""
     now = now or dt.datetime.utcnow()
     rows = session.query(models.WatchlistItem).all()
-    # Cache per-user active symbol sets so we don't call active_symbols N times
-    # for N items belonging to the same user.
-    _active_cache: dict[int, set[str]] = {}
+    # Cache per-user LOCKED symbol sets so we don't recompute N times for N items
+    # of the same user. Exclude only locked (free-overflow) items; items not in
+    # any list are not locked and remain eligible.
+    _locked_cache: dict[int, set[str]] = {}
     out = []
     for w in rows:
         has_alert = bool(w.alert_active) and (w.alert_price or 0) > 0
@@ -36,9 +38,9 @@ def due_alerts(session, now=None):
         if not (has_alert or has_target):
             continue
         # Exclude locked (free overflow) items
-        if w.user_id not in _active_cache:
-            _active_cache[w.user_id] = set(_wl.active_symbols(w.user_id))
-        if w.symbol not in _active_cache[w.user_id]:
+        if w.user_id not in _locked_cache:
+            _locked_cache[w.user_id] = _wl.locked_symbols(w.user_id)
+        if w.symbol in _locked_cache[w.user_id]:
             continue
         last = w.alert_last_fired_at
         if last is None or (now - last) >= COOLDOWN:
@@ -109,7 +111,7 @@ def _alert_email_html(symbol, price, level, direction, kind):
         f'color:{color}">${price:,.2f}</td></tr>'
         '</table>'
 
-        f'{t.button(f"View {symbol} on Ticker Tracker", f"{t.APP_URL}/?sym={symbol}")}'
+        f'{t.button(f"View {symbol} on Ticker Tracker", f"{t.APP_URL}/ticker/{symbol}")}'
         '<p style="margin:16px 0 0;font-size:12px;color:#8b93a0">'
         "You're receiving this because you set an alert on this ticker. "
         'Manage alerts in your watchlist, or turn off alert emails in Settings.</p>'
@@ -144,6 +146,8 @@ def check_alerts(now=None, quote_fn=None, send_fn=None) -> int:
                 continue
             if settings is not None and not settings.alert_notifs:
                 continue
+            if not billing.is_pro(w.user_id):
+                continue  # price-hit alert emails are a Pro feature
             label = "price target" if kind == "target" else "alert price"
             ok = send_fn(user.email,
                          f"{w.symbol} hit your {label}",
@@ -169,4 +173,5 @@ def _seed_for_test(user_email, symbol, alert_price=0, alert_dir="above",
                                    position=0,
                                    alert_price=alert_price, alert_dir=alert_dir,
                                    alert_active=alert_active, target=target))
+        s.add(models.BillingSubscription(user_id=u.id, status="active", plan="pro"))
         s.commit()

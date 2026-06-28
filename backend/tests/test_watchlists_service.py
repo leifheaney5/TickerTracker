@@ -4,14 +4,20 @@ os.environ.setdefault("DATABASE_URL", "sqlite://")
 import pytest
 import db, models
 from services import watchlists as wl
+from services import premium
 
 
-def _fresh_user(plan="free"):
+def _fresh_user(pro=False):
+    """Fresh DB + one user. pro=True attaches an active Stripe subscription so
+    billing.is_pro() is True. Premium status is billing-backed now (no User.plan)."""
     models.Base.metadata.drop_all(db.engine)
     models.Base.metadata.create_all(db.engine)
     with db.get_session() as s:
-        u = models.User(email="u@x.com", name="U", plan=plan)
-        s.add(u); s.commit()
+        u = models.User(email="u@x.com", name="U")
+        s.add(u); s.flush()
+        if pro:
+            s.add(models.BillingSubscription(user_id=u.id, status="active", plan="pro"))
+        s.commit()
         return u.id
 
 
@@ -23,15 +29,16 @@ def test_primary_list_created_lazily():
     assert wl.get_or_create_primary_list(uid) == lid
 
 
-def test_free_user_cannot_create_second_list():
-    uid = _fresh_user("free")
+def test_free_user_cannot_create_second_list(monkeypatch):
+    monkeypatch.setenv("BILLING_ENABLED", "1")  # enforce limits
+    uid = _fresh_user()  # free: no subscription
     wl.get_or_create_primary_list(uid)
     with pytest.raises(wl.PremiumRequired):
         wl.create_watchlist(uid, "Prospective")
 
 
-def test_premium_user_can_create_many_lists():
-    uid = _fresh_user("premium")
+def test_pro_user_can_create_many_lists():
+    uid = _fresh_user(pro=True)
     wl.get_or_create_primary_list(uid)
     a = wl.create_watchlist(uid, "Tech")
     b = wl.create_watchlist(uid, "Crypto")
@@ -39,30 +46,37 @@ def test_premium_user_can_create_many_lists():
     assert len(wl.list_watchlists(uid)) == 3
 
 
-def test_free_user_capped_at_10_active_items():
-    uid = _fresh_user("free")
+def test_free_user_capped_at_active_items(monkeypatch):
+    monkeypatch.setenv("BILLING_ENABLED", "1")
+    uid = _fresh_user()  # free
     lid = wl.get_or_create_primary_list(uid)
-    for i in range(10):
+    for i in range(premium.FREE_MAX_ACTIVE_ITEMS):
         wl.add_item(uid, lid, f"AA{i}")
     with pytest.raises(wl.FreeLimit):
         wl.add_item(uid, lid, "OVER")
 
 
-def test_locked_flag_and_active_symbols_exclude_overflow():
-    uid = _fresh_user("premium")  # create 12 then downgrade to test locking
+def test_locked_flag_and_active_symbols_exclude_overflow(monkeypatch):
+    # Build items as Pro (no cap), then drop to free + enforce so the overflow
+    # beyond FREE_MAX_ACTIVE_ITEMS becomes locked.
+    cap = premium.FREE_MAX_ACTIVE_ITEMS
+    uid = _fresh_user(pro=True)
     lid = wl.get_or_create_primary_list(uid)
-    for i in range(12):
+    for i in range(cap + 2):
         wl.add_item(uid, lid, f"S{i}")
-    with db.get_session() as s:
-        s.get(models.User, uid).plan = "free"; s.commit()
+    with db.get_session() as s:  # downgrade: remove subscription
+        sub = s.query(models.BillingSubscription).filter_by(user_id=uid).first()
+        if sub:
+            s.delete(sub); s.commit()
+    monkeypatch.setenv("BILLING_ENABLED", "1")
     lists = wl.list_watchlists(uid)
     items = lists[0]["items"]
     assert sum(1 for it in items if it["locked"]) == 2
-    assert len(wl.active_symbols(uid)) == 10
+    assert len(wl.active_symbols(uid)) == cap
 
 
 def test_cannot_delete_last_list():
-    uid = _fresh_user("premium")
+    uid = _fresh_user(pro=True)
     wl.get_or_create_primary_list(uid)
     with pytest.raises(wl.LastList):
         only = wl.list_watchlists(uid)[0]
@@ -70,7 +84,7 @@ def test_cannot_delete_last_list():
 
 
 def test_move_item_between_lists():
-    uid = _fresh_user("premium")
+    uid = _fresh_user(pro=True)
     a = wl.get_or_create_primary_list(uid)
     b = wl.create_watchlist(uid, "B")["id"]
     wl.add_item(uid, a, "NVDA")
@@ -82,9 +96,9 @@ def test_move_item_between_lists():
 def test_move_into_unowned_list_raises():
     # _fresh_user resets the schema, so create user A first, then add user B
     # without resetting, so both coexist.
-    uidA = _fresh_user("premium")
+    uidA = _fresh_user(pro=True)
     with db.get_session() as s:
-        ub = models.User(email="b@x.com", name="B", plan="premium")
+        ub = models.User(email="b@x.com", name="B")
         s.add(ub); s.commit()
         uidB = ub.id
     la = wl.get_or_create_primary_list(uidA)
@@ -101,7 +115,7 @@ def test_move_into_unowned_list_raises():
 def test_move_deduplicates_symbol_already_in_dest():
     """Moving NVDA from list A to list B when B already has NVDA must result in
     exactly ONE NVDA row in B and zero rows in A — no duplicate created."""
-    uid = _fresh_user("premium")
+    uid = _fresh_user(pro=True)
     a = wl.get_or_create_primary_list(uid)
     b = wl.create_watchlist(uid, "B")["id"]
     wl.add_item(uid, a, "NVDA")
@@ -112,11 +126,11 @@ def test_move_deduplicates_symbol_already_in_dest():
     assert result is not None
     assert result["watchlist_id"] == b
 
-    # Exactly one NVDA row in B
+    # Exactly one NVDA row in B, zero in A
     with db.get_session() as s:
         count_b = s.query(models.WatchlistItem).filter_by(
             user_id=uid, watchlist_id=b, symbol="NVDA").count()
         count_a = s.query(models.WatchlistItem).filter_by(
             user_id=uid, watchlist_id=a, symbol="NVDA").count()
     assert count_b == 1, f"Expected 1 NVDA in list B, got {count_b}"
-    assert count_a == 0, f"Expected 0 NVDA in list A after merge, got {count_a}"
+    assert count_a == 0

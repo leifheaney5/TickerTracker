@@ -3,23 +3,38 @@
 // actions that call the API with graceful fallback to seeded values.
 
 import { create } from 'zustand'
-import { api } from '../api/client'
+import { api, ApiError } from '../api/client'
 import type {
   Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
-  CryptoResponse, Fng, Timeframe, AuthUser, WatchlistWithItems, WatchlistItemFull,
+  CryptoResponse, Fng, Timeframe, AuthUser, WatchlistWithItems, WatchlistItemFull, BillingState, EarningsRow,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 import { reorderLists, moveItem, reorderWithinList, flattenActive } from './watchlistReducers'
+import { pathForView } from '../routes'
 
 function errStatus(e: unknown): number | null {
   const m = String((e as Error)?.message || '').match(/→\s*(\d+)/)
   return m ? Number(m[1]) : null
 }
 
+// ── URL routing bridge ───────────────────────────────────────────────────────
+// The RouterBridge (rendered inside <BrowserRouter>) registers a navigate fn
+// here so setView/setSelected can drive the URL. When it's unset (e.g. in unit
+// tests, or before mount) the store falls back to plain state updates.
+type Nav = (path: string, opts?: { replace?: boolean }) => void
+let _navigate: Nav | null = null
+let _syncingFromUrl = false  // guard: don't navigate while applying a URL change
+
+export function registerNavigate(fn: Nav | null) { _navigate = fn }
+export function applyFromUrl(fn: () => void) {
+  _syncingFromUrl = true
+  try { fn() } finally { _syncingFromUrl = false }
+}
+
 export type View =
   | 'dashboard' | 'overview' | 'deep' | 'market' | 'map' | 'sectors'
   | 'crypto' | 'screener' | 'strategy' | 'holdings' | 'alerts' | 'settings'
-  | 'managewatch' | 'earnings'
+  | 'managewatch'
 
 export type ChartType = 'candles' | 'line' | 'area'
 export type SortBy = 'manual' | 'change' | 'price' | 'az'
@@ -49,11 +64,14 @@ interface StoreState {
   news: Record<string, NewsItem[]> // key sym or 'MARKET'
   newsLoaded: Record<string, boolean> // keys whose news fetch has completed
   ratings: Record<string, Ratings>
+  earnings: Record<string, EarningsRow | null>
   watchlist: WatchlistItem[]
   watchlists: WatchlistWithItems[]
   lastLimitError: 'free_limit' | 'premium_required' | null
   settings: Settings | null
   holdings: Holding[]
+  billing: BillingState | null
+  upgradePrompt: { feature: string; message: string } | null
   crypto: CryptoResponse | null
   fng: Fng | null
   flash: Record<string, 'up' | 'down' | null>
@@ -86,6 +104,9 @@ interface StoreState {
   loadSettings: () => Promise<void>
   updateSettings: (fields: Partial<Settings>) => Promise<void>
   loadHoldings: () => Promise<void>
+  loadBilling: () => Promise<void>
+  openUpgrade: (feature?: string, message?: string) => void
+  closeUpgrade: () => void
   loadCrypto: () => Promise<void>
   loadFng: () => Promise<void>
   pollQuotes: () => Promise<void>
@@ -93,6 +114,7 @@ interface StoreState {
   loadFundamentals: (sym: string) => Promise<void>
   loadNews: (sym?: string) => Promise<void>
   loadRatings: (sym: string) => Promise<void>
+  loadEarnings: (sym: string) => Promise<void>
   addWatch: (sym: string, target?: number) => Promise<void>
   removeWatch: (sym: string) => Promise<void>
   updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
@@ -142,11 +164,14 @@ export const useStore = create<StoreState>((set, get) => ({
   news: {},
   newsLoaded: {},
   ratings: {},
+  earnings: {},
   watchlist: [],
   watchlists: [],
   lastLimitError: null,
   settings: null,
   holdings: [],
+  billing: null,
+  upgradePrompt: null,
   crypto: null,
   fng: null,
   flash: {},
@@ -180,7 +205,7 @@ export const useStore = create<StoreState>((set, get) => ({
     const j = await r.json(); set({ currentUser: j.user ?? null })
     // Re-fetch personalized data so the newly-logged-in user sees their own
     // watchlist/settings/holdings without a page reload.
-    await get().loadWatchlist(); await get().loadWatchlists(); await get().loadSettings(); await get().loadHoldings()
+    await get().loadWatchlist(); await get().loadWatchlists(); await get().loadSettings(); await get().loadHoldings(); await get().loadBilling()
     return { ok: true }
   },
   signup: async (email, password, name) => {
@@ -192,7 +217,7 @@ export const useStore = create<StoreState>((set, get) => ({
   },
   logout: async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-    set({ currentUser: null, watchlist: [], holdings: [], settings: null })
+    set({ currentUser: null, watchlist: [], holdings: [], settings: null, billing: null })
   },
   forgot: async (email) => {
     const r = await fetch('/api/auth/forgot', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) })
@@ -205,8 +230,18 @@ export const useStore = create<StoreState>((set, get) => ({
     return { ok: true }
   },
 
-  setView: (v) => set({ view: v }),
-  setSelected: (s) => set({ selected: s, hover: null, compare: [] }),
+  setView: (v) => {
+    set({ view: v })
+    if (!_syncingFromUrl && _navigate) _navigate(pathForView(v))
+  },
+  setSelected: (s) => {
+    set({ selected: s, hover: null, compare: [] })
+    // Selecting a ticker navigates to its dedicated page + the dashboard view.
+    if (!_syncingFromUrl && _navigate) {
+      set({ view: 'dashboard' })
+      _navigate(`/ticker/${encodeURIComponent(s)}`)
+    }
+  },
   setTimeframe: (tf) => set({ timeframe: tf, hover: null }),
   setChartType: (c) => set({ chartType: c }),
   setGroup: (g) => set({ group: g }),
@@ -214,12 +249,20 @@ export const useStore = create<StoreState>((set, get) => ({
   setHover: (i) => set({ hover: i }),
   setSearchOpen: (b) => set({ searchOpen: b }),
   setSearch: (q) => set({ search: q }),
-  toggleCompare: (sym) =>
-    set((st) => {
-      if (st.compare.includes(sym)) return { compare: st.compare.filter((x) => x !== sym) }
-      if (st.compare.length >= 4) return {}
-      return { compare: [...st.compare, sym] }
-    }),
+  toggleCompare: (sym) => {
+    const st = get()
+    if (st.compare.includes(sym)) {
+      set({ compare: st.compare.filter((x) => x !== sym) })
+      return
+    }
+    const cap = st.billing?.limits.compare ?? 2
+    if (st.compare.length >= cap) {
+      get().openUpgrade('compare',
+        `Free plan compares up to ${cap} stocks at once. Upgrade to Pro to compare up to 10.`)
+      return
+    }
+    set({ compare: [...st.compare, sym] })
+  },
 
   loadWatchlist: async () => {
     // Guard against concurrent/double invocation (React StrictMode) so the
@@ -352,6 +395,17 @@ export const useStore = create<StoreState>((set, get) => ({
     } catch { /* leave empty */ }
   },
 
+  loadBilling: async () => {
+    try {
+      const { data } = await api.getBilling()
+      set({ billing: data })
+    } catch { /* anonymous or offline: leave null */ }
+  },
+
+  openUpgrade: (feature = 'pro', message = '') =>
+    set({ upgradePrompt: { feature, message } }),
+  closeUpgrade: () => set({ upgradePrompt: null }),
+
   loadCrypto: async () => {
     try {
       const { data } = await api.crypto()
@@ -430,12 +484,25 @@ export const useStore = create<StoreState>((set, get) => ({
     } catch { /* leave empty */ }
   },
 
+  loadEarnings: async (sym) => {
+    if (get().earnings[sym] !== undefined) return
+    try {
+      const { data } = await api.earnings([sym])
+      set((st) => ({ earnings: { ...st.earnings, [sym]: data[0] ?? null } }))
+    } catch { /* leave unset → card shows loading/empty */ }
+  },
+
   addWatch: async (sym, target = 0) => {
     try {
       await api.addWatch({ symbol: sym, target })
       const { data } = await api.getWatchlist()
       set({ watchlist: data })
-    } catch { /* ignore offline */ }
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 402) {
+        get().openUpgrade(e.body?.feature ?? 'watchlist', e.body?.message ?? '')
+      }
+      // otherwise ignore (offline)
+    }
   },
 
   removeWatch: async (sym) => {
@@ -447,12 +514,19 @@ export const useStore = create<StoreState>((set, get) => ({
 
   updateWatch: async (sym, fields) => {
     // Optimistic local update, then persist.
+    const prev = get().watchlist
     set((st) => ({
       watchlist: st.watchlist.map((w) => (w.symbol === sym ? { ...w, ...fields } : w)),
     }))
     try {
       await api.updateWatch(sym, fields)
-    } catch { /* keep optimistic value offline */ }
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 402) {
+        set({ watchlist: prev }) // roll back optimistic change
+        get().openUpgrade(e.body?.feature ?? 'alerts', e.body?.message ?? '')
+      }
+      // otherwise keep optimistic value (offline)
+    }
   },
 
   price: (sym) => get().quotes[sym]?.price ?? UNIVERSE[sym]?.price ?? 0,

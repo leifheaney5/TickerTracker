@@ -1,6 +1,7 @@
 import { useStore, isAuthed } from '../state/store'
 import { FONT_SANS } from '../theme/tokens'
 import { Toggle } from '../components/Toggle'
+import { api } from '../api/client'
 
 // Settings view — ported from the prototype template (lines 1184-1272): profile
 // header, account details, connected accounts (brokerage connect/disconnect),
@@ -13,6 +14,8 @@ export function Settings() {
   const currentUser = useStore((s) => s.currentUser)
   const logout = useStore((s) => s.logout)
   const openAuth = useStore((s) => s.openAuth)
+  const billing = useStore((s) => s.billing)
+  const openUpgrade = useStore((s) => s.openUpgrade)
 
   // Anonymous users have no settings — prompt sign-in instead of a stuck spinner.
   if (!authed) {
@@ -39,6 +42,26 @@ export function Settings() {
         <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>{sub}</span>
       </div>
       <Toggle on={!!settings[key]} onClick={() => updateSettings({ [key]: !settings[key] } as Partial<typeof settings>)} />
+    </div>
+  )
+
+  const startCheckout = async (interval: 'monthly' | 'annual') => {
+    try {
+      const { data } = await api.checkout(interval)
+      location.href = data.url
+    } catch { /* billing may be disabled pre-launch */ }
+  }
+  const openPortal = async () => {
+    try {
+      const { data } = await api.portal()
+      location.href = data.url
+    } catch { /* ignore */ }
+  }
+
+  const usageRow = (label: string, used: number, limit: number) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '7px 0' }}>
+      <span style={{ fontSize: '12.5px', color: 'var(--tx2)' }}>{label}</span>
+      <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--tx)' }}>{used} / {limit}</span>
     </div>
   )
 
@@ -72,8 +95,34 @@ export function Settings() {
             )}
           </div>
           <div style={{ flex: 1 }} />
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: 'rgba(61,220,132,.1)', fontSize: '12px', fontWeight: 600, color: 'var(--accent)' }}>◆ Pro plan</span>
+          {billing && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: billing.is_pro ? 'rgba(61,220,132,.1)' : 'var(--cardHi)', fontSize: '12px', fontWeight: 600, color: billing.is_pro ? 'var(--accent)' : 'var(--tx2)' }}>{billing.is_pro ? '◆ Pro plan' : 'Free plan'}</span>
+          )}
         </div>
+
+        {billing && (
+          <div style={{ ...card, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Plan &amp; Billing</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 20, background: billing.is_pro ? 'rgba(61,220,132,.12)' : 'var(--cardHi)', fontSize: '12px', fontWeight: 700, color: billing.is_pro ? 'var(--accent)' : 'var(--tx2)' }}>
+                {billing.is_pro ? '◆ Pro' : 'Free'}
+              </span>
+            </div>
+            <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+              {usageRow('Watchlist tickers', billing.usage.watchlist, billing.limits.watchlist)}
+              {usageRow('Active price alerts', billing.usage.alerts, billing.limits.alerts)}
+              {usageRow('Saved screeners', billing.usage.screens, billing.limits.screens)}
+            </div>
+            {billing.is_pro ? (
+              <button onClick={openPortal} style={{ alignSelf: 'flex-start', height: 38, padding: '0 16px', borderRadius: 10, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Manage billing</button>
+            ) : (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button onClick={() => startCheckout('annual')} style={{ height: 40, padding: '0 18px', borderRadius: 11, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '13.5px', fontWeight: 800, cursor: 'pointer' }}>Upgrade yearly — $59/yr</button>
+                <button onClick={() => startCheckout('monthly')} style={{ height: 40, padding: '0 16px', borderRadius: 11, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Monthly — $7/mo</button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ ...card, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Connected accounts</span>
@@ -103,7 +152,17 @@ export function Settings() {
           <div style={{ padding: '16px 0 2px' }}><span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Notifications &amp; data</span></div>
           {toggleRow('Live price updates', 'Continuously stream prices and sparklines', 'live_updates')}
           {toggleRow('Price alert notifications', 'Pop a toast the moment a target is hit', 'alert_notifs')}
-          {toggleRow('Weekly market digest', 'Email summary of your watchlist every Monday', 'news_digest')}
+          {(billing?.is_pro ?? true)
+            ? toggleRow('Weekly market digest', 'Email summary of your watchlist every Monday', 'news_digest')
+            : (
+              <div style={row}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                  <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--tx)' }}>Weekly market digest <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>· Pro</span></span>
+                  <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>Email summary of your watchlist every Monday</span>
+                </div>
+                <button onClick={() => openUpgrade('digest', 'The weekly market digest is a Pro feature.')} style={{ height: 32, padding: '0 13px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Upgrade</button>
+              </div>
+            )}
         </div>
 
         <div style={{ ...card, padding: '6px 22px 14px' }}>
