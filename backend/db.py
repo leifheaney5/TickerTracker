@@ -89,6 +89,14 @@ def _ensure_columns(conn) -> None:
             conn.execute(text(
                 "ALTER TABLE watchlist_items ADD COLUMN created_at DATETIME"
             ))
+        if "kind" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN kind VARCHAR DEFAULT 'stock'"
+            ))
+        if "coin_name" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN coin_name VARCHAR DEFAULT ''"
+            ))
         # settings.share_token — added in bb01_share_token migration.
         # Guard: only run if the settings table exists (bare-engine tests
         # may only have watchlist_items).
@@ -129,6 +137,14 @@ def _ensure_columns(conn) -> None:
         conn.execute(text(
             "ALTER TABLE watchlist_items "
             "ADD COLUMN IF NOT EXISTS created_at TIMESTAMP"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS kind VARCHAR DEFAULT 'stock'"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS coin_name VARCHAR DEFAULT ''"
         ))
         conn.execute(text(
             "ALTER TABLE settings "

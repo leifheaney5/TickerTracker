@@ -114,6 +114,13 @@ def valid_symbol(sym: str) -> bool:
     return bool(_SYMBOL_RE.match(sym or ""))
 
 
+_COIN_ID_RE = re.compile(r"^[a-z0-9-]{1,64}$")
+
+
+def valid_coin_id(s: str) -> bool:
+    return bool(_COIN_ID_RE.match(s or ""))
+
+
 def envelope(data, source="internal", stale=False):
     return jsonify({"data": data, "meta": {
         "source": source,
@@ -130,7 +137,7 @@ def health():
 from services.quotes import get_quotes, get_market_status
 from services.history import get_history
 from services.fundamentals import get_fundamentals
-from services.crypto import get_crypto, get_fng
+from services.crypto import get_crypto, get_fng, get_crypto_search
 
 
 @app.route("/api/quotes")
@@ -170,9 +177,30 @@ def search_route():
     return envelope(results, source=source)
 
 
+_CRYPTO_LIMITS = {25, 50, 100}
+
+
 @app.route("/api/crypto")
 def crypto_route():
-    data, source = get_crypto()
+    try:
+        limit = int(request.args.get("limit", 50))
+    except (TypeError, ValueError):
+        limit = 50
+    if limit not in _CRYPTO_LIMITS:
+        limit = 50
+    raw = request.args.get("watch", "")
+    watch = [i.strip() for i in raw.split(",") if i.strip()]
+    watch = [i for i in watch if valid_coin_id(i)][:50]
+    data, source = get_crypto(limit=limit, extra_ids=watch)
+    return envelope(data, source=source)
+
+
+@app.route("/api/crypto/search")
+def crypto_search_route():
+    q = (request.args.get("q", "") or "").strip()
+    if len(q) < 2:
+        return envelope([], source="internal")
+    data, source = get_crypto_search(q)
     return envelope(data, source=source)
 
 
@@ -252,16 +280,24 @@ def watchlist_post():
     if uid is None:
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
-    sym = (b.get("symbol") or "").upper()
-    if not valid_symbol(sym):
-        return envelope({"error": "invalid symbol"}), 400
+    kind = b.get("kind", "stock")
+    if kind == "crypto":
+        sym = (b.get("symbol") or "").strip().lower()
+        if not valid_coin_id(sym):
+            return envelope({"error": "invalid coin id"}), 400
+    else:
+        sym = (b.get("symbol") or "").upper()
+        if not valid_symbol(sym):
+            return envelope({"error": "invalid symbol"}), 400
+    # Free-plan watchlist limit applies to both stocks and crypto coins.
     err = _billing.check_watchlist_add(uid, sym)
     if err:
         return jsonify(err), 402
     try:
         item = add_watch(sym, target=float(b.get("target", 0) or 0),
                          alert_price=float(b.get("alert_price", 0) or 0),
-                         alert_dir=b.get("alert_dir", "above"))
+                         alert_dir=b.get("alert_dir", "above"),
+                         kind=kind, coin_name=(b.get("coin_name") or "")[:64])
     except _wls.FreeLimit:
         return envelope({"error": "free_limit"}), 402
     return envelope(item, source="db")

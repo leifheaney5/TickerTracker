@@ -3,7 +3,7 @@
 // callers (the store) decide on mock fallback.
 
 import type {
-  Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
+  Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, CryptoSearchResult, Fng,
   NewsItem, Ratings, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
   SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
   WatchlistWithItems, WatchlistItemFull, BillingState,
@@ -55,13 +55,21 @@ export const api = {
     get<Bar[]>(`/api/history/${encodeURIComponent(sym)}?tf=${tf}`),
   fundamentals: (sym: string) => get<Fundamentals>(`/api/fundamentals/${encodeURIComponent(sym)}`),
   search: (q: string) => get<SymbolHit[]>(`/api/search?q=${encodeURIComponent(q)}`),
-  crypto: () => get<CryptoResponse>('/api/crypto'),
+  crypto: (limit?: number, watchIds?: string[]) => {
+    const p = new URLSearchParams()
+    if (limit) p.set('limit', String(limit))
+    if (watchIds && watchIds.length) p.set('watch', watchIds.join(','))
+    const qs = p.toString()
+    return get<CryptoResponse>(`/api/crypto${qs ? `?${qs}` : ''}`)
+  },
+  cryptoSearch: (q: string) =>
+    get<CryptoSearchResult[]>(`/api/crypto/search?q=${encodeURIComponent(q)}`),
   fng: () => get<Fng>('/api/fng'),
   news: (sym?: string) => get<NewsItem[]>(sym ? `/api/news?sym=${encodeURIComponent(sym)}` : '/api/news?market=1'),
   ratings: (sym: string) => get<Ratings>(`/api/ratings/${encodeURIComponent(sym)}`),
 
   getWatchlist: () => get<WatchlistItem[]>('/api/watchlist'),
-  addWatch: (b: { symbol: string; target?: number; alert_price?: number; alert_dir?: string }) =>
+  addWatch: (b: { symbol: string; target?: number; alert_price?: number; alert_dir?: string; kind?: 'stock' | 'crypto'; coin_name?: string }) =>
     send<WatchlistItem>('/api/watchlist', 'POST', b),
   updateWatch: (sym: string, b: Partial<WatchlistItem>) =>
     send<WatchlistItem>(`/api/watchlist/${encodeURIComponent(sym)}`, 'PATCH', b),
