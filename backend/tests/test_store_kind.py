@@ -34,3 +34,27 @@ def test_add_stock_watch_still_upper_cases():
     store.current_user_id = lambda: uid  # simple override
     item = store.add_watch("nvda")
     assert item["symbol"] == "NVDA" and item["kind"] == "stock"
+
+
+def test_remove_crypto_id_does_not_delete_same_letters_stock(monkeypatch):
+    """Regression: remove_watch("ada") must NOT delete a STOCK row "ADA"."""
+    db.Base.metadata.create_all(db.engine)
+    with db.get_session() as s:
+        u = models.User(email="kind3@t.co", name="t", email_verified=True)
+        s.add(u); s.flush(); uid = u.id; s.commit()
+
+    monkeypatch.setattr(store, "current_user_id", lambda: uid)
+
+    # Add a STOCK "ADA" — no crypto "ada" row exists.
+    store.add_watch("ADA", kind="stock")
+
+    # Attempt to remove using the crypto id lowercase form.
+    result = store.remove_watch("ada")
+
+    # Should return False (no matching row found).
+    assert result is False, "remove_watch('ada') should not remove stock 'ADA'"
+
+    # The stock row must still be intact.
+    wl = store.get_watchlist()
+    assert any(w["symbol"] == "ADA" and w["kind"] == "stock" for w in wl), \
+        "Stock 'ADA' was incorrectly deleted by remove_watch('ada')"

@@ -55,7 +55,7 @@ export const api = {
   ratings: (sym: string) => get<Ratings>(`/api/ratings/${encodeURIComponent(sym)}`),
 
   getWatchlist: () => get<WatchlistItem[]>('/api/watchlist'),
-  addWatch: (b: { symbol: string; target?: number; alert_price?: number; alert_dir?: string; kind?: string; coin_name?: string }) =>
+  addWatch: (b: { symbol: string; target?: number; alert_price?: number; alert_dir?: string; kind?: 'stock' | 'crypto'; coin_name?: string }) =>
     send<WatchlistItem>('/api/watchlist', 'POST', b),
   updateWatch: (sym: string, b: Partial<WatchlistItem>) =>
     send<WatchlistItem>(`/api/watchlist/${encodeURIComponent(sym)}`, 'PATCH', b),

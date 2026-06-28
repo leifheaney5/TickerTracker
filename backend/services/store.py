@@ -47,8 +47,15 @@ def update_watch(symbol, **fields):
     uid = current_user_id()
     with db.get_session() as s:
         # Match either a stock ticker (stored upper) or a crypto id (stored as-is).
-        item = (s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
-                or s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol.upper()).first())
+        # The upper() fallback is stocks-only AND only applied when the input symbol
+        # already contains uppercase letters (i.e. it's a stock ticker, not an
+        # all-lowercase crypto id like "ada" that could shadow a stock "ADA").
+        _upper_fallback = (
+            symbol != symbol.lower()
+            and s.query(models.WatchlistItem)
+               .filter_by(user_id=uid, symbol=symbol.upper(), kind="stock").first()
+        )
+        item = s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first() or _upper_fallback or None
         if not item:
             return None
         for k, v in fields.items():
@@ -62,8 +69,15 @@ def remove_watch(symbol):
     uid = current_user_id()
     with db.get_session() as s:
         # Match either a stock ticker (stored upper) or a crypto id (stored as-is).
-        item = (s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first()
-                or s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol.upper()).first())
+        # The upper() fallback is stocks-only AND only applied when the input symbol
+        # already contains uppercase letters (i.e. it's a stock ticker, not an
+        # all-lowercase crypto id like "ada" that could shadow a stock "ADA").
+        _upper_fallback = (
+            symbol != symbol.lower()
+            and s.query(models.WatchlistItem)
+               .filter_by(user_id=uid, symbol=symbol.upper(), kind="stock").first()
+        )
+        item = s.query(models.WatchlistItem).filter_by(user_id=uid, symbol=symbol).first() or _upper_fallback or None
         if not item:
             return False
         s.delete(item)
