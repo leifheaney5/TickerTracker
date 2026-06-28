@@ -2,6 +2,7 @@
 import datetime as dt
 import db, models
 import services.alerts as al
+from services import premium
 
 def test_should_fire_above():
     assert al.should_fire(101, 100, "above") is True
@@ -50,6 +51,45 @@ def test_target_not_hit_does_not_fire(monkeypatch):
     al._seed_for_test(user_email="n@e.com", symbol="NVDA", target=200)
     fired = al.check_alerts(quote_fn=fake_quote, send_fn=lambda *a: True)
     assert fired == 0
+
+
+def test_locked_items_excluded_from_due_alerts(monkeypatch):
+    """Free user with 17 items (indices 15,16 locked): locked items that WOULD
+    satisfy the alert condition must be excluded from the due set; active ones
+    are not. This verifies the locked-exclusion logic in due_alerts, which is
+    independent of the Pro-only firing gate exercised by the test below."""
+    # Locked-ness only applies when billing is enabled AND the user isn't Pro.
+    monkeypatch.setenv("BILLING_ENABLED", "1")
+    # Reset DB for clean state
+    models.Base.metadata.drop_all(db.engine)
+    models.Base.metadata.create_all(db.engine)
+
+    # Free user (no subscription) with 17 armed items: indices 15,16 are locked.
+    with db.get_session() as s:
+        u = models.User(email="lock@e.com", name="L", email_verified=True)
+        s.add(u); s.flush()
+        s.add(models.Settings(user_id=u.id, alert_notifs=True))
+        wl = models.Watchlist(user_id=u.id, name="My Watchlist", position=0)
+        s.add(wl); s.flush()
+        for i in range(17):
+            s.add(models.WatchlistItem(
+                user_id=u.id, watchlist_id=wl.id,
+                symbol=f"TK{i}", position=i,
+                alert_price=100.0, alert_dir="above", alert_active=True,
+            ))
+        s.commit()
+
+    with db.get_session() as s:
+        due = al.due_alerts(s)
+        due_syms = {w.symbol for w in due}
+
+    # Exactly the 15 active (non-locked) items are due.
+    assert len(due_syms) == premium.FREE_MAX_ACTIVE_ITEMS
+    # Locked symbols (TK15, TK16) must NOT be in the due set.
+    for locked_sym in ("TK15", "TK16"):
+        assert locked_sym not in due_syms, (
+            f"Locked symbol {locked_sym} leaked into due alerts"
+        )
 
 
 def test_price_hit_email_only_for_pro_users():

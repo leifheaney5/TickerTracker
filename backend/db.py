@@ -65,6 +65,18 @@ def _ensure_columns(conn) -> None:
     if _is_sqlite:
         rows = conn.execute(text("PRAGMA table_info(watchlist_items)")).fetchall()
         existing = {r[1] for r in rows}  # column name is index 1
+        if "target" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN target REAL DEFAULT 0.0"
+            ))
+        if "alert_price" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN alert_price REAL DEFAULT 0.0"
+            ))
+        if "alert_dir" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN alert_dir VARCHAR DEFAULT 'above'"
+            ))
         if "alert_active" not in existing:
             conn.execute(text(
                 "ALTER TABLE watchlist_items ADD COLUMN alert_active BOOLEAN DEFAULT 0"
@@ -72,6 +84,10 @@ def _ensure_columns(conn) -> None:
         if "alert_last_fired_at" not in existing:
             conn.execute(text(
                 "ALTER TABLE watchlist_items ADD COLUMN alert_last_fired_at DATETIME"
+            ))
+        if "created_at" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN created_at DATETIME"
             ))
         if "kind" not in existing:
             conn.execute(text(
@@ -100,11 +116,27 @@ def _ensure_columns(conn) -> None:
         # Postgres 9.6+ supports ADD COLUMN IF NOT EXISTS natively.
         conn.execute(text(
             "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS target REAL DEFAULT 0.0"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS alert_price REAL DEFAULT 0.0"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS alert_dir VARCHAR DEFAULT 'above'"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
             "ADD COLUMN IF NOT EXISTS alert_active BOOLEAN DEFAULT FALSE"
         ))
         conn.execute(text(
             "ALTER TABLE watchlist_items "
             "ADD COLUMN IF NOT EXISTS alert_last_fired_at TIMESTAMP"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS created_at TIMESTAMP"
         ))
         conn.execute(text(
             "ALTER TABLE watchlist_items "
@@ -122,6 +154,40 @@ def _ensure_columns(conn) -> None:
             "ALTER TABLE settings "
             "ADD COLUMN IF NOT EXISTS unsub_token VARCHAR"
         ))
+
+    # ── Multiple watchlists: add watchlist_items.watchlist_id, backfill a
+    # default "My Watchlist" per user, and carry legacy settings.share_token
+    # onto it. Idempotent: the backfill only runs for items lacking a list.
+    if _is_sqlite:
+        rows = conn.execute(text("PRAGMA table_info(watchlist_items)")).fetchall()
+        if "watchlist_id" not in {r[1] for r in rows}:
+            conn.execute(text("ALTER TABLE watchlist_items ADD COLUMN watchlist_id INTEGER"))
+        # Guard: only alter users table if it exists (bare-engine tests may lack it)
+        tables = {r[0] for r in conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'")).fetchall()}
+        if "users" in tables:
+            ucols = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+            if "plan" not in {r[1] for r in ucols}:
+                conn.execute(text("ALTER TABLE users ADD COLUMN plan VARCHAR DEFAULT 'free'"))
+    else:
+        conn.execute(text("ALTER TABLE watchlist_items ADD COLUMN IF NOT EXISTS watchlist_id INTEGER"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR DEFAULT 'free'"))
+
+    # Backfill: every user that has items but no list gets one default list.
+    user_ids = [r[0] for r in conn.execute(text(
+        "SELECT DISTINCT user_id FROM watchlist_items WHERE watchlist_id IS NULL"
+    )).fetchall()]
+    for uid in user_ids:
+        legacy_token = conn.execute(text(
+            "SELECT share_token FROM settings WHERE user_id = :u"), {"u": uid}).scalar()
+        conn.execute(text(
+            "INSERT INTO watchlists (user_id, name, position, share_token) "
+            "VALUES (:u, 'My Watchlist', 0, :tok)"), {"u": uid, "tok": legacy_token})
+        new_id = conn.execute(text(
+            "SELECT id FROM watchlists WHERE user_id = :u ORDER BY id DESC LIMIT 1"),
+            {"u": uid}).scalar()
+        conn.execute(text(
+            "UPDATE watchlist_items SET watchlist_id = :w WHERE user_id = :u AND watchlist_id IS NULL"),
+            {"w": new_id, "u": uid})
 
 
 def init_db():

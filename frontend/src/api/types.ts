@@ -119,7 +119,20 @@ export interface Holding {
 
 export type Timeframe = '1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'
 
-export interface AuthUser { id: number; email: string; name: string; email_verified: boolean }
+export interface AuthUser { id: number; email: string; name: string; email_verified: boolean; plan: 'free' | 'premium' }
+
+export interface WatchlistItemFull extends WatchlistItem {
+  watchlist_id: number
+  locked: boolean
+}
+
+export interface WatchlistWithItems {
+  id: number
+  name: string
+  position: number
+  share_token: string | null
+  items: WatchlistItemFull[]
+}
 
 export interface SymbolHit { symbol: string; description: string; type: string }
 
@@ -127,6 +140,7 @@ export interface SharedWatchlistItem { symbol: string }
 
 export interface SharedWatchlistResponse {
   owner_name: string
+  list_name?: string
   items: SharedWatchlistItem[]
 }
 
