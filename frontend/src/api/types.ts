@@ -79,6 +79,40 @@ export interface Ratings {
   target: { low: number; high: number; mean: number; current: number }
 }
 
+// Pulse — the transparent composite signal score. Each component is explainable
+// (raw value + weight + contribution); a missing signal is omitted, never zero-filled.
+export interface PulseComponent {
+  key: string
+  label: string
+  value: number        // 0-100 sub-score
+  raw: string          // human-readable underlying reading, e.g. "RSI 58"
+  state: 'Bullish' | 'Bearish' | 'Neutral'
+  weight: number       // renormalized over available components (sums to ~1)
+  contribution?: number
+}
+
+export type PulseBandName = 'Cooling' | 'Neutral' | 'Building' | 'Hot'
+
+export interface Pulse {
+  symbol: string
+  score: number        // 0-100
+  band: PulseBandName
+  components: PulseComponent[]
+  price?: number
+  asOf: string
+  kind: 'stock' | 'crypto'
+  disclaimer: string
+}
+
+// One day of accrued Pulse history (the durable first-party signal series).
+export interface PulsePoint {
+  date: string
+  score: number
+  band: PulseBandName
+  mood?: string
+  price?: number
+}
+
 export type AlertDir = 'above' | 'below'
 
 export interface WatchlistItem {

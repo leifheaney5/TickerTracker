@@ -6,7 +6,7 @@ import { create } from 'zustand'
 import { api, ApiError } from '../api/client'
 import type {
   Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
-  CryptoResponse, Fng, Timeframe, AuthUser, BillingState, EarningsRow,
+  CryptoResponse, Fng, Timeframe, AuthUser, BillingState, EarningsRow, Pulse, PulsePoint,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 import { pathForView } from '../routes'
@@ -58,6 +58,8 @@ interface StoreState {
   news: Record<string, NewsItem[]> // key sym or 'MARKET'
   newsLoaded: Record<string, boolean> // keys whose news fetch has completed
   ratings: Record<string, Ratings>
+  pulse: Record<string, Pulse>
+  pulseHistory: Record<string, PulsePoint[]>
   earnings: Record<string, EarningsRow | null>
   watchlist: WatchlistItem[]
   settings: Settings | null
@@ -95,6 +97,8 @@ interface StoreState {
   loadFundamentals: (sym: string) => Promise<void>
   loadNews: (sym?: string) => Promise<void>
   loadRatings: (sym: string) => Promise<void>
+  loadPulse: (sym: string) => Promise<void>
+  loadPulseHistory: (sym: string) => Promise<void>
   loadEarnings: (sym: string) => Promise<void>
   addWatch: (sym: string, target?: number) => Promise<void>
   removeWatch: (sym: string) => Promise<void>
@@ -145,6 +149,8 @@ export const useStore = create<StoreState>((set, get) => ({
   news: {},
   newsLoaded: {},
   ratings: {},
+  pulse: {},
+  pulseHistory: {},
   earnings: {},
   watchlist: [],
   settings: null,
@@ -388,6 +394,22 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data } = await api.ratings(sym)
       set((st) => ({ ratings: { ...st.ratings, [sym]: data } }))
     } catch { /* leave empty */ }
+  },
+
+  loadPulse: async (sym) => {
+    if (get().pulse[sym]) return
+    try {
+      const { data } = await api.pulse(sym)
+      set((st) => ({ pulse: { ...st.pulse, [sym]: data } }))
+    } catch { /* leave unset — the dial simply doesn't render */ }
+  },
+
+  loadPulseHistory: async (sym) => {
+    if (get().pulseHistory[sym]) return
+    try {
+      const { data } = await api.pulseHistory(sym)
+      set((st) => ({ pulseHistory: { ...st.pulseHistory, [sym]: data } }))
+    } catch { /* leave unset — the trend simply doesn't render */ }
   },
 
   loadEarnings: async (sym) => {
