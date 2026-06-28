@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Real brand logos (Finnhub).** New `GET /api/logos?syms=…` endpoint returns
+  each company's official logo URL from Finnhub's `profile2` (cached a week,
+  fetched concurrently). The store loads logos for everything currently visible
+  and the `Logo` component prefers them, so tiles show the *actual* brand mark
+  (e.g. the red Coca-Cola logo for `KO`, which a favicon could only render as a
+  dark box). Logos degrade gracefully on load failure: **Finnhub brand logo →
+  Google favicon (by domain) → colored monogram.**
+
 ### Fixed
 
 - **Stock logos: wrong or missing icons.** Logos were guessed from the ticker
