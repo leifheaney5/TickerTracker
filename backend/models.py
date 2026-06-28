@@ -1,4 +1,4 @@
-from sqlalchemy import (Column, Integer, String, Float, Boolean, DateTime,
+from sqlalchemy import (Column, Integer, String, Float, Boolean, DateTime, Date,
                         ForeignKey, func, UniqueConstraint)
 from db import Base
 from flask_login import UserMixin
@@ -142,3 +142,21 @@ class StripeEvent(Base):
     event_id = Column(String, primary_key=True)
     event_type = Column(String, default="")
     received_at = Column(DateTime, server_default=func.now())
+
+
+class SignalSnapshot(Base):
+    """Daily Pulse snapshot per watched symbol — the durable first-party signal history.
+
+    Symbol-scoped (not per-user): one row per symbol per day, the accruing time-series that
+    cannot be backfilled. Powers Pulse sparklines and "shifted N days ago" annotations.
+    """
+    __tablename__ = "signal_snapshots"
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String, nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    pulse_score = Column(Float, default=0.0)
+    pulse_band = Column(String, default="")
+    sentiment_mood = Column(String, default="")
+    price = Column(Float, default=0.0)
+    created_at = Column(DateTime, server_default=func.now())
+    __table_args__ = (UniqueConstraint("symbol", "date", name="uq_signal_symbol_date"),)

@@ -3,6 +3,7 @@ import { useStore } from '../state/store'
 import { Watchlist } from '../components/Watchlist'
 import { MoversRibbon } from '../components/MoversRibbon'
 import { StockHeader } from '../components/StockHeader'
+import { PulseWhy } from '../components/PulseWhy'
 import { ChartControls } from '../components/ChartControls'
 import { StockChart } from '../charts/StockChart'
 import { KeyStats } from '../components/KeyStats'
@@ -37,6 +38,7 @@ export function Dashboard() {
       <main style={{ flex: 1, minWidth: 0, overflowY: isMobile ? undefined : 'auto', padding: isMobile ? '14px 14px' : 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 'var(--gap,16px)' }}>
         <MoversRibbon />
         <StockHeader />
+        <PulseWhy />
         <ChartControls />
         <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: 8, flex: '0 0 auto' }}>
           <StockChart />
