@@ -5,6 +5,24 @@ All notable changes to Ticker Tracker are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] — 2026-06-27
+
+### Added
+
+- **Multiple watchlists** — premium users can create, rename, reorder (drag-and-drop),
+  and delete unlimited watchlists; free users are gated at one list with an upgrade
+  nudge. Tickers can be dragged between lists. The last remaining list cannot be
+  deleted.
+- **Per-list sharing** — each watchlist has its own shareable `/s/<token>` link;
+  the shared view shows the list's name (falling back to "{owner}'s Watchlist")
+  with an "by {owner}" subline.
+- **Branded PNG export** — the ⋯ list menu offers "Download image", which
+  snapshots a styled ShareCard (list name, tickers with prices and % change, QR
+  code, and the Ticker Tracker logo) as a 2× PNG.
+- **Free / premium gating** — `free_limit` (10-ticker cap) and `premium_required`
+  (multiple-list gate) now surface as a dismissible banner with exact copy and an
+  Upgrade button (links to `#pricing`; Stripe integration is a later cycle).
+
 ## [Unreleased]
 
 ### Changed

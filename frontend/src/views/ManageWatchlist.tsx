@@ -647,13 +647,19 @@ export function ManageWatchlist() {
 
         {/* Limit error banner */}
         {lastLimitError && (
-          <div style={{ padding: '12px 16px', borderRadius: 10, background: 'var(--down)', color: '#fff', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <span>
+          <div style={{ padding: '12px 16px', borderRadius: 10, background: 'var(--cardHi)', border: '1px solid var(--line2)', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ color: 'var(--tx)', flex: 1 }}>
               {lastLimitError === 'premium_required'
-                ? '🔒 Multiple watchlists require a Premium plan.'
-                : '🔒 You\'ve reached the free-plan ticker limit (10 tickers).'}
+                ? 'Multiple watchlists are a premium feature. Upgrade to create more.'
+                : 'Free watchlists hold 10 tickers. Upgrade for unlimited.'}
             </span>
-            <button onClick={clearLimitError} style={{ background: 'transparent', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}>✕</button>
+            <a
+              href="#pricing"
+              style={{ flexShrink: 0, height: 30, padding: '0 14px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+            >
+              Upgrade
+            </a>
+            <button onClick={clearLimitError} aria-label="Dismiss" style={{ flexShrink: 0, background: 'transparent', border: 'none', color: 'var(--tx2)', fontWeight: 700, cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: '0 2px' }}>✕</button>
           </div>
         )}
 

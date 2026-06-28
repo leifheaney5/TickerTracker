@@ -129,6 +129,7 @@ export interface SharedWatchlistItem { symbol: string }
 
 export interface SharedWatchlistResponse {
   owner_name: string
+  list_name?: string
   items: SharedWatchlistItem[]
 }
 
