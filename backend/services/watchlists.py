@@ -21,7 +21,28 @@ def _item_dict(it, locked=False):
     return {"symbol": it.symbol, "position": it.position, "target": it.target,
             "alert_price": it.alert_price, "alert_dir": it.alert_dir,
             "alert_active": bool(it.alert_active), "watchlist_id": it.watchlist_id,
+            "kind": getattr(it, "kind", "stock") or "stock",
+            "coin_name": getattr(it, "coin_name", "") or "",
             "locked": locked}
+
+
+def _norm_symbol(symbol: str, kind: str) -> str:
+    # Stock tickers are case-insensitive (store UPPER). CoinGecko ids are
+    # lowercase-hyphen and case-sensitive — keep them verbatim.
+    return symbol.upper() if kind == "stock" else symbol
+
+
+def _find_item(s, uid, list_id, symbol):
+    """Locate an item by symbol within a list. Matches the stored symbol exactly
+    first (works for crypto ids stored verbatim and already-upper tickers), then
+    falls back to UPPER only when the input itself had uppercase letters — so a
+    lowercase crypto id like 'ada' never shadows a stock 'ADA'."""
+    it = s.query(models.WatchlistItem).filter_by(
+        user_id=uid, watchlist_id=list_id, symbol=symbol).first()
+    if it is None and symbol != symbol.lower():
+        it = s.query(models.WatchlistItem).filter_by(
+            user_id=uid, watchlist_id=list_id, symbol=symbol.upper()).first()
+    return it
 
 
 def get_or_create_primary_list(uid: int) -> int:
@@ -102,8 +123,9 @@ def delete_watchlist(uid, list_id) -> bool:
         return True
 
 
-def add_item(uid, list_id, symbol, target=0, alert_price=0, alert_dir="above") -> dict:
-    symbol = symbol.upper()
+def add_item(uid, list_id, symbol, target=0, alert_price=0, alert_dir="above",
+             kind="stock", coin_name="") -> dict:
+    symbol = _norm_symbol(symbol, kind)
     with db.get_session() as s:
         wl = _owned(s, uid, list_id)
         if not wl:
@@ -124,17 +146,15 @@ def add_item(uid, list_id, symbol, target=0, alert_price=0, alert_dir="above") -
         pos = s.query(models.WatchlistItem).filter_by(user_id=uid, watchlist_id=list_id).count()
         it = models.WatchlistItem(user_id=uid, watchlist_id=list_id, symbol=symbol,
                                   position=pos, target=target, alert_price=alert_price,
-                                  alert_dir=alert_dir)
+                                  alert_dir=alert_dir, kind=kind, coin_name=coin_name)
         s.add(it); s.commit()
         return _item_dict(it)
 
 
 def update_item(uid, list_id, symbol, **fields):
-    symbol = symbol.upper()
     allowed = {"target", "alert_price", "alert_dir", "alert_active", "position", "watchlist_id"}
     with db.get_session() as s:
-        it = s.query(models.WatchlistItem).filter_by(
-            user_id=uid, watchlist_id=list_id, symbol=symbol).first()
+        it = _find_item(s, uid, list_id, symbol)
         if not it:
             return None
         for k, v in fields.items():
@@ -146,7 +166,7 @@ def update_item(uid, list_id, symbol, **fields):
                     # If the destination list already has this symbol, delete the
                     # source row (merge) and return the existing destination item.
                     existing_dest = s.query(models.WatchlistItem).filter_by(
-                        user_id=uid, watchlist_id=dest_id, symbol=symbol).first()
+                        user_id=uid, watchlist_id=dest_id, symbol=it.symbol).first()
                     if existing_dest:
                         s.delete(it)
                         s.flush()
@@ -158,10 +178,8 @@ def update_item(uid, list_id, symbol, **fields):
 
 
 def remove_item(uid, list_id, symbol) -> bool:
-    symbol = symbol.upper()
     with db.get_session() as s:
-        it = s.query(models.WatchlistItem).filter_by(
-            user_id=uid, watchlist_id=list_id, symbol=symbol).first()
+        it = _find_item(s, uid, list_id, symbol)
         if not it:
             return False
         s.delete(it); s.commit()

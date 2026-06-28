@@ -84,6 +84,12 @@ def _alert_email_html(symbol, price, level, direction, kind):
     diff_pct = (diff / level * 100) if level else 0
     sign = "+" if diff >= 0 else ""
 
+    def _fmt(v):
+        # Sub-$1 coins need more precision than 2dp.
+        if v >= 1:
+            return f"${v:,.2f}"
+        return f"${v:,.4f}"
+
     body = (
         f'<p style="margin:0 0 18px;font-size:15px">'
         f'<b style="color:#11151b">{symbol}</b> {moved} your {label}.</p>'
@@ -95,7 +101,7 @@ def _alert_email_html(symbol, price, level, direction, kind):
         f'<div style="font-size:12px;color:#8b93a0;text-transform:uppercase;'
         f'letter-spacing:.04em">{symbol} &middot; current price</div>'
         f'<div style="font-size:30px;font-weight:800;color:#11151b;margin-top:2px">'
-        f'${price:,.2f} <span style="font-size:16px;color:{color}">{arrow}</span></div>'
+        f'{_fmt(price)} <span style="font-size:16px;color:{color}">{arrow}</span></div>'
         f'<div style="margin-top:8px">'
         f'{t.stat_pill(f"{sign}{diff_pct:.2f}% vs your {label}", color)}'
         f'</div>'
@@ -105,10 +111,10 @@ def _alert_email_html(symbol, price, level, direction, kind):
         '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" '
         'style="font-size:13.5px;color:#33383f">'
         f'<tr><td style="padding:6px 0;color:#8b93a0">Your {label}</td>'
-        f'<td align="right" style="padding:6px 0;font-weight:700">${level:,.2f}</td></tr>'
+        f'<td align="right" style="padding:6px 0;font-weight:700">{_fmt(level)}</td></tr>'
         f'<tr><td style="padding:6px 0;color:#8b93a0;border-top:1px solid #f0f2f4">Current</td>'
         f'<td align="right" style="padding:6px 0;font-weight:700;border-top:1px solid #f0f2f4;'
-        f'color:{color}">${price:,.2f}</td></tr>'
+        f'color:{color}">{_fmt(price)}</td></tr>'
         '</table>'
 
         f'{t.button(f"View {symbol} on Ticker Tracker", f"{t.APP_URL}/ticker/{symbol}")}'
@@ -117,25 +123,34 @@ def _alert_email_html(symbol, price, level, direction, kind):
         'Manage alerts in your watchlist, or turn off alert emails in Settings.</p>'
     )
     return t.shell(f"{symbol} hit your {label}", body,
-                   preheader=f"{symbol} is at ${price:,.2f} — {moved} your {label}.")
+                   preheader=f"{symbol} is at {_fmt(price)} — {moved} your {label}.")
 
 
-def check_alerts(now=None, quote_fn=None, send_fn=None) -> int:
+def check_alerts(now=None, quote_fn=None, send_fn=None, crypto_price_fn=None) -> int:
     now = now or dt.datetime.utcnow()
     quote_fn = quote_fn or get_quotes
     send_fn = send_fn or _send
+    if crypto_price_fn is None:
+        from services.crypto import get_crypto_prices
+        crypto_price_fn = get_crypto_prices
     fired = 0
     with db.get_session() as s:
         due = due_alerts(s, now=now)
         if not due:
             return 0
-        syms = sorted({w.symbol for w in due})
-        quotes, _ = quote_fn(syms)
+        stock = [w for w in due if (w.kind or "stock") != "crypto"]
+        crypto = [w for w in due if (w.kind or "stock") == "crypto"]
+        prices = {}
+        if stock:
+            quotes, _ = quote_fn(sorted({w.symbol for w in stock}))
+            prices.update({sym: q["price"] for sym, q in quotes.items()})
+        if crypto:
+            cp = crypto_price_fn(sorted({w.symbol for w in crypto}))
+            prices.update({cid: p["price"] for cid, p in cp.items()})
         for w in due:
-            q = quotes.get(w.symbol)
-            if not q:
+            price = prices.get(w.symbol)
+            if price is None:
                 continue
-            price = q["price"]
             hit = _evaluate(w, price)
             if not hit:
                 continue
@@ -149,9 +164,10 @@ def check_alerts(now=None, quote_fn=None, send_fn=None) -> int:
             if not billing.is_pro(w.user_id):
                 continue  # price-hit alert emails are a Pro feature
             label = "price target" if kind == "target" else "alert price"
+            display = w.coin_name or w.symbol
             ok = send_fn(user.email,
-                         f"{w.symbol} hit your {label}",
-                         _alert_email_html(w.symbol, price, level, direction, kind))
+                         f"{display} hit your {label}",
+                         _alert_email_html(display, price, level, direction, kind))
             if ok:
                 s.add(models.AlertLog(user_id=w.user_id, symbol=w.symbol, price=price))
                 w.alert_last_fired_at = now

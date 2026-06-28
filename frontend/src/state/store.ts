@@ -73,6 +73,7 @@ interface StoreState {
   billing: BillingState | null
   upgradePrompt: { feature: string; message: string } | null
   crypto: CryptoResponse | null
+  cryptoLimit: 25 | 50 | 100
   fng: Fng | null
   flash: Record<string, 'up' | 'down' | null>
   quotesFetchedAt: string
@@ -108,6 +109,10 @@ interface StoreState {
   openUpgrade: (feature?: string, message?: string) => void
   closeUpgrade: () => void
   loadCrypto: () => Promise<void>
+  setCryptoLimit: (n: 25 | 50 | 100) => Promise<void>
+  cryptoWatchIds: () => string[]
+  addCryptoWatch: (coin: { id: string; symbol: string; name: string }) => Promise<void>
+  removeCryptoWatch: (id: string) => Promise<void>
   loadFng: () => Promise<void>
   pollQuotes: () => Promise<void>
   loadHistory: (sym: string, tf: Timeframe) => Promise<void>
@@ -173,6 +178,7 @@ export const useStore = create<StoreState>((set, get) => ({
   billing: null,
   upgradePrompt: null,
   crypto: null,
+  cryptoLimit: 50,
   fng: null,
   flash: {},
   quotesFetchedAt: '',
@@ -288,6 +294,7 @@ export const useStore = create<StoreState>((set, get) => ({
         watchlist: DEFAULT_WATCH.map((symbol, i) => ({
           symbol, position: i, target: UNIVERSE[symbol]?.target ?? 0,
           alert_price: 0, alert_dir: 'above' as const, alert_active: false,
+          kind: 'stock' as const,
         })),
       })
     }
@@ -408,9 +415,33 @@ export const useStore = create<StoreState>((set, get) => ({
 
   loadCrypto: async () => {
     try {
-      const { data } = await api.crypto()
+      const { data } = await api.crypto(get().cryptoLimit, get().cryptoWatchIds())
       set({ crypto: data })
     } catch { /* leave null */ }
+  },
+
+  setCryptoLimit: async (n) => {
+    set({ cryptoLimit: n })
+    await get().loadCrypto()
+  },
+
+  cryptoWatchIds: () =>
+    get().watchlist.filter((w) => w.kind === 'crypto').map((w) => w.symbol),
+
+  addCryptoWatch: async (coin) => {
+    try {
+      await api.addWatch({ symbol: coin.id, kind: 'crypto', coin_name: coin.name })
+      const { data } = await api.getWatchlist()
+      set({ watchlist: data })
+      await get().loadCrypto()   // surface a newly-added off-top-N coin
+    } catch { /* ignore offline */ }
+  },
+
+  removeCryptoWatch: async (id) => {
+    try {
+      await api.removeWatch(id)
+      set((st) => ({ watchlist: st.watchlist.filter((w) => w.symbol !== id) }))
+    } catch { /* ignore */ }
   },
 
   loadFng: async () => {

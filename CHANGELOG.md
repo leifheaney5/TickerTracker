@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (multiple-list gate) surface as a dismissible banner with an Upgrade button
   (`#pricing`). Premium status defers to the shipped Stripe billing
   (`billing.is_pro`); enforcement is active only when `BILLING_ENABLED`.
+- **Crypto watchlist** — star any coin to track it; a "My Coins" section shows
+  live price and 24 h change for all starred coins. Search any coin via CoinGecko
+  to add coins beyond the top-25 default list.
+- **Expandable Crypto Map** — choose top 25, 50, or 100 coins by market cap via
+  a selector above the treemap; watchlisted coins are highlighted on the map.
+- **Crypto price-target alerts** — set a target price on a crypto coin and get
+  the same branded HTML email alert as stocks; sub-$1 coins display with extra
+  decimal precision.
 
 ## [1.14.0] — 2026-06-27
 

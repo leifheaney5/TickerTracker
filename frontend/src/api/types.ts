@@ -44,6 +44,7 @@ export interface Fundamentals {
 }
 
 export interface Coin {
+  id: string
   symbol: string
   name: string
   price: number
@@ -55,6 +56,12 @@ export interface CryptoResponse {
   coins: Coin[]
   total_market_cap: number
   btc_dominance: number
+}
+
+export interface CryptoSearchResult {
+  id: string
+  symbol: string
+  name: string
 }
 
 export interface Fng {
@@ -88,6 +95,8 @@ export interface WatchlistItem {
   alert_price: number
   alert_dir: AlertDir
   alert_active: boolean
+  kind: 'stock' | 'crypto'
+  coin_name?: string
 }
 
 export interface Settings {

@@ -59,6 +59,7 @@ export function flattenActive(lists: WatchlistWithItems[]): WatchlistItem[] {
       out.push({
         symbol: it.symbol, position: out.length, target: it.target,
         alert_price: it.alert_price, alert_dir: it.alert_dir, alert_active: it.alert_active,
+        kind: it.kind, coin_name: it.coin_name,
       })
     }
   }
