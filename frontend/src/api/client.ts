@@ -4,7 +4,7 @@
 
 import type {
   Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
-  NewsItem, Ratings, Pulse, PulsePoint, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
+  NewsItem, Ratings, Pulse, PulsePoint, SignalAlerts, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
   SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
   BillingState,
 } from './types'
@@ -61,6 +61,7 @@ export const api = {
   ratings: (sym: string) => get<Ratings>(`/api/ratings/${encodeURIComponent(sym)}`),
   pulse: (sym: string) => get<Pulse>(`/api/pulse/${encodeURIComponent(sym)}`),
   pulseHistory: (sym: string) => get<PulsePoint[]>(`/api/pulse/${encodeURIComponent(sym)}/history`),
+  signalAlerts: (sym: string) => get<SignalAlerts>(`/api/pulse/${encodeURIComponent(sym)}/signals`),
 
   getWatchlist: () => get<WatchlistItem[]>('/api/watchlist'),
   addWatch: (b: { symbol: string; target?: number; alert_price?: number; alert_dir?: string }) =>

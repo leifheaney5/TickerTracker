@@ -6,7 +6,7 @@ import { create } from 'zustand'
 import { api, ApiError } from '../api/client'
 import type {
   Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
-  CryptoResponse, Fng, Timeframe, AuthUser, BillingState, EarningsRow, Pulse, PulsePoint,
+  CryptoResponse, Fng, Timeframe, AuthUser, BillingState, EarningsRow, Pulse, PulsePoint, SignalAlerts,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 import { pathForView } from '../routes'
@@ -60,6 +60,7 @@ interface StoreState {
   ratings: Record<string, Ratings>
   pulse: Record<string, Pulse>
   pulseHistory: Record<string, PulsePoint[]>
+  signalAlerts: Record<string, SignalAlerts>
   earnings: Record<string, EarningsRow | null>
   watchlist: WatchlistItem[]
   settings: Settings | null
@@ -99,6 +100,7 @@ interface StoreState {
   loadRatings: (sym: string) => Promise<void>
   loadPulse: (sym: string) => Promise<void>
   loadPulseHistory: (sym: string) => Promise<void>
+  loadSignalAlerts: (sym: string) => Promise<void>
   loadEarnings: (sym: string) => Promise<void>
   addWatch: (sym: string, target?: number) => Promise<void>
   removeWatch: (sym: string) => Promise<void>
@@ -151,6 +153,7 @@ export const useStore = create<StoreState>((set, get) => ({
   ratings: {},
   pulse: {},
   pulseHistory: {},
+  signalAlerts: {},
   earnings: {},
   watchlist: [],
   settings: null,
@@ -410,6 +413,14 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data } = await api.pulseHistory(sym)
       set((st) => ({ pulseHistory: { ...st.pulseHistory, [sym]: data } }))
     } catch { /* leave unset — the trend simply doesn't render */ }
+  },
+
+  loadSignalAlerts: async (sym) => {
+    if (get().signalAlerts[sym]) return
+    try {
+      const { data } = await api.signalAlerts(sym)
+      set((st) => ({ signalAlerts: { ...st.signalAlerts, [sym]: data } }))
+    } catch { /* leave unset — no chips render */ }
   },
 
   loadEarnings: async (sym) => {

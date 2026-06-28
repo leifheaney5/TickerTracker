@@ -249,6 +249,18 @@ def pulse_history_route(sym):
     return envelope(data, source="signal_history")
 
 
+from services import signal_alerts as signal_alerts_svc
+
+
+@app.route("/api/pulse/<sym>/signals")
+def pulse_signals_route(sym):
+    sym = sym.upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    data = signal_alerts_svc.evaluate_signal_alerts(sym)
+    return envelope(data, source="signal_alerts")
+
+
 # ─── Persistence (Postgres/SQLite via DATABASE_URL) ──────────────────────────
 import db as _db
 _db.init_db()
