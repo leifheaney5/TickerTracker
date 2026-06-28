@@ -6,7 +6,7 @@ import { create } from 'zustand'
 import { api } from '../api/client'
 import type {
   Quote, Bar, Fundamentals, NewsItem, Ratings, WatchlistItem, Settings, Holding,
-  CryptoResponse, Fng, Timeframe, AuthUser, WatchlistWithItems,
+  CryptoResponse, Fng, Timeframe, AuthUser, WatchlistWithItems, WatchlistItemFull,
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 import { reorderLists, moveItem, reorderWithinList, flattenActive } from './watchlistReducers'
@@ -81,6 +81,7 @@ interface StoreState {
   reorderTicker: (listId: number, fromIndex: number, toIndex: number) => Promise<void>
   addToList: (listId: number, sym: string) => Promise<boolean>
   removeFromList: (listId: number, sym: string) => Promise<void>
+  updateListWatch: (listId: number, sym: string, fields: Partial<WatchlistItemFull>) => Promise<void>
   clearLimitError: () => void
   loadSettings: () => Promise<void>
   updateSettings: (fields: Partial<Settings>) => Promise<void>
@@ -310,6 +311,15 @@ export const useStore = create<StoreState>((set, get) => ({
     set((st) => ({ watchlists: st.watchlists.map((l) => (l.id === listId ? { ...l, items: l.items.filter((i) => i.symbol !== sym) } : l)) }))
     try { await api.removeListItem(listId, sym) } catch { /* ignore */ }
     set((st) => ({ watchlist: flattenActive(st.watchlists) }))
+  },
+  updateListWatch: async (listId, sym, fields) => {
+    const prev = get().watchlists
+    const next = prev.map((l) => l.id === listId
+      ? { ...l, items: l.items.map((i) => (i.symbol === sym ? { ...i, ...fields } : i)) }
+      : l)
+    set({ watchlists: next, watchlist: flattenActive(next) })
+    try { await api.patchListItem(listId, sym, fields) }
+    catch { set({ watchlists: prev, watchlist: flattenActive(prev) }) }
   },
   clearLimitError: () => set({ lastLimitError: null }),
 
