@@ -4,7 +4,7 @@ import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { money, pct, capStr } from '../lib/format'
-import { api } from '../api/client'
+import { api, ApiError } from '../api/client'
 import type { SavedScreen } from '../api/types'
 
 // Screener — ported from the prototype template (lines 674-715): filter the full
@@ -23,6 +23,8 @@ export function Screener() {
   const setView = useStore((s) => s.setView)
   const authed = useStore(isAuthed)
   const openAuth = useStore((s) => s.openAuth)
+  const billing = useStore((s) => s.billing)
+  const openUpgrade = useStore((s) => s.openUpgrade)
   const [grp, setGrp] = useState('All')
   const [perf, setPerf] = useState('All')
   const [cap, setCap] = useState('All')
@@ -48,7 +50,11 @@ export function Screener() {
       const { data } = await api.saveScreen({ name: n, filters: { grp, perf, cap } })
       setSavedScreens((prev) => [...prev, data])
       setSaveName('')
-    } catch { /* ignore */ } finally {
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 402) {
+        openUpgrade(e.body?.feature ?? 'screens', e.body?.message ?? '')
+      }
+    } finally {
       setSaving(false)
     }
   }
@@ -103,7 +109,17 @@ export function Screener() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible.join(',')])
 
-  const toggleCmp = (sym: string) => setCmp((c) => (c.includes(sym) ? c.filter((x) => x !== sym) : c.length >= 4 ? c : [...c, sym]))
+  const toggleCmp = (sym: string) =>
+    setCmp((c) => {
+      if (c.includes(sym)) return c.filter((x) => x !== sym)
+      const cap = billing?.limits.compare ?? 2
+      if (c.length >= cap) {
+        openUpgrade('compare',
+          `Free plan compares up to ${cap} stocks at once. Upgrade to Pro to compare up to 10.`)
+        return c
+      }
+      return [...c, sym]
+    })
 
   const tab = (active: boolean): React.CSSProperties => ({
     padding: '6px 11px', borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '12px',
@@ -131,7 +147,7 @@ export function Screener() {
 
         {/* ── Save / Load screens ─────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginLeft: 'auto' }}>
-          <span style={{ fontSize: '11px', letterSpacing: '.04em', color: 'var(--tx3)', fontWeight: 600 }}>SAVED SCREENS</span>
+          <span style={{ fontSize: '11px', letterSpacing: '.04em', color: 'var(--tx3)', fontWeight: 600 }}>SAVED SCREENS{authed && billing ? ` · ${savedScreens.length}/${billing.limits.screens}` : ''}</span>
           {authed ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {/* Save current filters */}

@@ -145,6 +145,31 @@ In the Railway dashboard, add all six auth variables as service variables.
 Alembic migration (`alembic upgrade head`) to create the `users` table and
 auth columns on first deploy.
 
+## Billing (Stripe Pro subscriptions)
+
+Ticker Tracker is freemium. Public market browsing stays free; paid value is
+saved-personalization scale plus automation. Statuses `active`/`trialing` = Pro.
+
+| Feature | Free | Pro |
+| --- | --- | --- |
+| Watchlist tickers | 15 | 250 |
+| Active price alerts | 3 | 100 |
+| Saved screeners | 1 | 25 |
+| Compare stocks at once | 2 | 10 |
+| Price-hit alert emails | — | ✓ |
+| Weekly market digest | — | ✓ |
+
+Pricing: **$7/mo** or **$59/yr** (annual is the primary upgrade CTA).
+
+Env vars: `BILLING_ENABLED`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+`STRIPE_PRO_MONTHLY_PRICE_ID`, `STRIPE_PRO_ANNUAL_PRICE_ID`. Full setup (product,
+prices, Customer Portal, webhook, local testing) is in
+[`docs/ops/stripe-billing-setup.md`](docs/ops/stripe-billing-setup.md).
+
+> **Launch gate:** keep `BILLING_ENABLED=false` in production until market-data
+> provider commercial-use rights are confirmed. While false, plan limits are not
+> enforced and the app behaves exactly as it does today.
+
 ## Tests & CI
 
 ```bash
