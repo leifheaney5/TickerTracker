@@ -12,6 +12,16 @@ def _key():
     return k
 
 
+def fetch_logo(sym: str) -> str:
+    """Company brand logo URL from Finnhub's /stock/profile2. Returns "" when
+    the profile has no logo (e.g. unknown ticker, ETF, most non-US names)."""
+    key = _key()
+    r = requests.get(f"{_BASE}/stock/profile2",
+                     params={"symbol": sym, "token": key}, timeout=8)
+    r.raise_for_status()
+    return (r.json().get("logo") or "").strip()
+
+
 def fetch_quote(sym: str) -> dict:
     """One fast Finnhub /quote call. Returns the standard quote shape, or raises."""
     key = _key()

@@ -60,9 +60,10 @@ interface TreemapProps {
   width: number
   height: number
   onTileClick?: (sym: string) => void
+  highlight?: Set<string>
 }
 
-export function Treemap({ items, width, height, onTileClick }: TreemapProps) {
+export function Treemap({ items, width, height, onTileClick, highlight }: TreemapProps) {
   const tiles = squarify(items, 1, 1, width - 2, height - 2)
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
@@ -70,7 +71,10 @@ export function Treemap({ items, width, height, onTileClick }: TreemapProps) {
         const showLabel = t.w > 34 && t.h > 22
         return (
           <g key={t.sym} onClick={() => onTileClick?.(t.sym)} style={{ cursor: onTileClick ? 'pointer' : 'default' }}>
-            <rect x={t.x} y={t.y} width={Math.max(0, t.w - 1)} height={Math.max(0, t.h - 1)} fill={heatColor(t.chg)} />
+            <rect x={t.x} y={t.y} width={Math.max(0, t.w - 1)} height={Math.max(0, t.h - 1)}
+              fill={heatColor(t.chg)}
+              stroke={highlight?.has(t.sym) ? '#fff' : undefined}
+              strokeWidth={highlight?.has(t.sym) ? 2 : undefined} />
             {showLabel && (
               <>
                 <text x={t.x + t.w / 2} y={t.y + t.h / 2 - 2} fill="#fff" fontSize={Math.min(13, t.w / 4)} fontWeight={700} fontFamily={FONT_SANS} textAnchor="middle">{t.sym}</text>
