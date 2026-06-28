@@ -1,5 +1,7 @@
 # backend/tests/test_digest_service.py
+import db, models
 import services.digest as dg
+from services import premium
 
 
 def test_build_digest_html_lists_symbols():
@@ -31,6 +33,43 @@ def test_send_weekly_digest_only_opted_in(monkeypatch):
     n = dg.send_weekly_digest(quote_fn=fake_quote, send_fn=fake_send)
     assert n == 1
     assert sent == ["in@e.com"]
+
+
+def test_locked_overflow_items_excluded_from_active_symbols(monkeypatch):
+    """Free user with 17 items (indices 15,16 locked): locked overflow tickers
+    must NOT appear in active_symbols, which is what the digest uses to filter
+    its payload. (The digest send itself is now Pro-only — see the test below —
+    so locked exclusion is verified directly on the underlying mechanism.)"""
+    from services import watchlists as _wl
+    # Locked-ness only applies when billing is enabled AND the user isn't Pro.
+    monkeypatch.setenv("BILLING_ENABLED", "1")
+    # Reset DB for clean state
+    models.Base.metadata.drop_all(db.engine)
+    models.Base.metadata.create_all(db.engine)
+
+    with db.get_session() as s:
+        u = models.User(email="dlock@e.com", name="D", email_verified=True)
+        s.add(u); s.flush()
+        s.add(models.Settings(user_id=u.id, news_digest=True,
+                              unsub_token="tok-digest-test"))
+        wl = models.Watchlist(user_id=u.id, name="My Watchlist", position=0)
+        s.add(wl); s.flush()
+        for i in range(17):
+            s.add(models.WatchlistItem(
+                user_id=u.id, watchlist_id=wl.id, symbol=f"DK{i}", position=i,
+            ))
+        s.commit()
+        uid = u.id
+
+    active = set(_wl.active_symbols(uid))
+    # Active symbols (DK0..DK14) must be present; locked (DK15, DK16) excluded.
+    assert len(active) == premium.FREE_MAX_ACTIVE_ITEMS
+    for i in range(premium.FREE_MAX_ACTIVE_ITEMS):
+        assert f"DK{i}" in active, f"Active symbol DK{i} missing from active_symbols"
+    for locked_sym in ("DK15", "DK16"):
+        assert locked_sym not in active, (
+            f"Locked symbol {locked_sym} leaked into active_symbols"
+        )
 
 
 def test_digest_skips_non_pro_users():

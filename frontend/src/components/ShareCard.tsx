@@ -1,77 +1,48 @@
-import type { WatchlistItem } from '../api/types'
-import { UNIVERSE } from '../data/universe'
-import { hashStr } from '../lib/hash'
+import { forwardRef } from 'react'
+import { Logo } from './Logo'
 import { money, pct } from '../lib/format'
+import { UNIVERSE } from '../data/universe'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
+import type { WatchlistWithItems } from '../api/types'
 
-// Fixed palette — the shared PNG must look identical regardless of the user's
-// active light/dark theme, so we do NOT use var(--…) tokens here.
-const C = {
-  bg: '#0b0e14',
-  card: '#11151d',
-  line: '#1f2630',
-  tx: '#e8edf4',
-  tx2: '#9aa6b6',
-  tx3: '#6b7686',
-  up: '#2ecc71',
-  down: '#ff5e6c',
-  accent: '#4f8cff',
+interface Props {
+  list: WatchlistWithItems
+  qrDataUrl: string
+  quote: (sym: string) => { price: number; pct: number }
 }
 
-// Self-contained monogram (no network image) so the card rasterizes to PNG
-// deterministically — cross-origin logo CDNs can't be read by html-to-image.
-function Monogram({ symbol }: { symbol: string }) {
-  const hue = hashStr(symbol) % 360
+export const ShareCard = forwardRef<HTMLDivElement, Props>(function ShareCard({ list, qrDataUrl, quote }, ref) {
+  const items = list.items.filter((i) => !i.locked).slice(0, 18)
   return (
-    <div style={{ width: 28, height: 28, borderRadius: 7, flex: '0 0 auto', background: `hsl(${hue},30%,20%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ fontFamily: FONT_SANS, fontWeight: 700, fontSize: 10, color: `hsl(${hue},55%,70%)`, letterSpacing: '-.02em' }}>{symbol.slice(0, 2)}</span>
-    </div>
-  )
-}
-
-export type ShareCardProps = {
-  items: WatchlistItem[]
-  price: (sym: string) => number
-  chg: (sym: string) => number
-  date?: Date
-}
-
-export function ShareCard({ items, price, chg, date = new Date() }: ShareCardProps) {
-  const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  return (
-    <div style={{ width: 640, background: C.bg, padding: 28, fontFamily: FONT_SANS, color: C.tx, boxSizing: 'border-box' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff', fontSize: 16 }}>T</div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-.02em' }}>Ticker Tracker</span>
-          <span style={{ fontSize: 12, color: C.tx2 }}>My Watchlist · {dateStr}</span>
-        </div>
+    <div ref={ref} style={{ position: 'fixed', left: -99999, top: 0, width: 1080, height: 1350, background: 'linear-gradient(160deg,#0b1220,#101a2e)', color: '#fff', fontFamily: FONT_SANS, padding: 64, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
+        <Logo symbol="NVDA" size={56} />
+        <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-.02em' }}>Ticker Tracker</span>
       </div>
-
-      <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, overflow: 'hidden' }}>
-        {items.map((w, i) => {
-          const c = chg(w.symbol)
-          const up = c >= 0
-          const name = UNIVERSE[w.symbol]?.name ?? w.symbol
+      <span style={{ fontSize: 56, fontWeight: 800, marginBottom: 6 }}>{list.name}</span>
+      <span style={{ fontSize: 22, opacity: .7, marginBottom: 28 }}>{items.length} tickers</span>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {items.map((it) => {
+          const q = quote(it.symbol)
+          const up = q.pct >= 0
           return (
-            <div key={w.symbol} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 90px', alignItems: 'center', padding: '12px 16px', borderTop: i === 0 ? 'none' : `1px solid ${C.line}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-                <Monogram symbol={w.symbol} />
-                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <span style={{ fontWeight: 700, fontSize: 14 }}>{w.symbol}</span>
-                  <span style={{ fontSize: 11, color: C.tx3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                </div>
-              </div>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 13, textAlign: 'right', color: C.tx }}>{money(price(w.symbol))}</div>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 600, textAlign: 'right', color: up ? C.up : C.down }}>{pct(c)}</div>
+            <div key={it.symbol} style={{ display: 'flex', alignItems: 'center', gap: 18, background: 'rgba(255,255,255,.05)', borderRadius: 16, padding: '14px 22px' }}>
+              <Logo symbol={it.symbol} size={40} />
+              <span style={{ fontSize: 30, fontWeight: 800, width: 150 }}>{it.symbol}</span>
+              <span style={{ flex: 1, fontSize: 22, opacity: .65, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{UNIVERSE[it.symbol]?.name || ''}</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 28 }}>{money(q.price)}</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 24, width: 120, textAlign: 'right', color: up ? '#3ddc97' : '#ff6b6b' }}>{pct(q.pct)}</span>
             </div>
           )
         })}
       </div>
-
-      <div style={{ marginTop: 14, fontSize: 11, color: C.tx3, textAlign: 'center' }}>
-        {items.length} ticker{items.length === 1 ? '' : 's'} · tickertracker.info
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 24 }}>
+        {qrDataUrl && <img src={qrDataUrl} width={120} height={120} alt="" style={{ borderRadius: 12, background: '#fff', padding: 8 }} />}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: 26, fontWeight: 800 }}>Made with TickerTracker · tickertracker.info</span>
+          <span style={{ fontSize: 20, opacity: .6 }}>Scan to view this watchlist live</span>
+        </div>
       </div>
     </div>
   )
-}
+})

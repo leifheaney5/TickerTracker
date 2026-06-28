@@ -155,8 +155,8 @@ def history_route(sym):
     tf = request.args.get("tf", "3M")
     if not valid_symbol(sym) or tf not in _VALID_TF:
         return envelope({"error": "invalid symbol or timeframe"}), 400
-    bars, source = get_history(sym, tf)
-    return envelope(bars, source=source)
+    bars, source, stale = get_history(sym, tf)
+    return envelope(bars, source=source, stale=stale)
 
 
 @app.route("/api/fundamentals/<sym>")
@@ -164,8 +164,8 @@ def fundamentals_route(sym):
     sym = sym.upper()
     if not valid_symbol(sym):
         return envelope({"error": "invalid symbol"}), 400
-    data, source = get_fundamentals(sym)
-    return envelope(data, source=source)
+    data, source, stale = get_fundamentals(sym)
+    return envelope(data, source=source, stale=stale)
 
 
 @app.route("/api/logos")
@@ -308,6 +308,7 @@ from services.store import (get_watchlist, add_watch, update_watch, remove_watch
 from services.share import create_share, resolve_share
 from services.screens import list_screens, save_screen, delete_screen
 from services import digest as _digest
+from services import watchlists as _wls
 from services import billing as _billing
 
 
@@ -337,10 +338,13 @@ def watchlist_post():
     err = _billing.check_watchlist_add(uid, sym)
     if err:
         return jsonify(err), 402
-    item = add_watch(sym, target=float(b.get("target", 0) or 0),
-                     alert_price=float(b.get("alert_price", 0) or 0),
-                     alert_dir=b.get("alert_dir", "above"),
-                     kind=kind, coin_name=(b.get("coin_name") or "")[:64])
+    try:
+        item = add_watch(sym, target=float(b.get("target", 0) or 0),
+                         alert_price=float(b.get("alert_price", 0) or 0),
+                         alert_dir=b.get("alert_dir", "above"),
+                         kind=kind, coin_name=(b.get("coin_name") or "")[:64])
+    except _wls.FreeLimit:
+        return envelope({"error": "free_limit"}), 402
     return envelope(item, source="db")
 
 
@@ -368,6 +372,106 @@ def watchlist_delete(sym):
     if _require_user() is None:
         return envelope({"error": "authentication required"}), 401
     return envelope({"removed": remove_watch(sym)}, source="db")
+
+
+# ─── Multi-watchlist routes ───────────────────────────────────────────────────
+
+@app.route("/api/watchlists", methods=["GET"])
+def watchlists_get():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    return envelope(_wls.list_watchlists(uid), source="db")
+
+
+@app.route("/api/watchlists", methods=["POST"])
+def watchlists_post():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    name = (b.get("name") or "").strip() or "Untitled"
+    try:
+        return envelope(_wls.create_watchlist(uid, name), source="db")
+    except _wls.PremiumRequired:
+        return envelope({"error": "premium_required"}), 402
+
+
+@app.route("/api/watchlists/<int:list_id>", methods=["PATCH"])
+def watchlists_patch(list_id):
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    res = _wls.rename_or_move_list(uid, list_id, name=b.get("name"), position=b.get("position"))
+    if res is None:
+        return envelope({"error": "not found"}), 404
+    return envelope(res, source="db")
+
+
+@app.route("/api/watchlists/<int:list_id>", methods=["DELETE"])
+def watchlists_delete(list_id):
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    try:
+        return envelope({"deleted": _wls.delete_watchlist(uid, list_id)}, source="db")
+    except _wls.LastList:
+        return envelope({"error": "last_list"}), 409
+
+
+@app.route("/api/watchlists/<int:list_id>/items", methods=["POST"])
+def watchlist_item_post(list_id):
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    sym = (b.get("symbol") or "").upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    try:
+        item = _wls.add_item(uid, list_id, sym,
+                             target=float(b.get("target", 0) or 0),
+                             alert_price=float(b.get("alert_price", 0) or 0),
+                             alert_dir=b.get("alert_dir", "above"))
+        return envelope(item, source="db")
+    except _wls.FreeLimit:
+        return envelope({"error": "free_limit"}), 402
+    except ValueError:
+        return envelope({"error": "not found"}), 404
+
+
+@app.route("/api/watchlists/<int:list_id>/items/<sym>", methods=["PATCH"])
+def watchlist_item_patch(list_id, sym):
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    allowed = {"target", "alert_price", "alert_dir", "alert_active", "position", "watchlist_id"}
+    fields = {k: v for k, v in b.items() if k in allowed}
+    try:
+        item = _wls.update_item(uid, list_id, sym.upper(), **fields)
+    except ValueError:
+        return envelope({"error": "not found"}), 404
+    if item is None:
+        return envelope({"error": "not found"}), 404
+    return envelope(item, source="db")
+
+
+@app.route("/api/watchlists/<int:list_id>/items/<sym>", methods=["DELETE"])
+def watchlist_item_delete(list_id, sym):
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    return envelope({"removed": _wls.remove_item(uid, list_id, sym.upper())}, source="db")
+
+
+@app.route("/api/watchlists/<int:list_id>/share", methods=["POST"])
+def watchlist_list_share(list_id):
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    return envelope({"token": create_share(uid, list_id)}, source="db")
 
 
 @app.route("/api/settings", methods=["GET"])
