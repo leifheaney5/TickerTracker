@@ -5,6 +5,7 @@ import db
 import models
 from services.quotes import get_quotes
 from providers.email import _send
+from services import watchlists as _wl
 
 logger = logging.getLogger(__name__)
 COOLDOWN = dt.timedelta(hours=12)
@@ -21,14 +22,23 @@ def should_fire(price: float, alert_price: float, alert_dir: str) -> bool:
 def due_alerts(session, now=None):
     """Watchlist items eligible to notify this run, off cooldown. An item is
     eligible if it has an armed alert (alert_active + alert_price) OR a price
-    target set — so just setting a target on a card gets you an email."""
+    target set — so just setting a target on a card gets you an email.
+    Locked items (free-user overflow beyond FREE_MAX_ACTIVE_ITEMS) are excluded."""
     now = now or dt.datetime.utcnow()
     rows = session.query(models.WatchlistItem).all()
+    # Cache per-user active symbol sets so we don't call active_symbols N times
+    # for N items belonging to the same user.
+    _active_cache: dict[int, set[str]] = {}
     out = []
     for w in rows:
         has_alert = bool(w.alert_active) and (w.alert_price or 0) > 0
         has_target = (w.target or 0) > 0
         if not (has_alert or has_target):
+            continue
+        # Exclude locked (free overflow) items
+        if w.user_id not in _active_cache:
+            _active_cache[w.user_id] = set(_wl.active_symbols(w.user_id))
+        if w.symbol not in _active_cache[w.user_id]:
             continue
         last = w.alert_last_fired_at
         if last is None or (now - last) >= COOLDOWN:
@@ -148,12 +158,15 @@ def check_alerts(now=None, quote_fn=None, send_fn=None) -> int:
 
 def _seed_for_test(user_email, symbol, alert_price=0, alert_dir="above",
                    alert_active=False, target=0):
-    """Test helper: create a user + watchlist item (armed alert and/or target)."""
+    """Test helper: create a user + primary watchlist + watchlist item (armed alert and/or target)."""
     with db.get_session() as s:
         u = models.User(email=user_email, name="t", email_verified=True)
         s.add(u); s.flush()
         s.add(models.Settings(user_id=u.id, alert_notifs=True))
-        s.add(models.WatchlistItem(user_id=u.id, symbol=symbol,
+        wl = models.Watchlist(user_id=u.id, name="My Watchlist", position=0)
+        s.add(wl); s.flush()
+        s.add(models.WatchlistItem(user_id=u.id, watchlist_id=wl.id, symbol=symbol,
+                                   position=0,
                                    alert_price=alert_price, alert_dir=alert_dir,
                                    alert_active=alert_active, target=target))
         s.commit()

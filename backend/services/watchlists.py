@@ -139,8 +139,19 @@ def update_item(uid, list_id, symbol, **fields):
             return None
         for k, v in fields.items():
             if k in allowed and v is not None:
-                if k == "watchlist_id" and not _owned(s, uid, int(v)):
-                    raise ValueError("target list not found or not owned")
+                if k == "watchlist_id":
+                    dest_id = int(v)
+                    if not _owned(s, uid, dest_id):
+                        raise ValueError("target list not found or not owned")
+                    # If the destination list already has this symbol, delete the
+                    # source row (merge) and return the existing destination item.
+                    existing_dest = s.query(models.WatchlistItem).filter_by(
+                        user_id=uid, watchlist_id=dest_id, symbol=symbol).first()
+                    if existing_dest:
+                        s.delete(it)
+                        s.flush()
+                        s.commit()
+                        return _item_dict(existing_dest)
                 setattr(it, k, v)
         s.commit()
         return _item_dict(it)
