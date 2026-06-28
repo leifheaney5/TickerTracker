@@ -96,3 +96,27 @@ def test_move_into_unowned_list_raises():
     item = wl.list_watchlists(uidA)[0]["items"][0]
     assert item["symbol"] == "NVDA"
     assert item["watchlist_id"] == la
+
+
+def test_move_deduplicates_symbol_already_in_dest():
+    """Moving NVDA from list A to list B when B already has NVDA must result in
+    exactly ONE NVDA row in B and zero rows in A — no duplicate created."""
+    uid = _fresh_user("premium")
+    a = wl.get_or_create_primary_list(uid)
+    b = wl.create_watchlist(uid, "B")["id"]
+    wl.add_item(uid, a, "NVDA")
+    wl.add_item(uid, b, "NVDA")
+
+    # Move NVDA from A -> B (B already has NVDA)
+    result = wl.update_item(uid, a, "NVDA", watchlist_id=b)
+    assert result is not None
+    assert result["watchlist_id"] == b
+
+    # Exactly one NVDA row in B
+    with db.get_session() as s:
+        count_b = s.query(models.WatchlistItem).filter_by(
+            user_id=uid, watchlist_id=b, symbol="NVDA").count()
+        count_a = s.query(models.WatchlistItem).filter_by(
+            user_id=uid, watchlist_id=a, symbol="NVDA").count()
+    assert count_b == 1, f"Expected 1 NVDA in list B, got {count_b}"
+    assert count_a == 0, f"Expected 0 NVDA in list A after merge, got {count_a}"
