@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.1] — 2026-06-28
+
 ### Added
 
 - **Real brand logos (Finnhub).** New `GET /api/logos?syms=…` endpoint returns
@@ -30,6 +32,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   service (colored/higher-res, broader coverage than DuckDuckGo). The curated
   domain map was expanded to cover common large-caps for the watchlist/movers
   tiles.
+- **Market data no longer silently degrades to wrong mock data.** Yahoo's
+  unauthenticated endpoints rate-limit (HTTP 429) a single server IP under load;
+  previously history and fundamentals fell straight through to fabricated mock on
+  any failure (e.g. NVDA shown as sector *Financials* / industry *Banks*, fake
+  price charts). Now:
+  - **Fundamentals:** Yahoo → Finnhub (free `profile2`+`metric`, real) → mock only
+    as a last resort, so a cold cache during a Yahoo 429 still returns real data.
+  - **History:** retry-with-backoff on 429, plus stale-while-error (serve the last
+    good cached bars instead of fabricated mock), with an honest `stale` flag.
+
+### Verification
+
+- Added end-to-end billing data-flow + HTTP enforcement tests (subscription
+  lifecycle, idempotency, Pro unlock, 402 contract).
 
 ## [1.15.0] — 2026-06-28
 
