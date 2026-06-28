@@ -43,6 +43,10 @@ export type SortBy = 'manual' | 'change' | 'price' | 'az'
 // loadWatchlist is invoked twice (React StrictMode double-invokes effects).
 let seedInFlight = false
 
+// Symbols whose brand logo we've already requested this session (success or a
+// confirmed "no logo"), so repeated polls don't re-hit /api/logos for them.
+const logosAttempted = new Set<string>()
+
 interface StoreState {
   // ── UI state (mirrors prototype state) ──
   view: View
@@ -61,6 +65,7 @@ interface StoreState {
   marketStatus: string
   history: Record<string, Bar[]> // key `${sym}:${tf}`
   fundamentals: Record<string, Fundamentals>
+  logos: Record<string, string> // symbol → Finnhub brand-logo URL
   news: Record<string, NewsItem[]> // key sym or 'MARKET'
   newsLoaded: Record<string, boolean> // keys whose news fetch has completed
   ratings: Record<string, Ratings>
@@ -117,6 +122,7 @@ interface StoreState {
   pollQuotes: () => Promise<void>
   loadHistory: (sym: string, tf: Timeframe) => Promise<void>
   loadFundamentals: (sym: string) => Promise<void>
+  loadLogos: (syms: string[]) => Promise<void>
   loadNews: (sym?: string) => Promise<void>
   loadRatings: (sym: string) => Promise<void>
   loadEarnings: (sym: string) => Promise<void>
@@ -166,6 +172,7 @@ export const useStore = create<StoreState>((set, get) => ({
   marketStatus: 'Unknown',
   history: {},
   fundamentals: {},
+  logos: {},
   news: {},
   newsLoaded: {},
   ratings: {},
@@ -456,6 +463,8 @@ export const useStore = create<StoreState>((set, get) => ({
     const selected = get().selected
     const all = Array.from(new Set([...syms, selected])).filter(Boolean)
     if (!all.length) return
+    // Fire-and-forget: ensure brand logos exist for everything currently visible.
+    get().loadLogos(all)
     try {
       const { data, fetchedAt } = await api.quotes(all)
       const prev = get().quotes
@@ -490,6 +499,21 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data } = await api.fundamentals(sym)
       set((st) => ({ fundamentals: { ...st.fundamentals, [sym]: data } }))
     } catch { /* uses UNIVERSE */ }
+  },
+
+  loadLogos: async (syms) => {
+    // Fetch brand logos only for symbols we haven't tried yet (logos are stable,
+    // so one attempt per symbol per session is enough; the backend caches too).
+    const fresh = Array.from(new Set(syms)).filter((s) => s && !logosAttempted.has(s))
+    if (!fresh.length) return
+    fresh.forEach((s) => logosAttempted.add(s))
+    try {
+      const { data } = await api.logos(fresh)
+      set((st) => ({ logos: { ...st.logos, ...data } }))
+    } catch {
+      // On failure, allow a later retry and let Logo fall back to favicon/monogram.
+      fresh.forEach((s) => logosAttempted.delete(s))
+    }
   },
 
   loadNews: async (sym) => {

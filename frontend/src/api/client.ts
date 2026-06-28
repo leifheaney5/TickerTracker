@@ -54,6 +54,7 @@ export const api = {
   history: (sym: string, tf: Timeframe) =>
     get<Bar[]>(`/api/history/${encodeURIComponent(sym)}?tf=${tf}`),
   fundamentals: (sym: string) => get<Fundamentals>(`/api/fundamentals/${encodeURIComponent(sym)}`),
+  logos: (syms: string[]) => get<Record<string, string>>(`/api/logos?syms=${encodeURIComponent(syms.join(','))}`),
   search: (q: string) => get<SymbolHit[]>(`/api/search?q=${encodeURIComponent(q)}`),
   crypto: (limit?: number, watchIds?: string[]) => {
     const p = new URLSearchParams()
