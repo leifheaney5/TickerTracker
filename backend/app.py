@@ -154,8 +154,8 @@ def history_route(sym):
     tf = request.args.get("tf", "3M")
     if not valid_symbol(sym) or tf not in _VALID_TF:
         return envelope({"error": "invalid symbol or timeframe"}), 400
-    bars, source = get_history(sym, tf)
-    return envelope(bars, source=source)
+    bars, source, stale = get_history(sym, tf)
+    return envelope(bars, source=source, stale=stale)
 
 
 @app.route("/api/fundamentals/<sym>")
@@ -163,8 +163,8 @@ def fundamentals_route(sym):
     sym = sym.upper()
     if not valid_symbol(sym):
         return envelope({"error": "invalid symbol"}), 400
-    data, source = get_fundamentals(sym)
-    return envelope(data, source=source)
+    data, source, stale = get_fundamentals(sym)
+    return envelope(data, source=source, stale=stale)
 
 
 @app.route("/api/logos")
