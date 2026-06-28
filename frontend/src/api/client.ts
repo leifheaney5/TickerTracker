@@ -3,7 +3,7 @@
 // callers (the store) decide on mock fallback.
 
 import type {
-  Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, Fng,
+  Envelope, QuotesResponse, Bar, Fundamentals, CryptoResponse, CryptoSearchResult, Fng,
   NewsItem, Ratings, Pulse, PulsePoint, SignalAlerts, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
   SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
   BillingState,
@@ -54,8 +54,17 @@ export const api = {
   history: (sym: string, tf: Timeframe) =>
     get<Bar[]>(`/api/history/${encodeURIComponent(sym)}?tf=${tf}`),
   fundamentals: (sym: string) => get<Fundamentals>(`/api/fundamentals/${encodeURIComponent(sym)}`),
+  logos: (syms: string[]) => get<Record<string, string>>(`/api/logos?syms=${encodeURIComponent(syms.join(','))}`),
   search: (q: string) => get<SymbolHit[]>(`/api/search?q=${encodeURIComponent(q)}`),
-  crypto: () => get<CryptoResponse>('/api/crypto'),
+  crypto: (limit?: number, watchIds?: string[]) => {
+    const p = new URLSearchParams()
+    if (limit) p.set('limit', String(limit))
+    if (watchIds && watchIds.length) p.set('watch', watchIds.join(','))
+    const qs = p.toString()
+    return get<CryptoResponse>(`/api/crypto${qs ? `?${qs}` : ''}`)
+  },
+  cryptoSearch: (q: string) =>
+    get<CryptoSearchResult[]>(`/api/crypto/search?q=${encodeURIComponent(q)}`),
   fng: () => get<Fng>('/api/fng'),
   news: (sym?: string) => get<NewsItem[]>(sym ? `/api/news?sym=${encodeURIComponent(sym)}` : '/api/news?market=1'),
   ratings: (sym: string) => get<Ratings>(`/api/ratings/${encodeURIComponent(sym)}`),
@@ -64,7 +73,7 @@ export const api = {
   signalAlerts: (sym: string) => get<SignalAlerts>(`/api/pulse/${encodeURIComponent(sym)}/signals`),
 
   getWatchlist: () => get<WatchlistItem[]>('/api/watchlist'),
-  addWatch: (b: { symbol: string; target?: number; alert_price?: number; alert_dir?: string }) =>
+  addWatch: (b: { symbol: string; target?: number; alert_price?: number; alert_dir?: string; kind?: 'stock' | 'crypto'; coin_name?: string }) =>
     send<WatchlistItem>('/api/watchlist', 'POST', b),
   updateWatch: (sym: string, b: Partial<WatchlistItem>) =>
     send<WatchlistItem>(`/api/watchlist/${encodeURIComponent(sym)}`, 'PATCH', b),

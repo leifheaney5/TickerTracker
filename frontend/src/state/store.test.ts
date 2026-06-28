@@ -124,3 +124,35 @@ describe('loadEarnings', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 })
+
+describe('logos store', () => {
+  beforeEach(() => {
+    useStore.setState({ logos: {} })
+  })
+
+  it('loadLogos populates the logos cache from /api/logos', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: { NVDA: 'https://logo/NVDA.png', KO: 'https://logo/KO.png' },
+        meta: { source: 'finnhub', stale: false },
+      }),
+    }) as never
+    await useStore.getState().loadLogos(['NVDA', 'KO'])
+    expect(useStore.getState().logos.NVDA).toBe('https://logo/NVDA.png')
+    expect(useStore.getState().logos.KO).toBe('https://logo/KO.png')
+  })
+
+  it('does not re-request symbols already attempted', async () => {
+    // Use a symbol unique to this test — logosAttempted is module-level and
+    // persists across tests (the dedup guard is itself session-scoped state).
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { TSLA: 'https://logo/TSLA.png' }, meta: { source: 'finnhub', stale: false } }),
+    })
+    global.fetch = spy as never
+    await useStore.getState().loadLogos(['TSLA'])
+    await useStore.getState().loadLogos(['TSLA'])
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+})
