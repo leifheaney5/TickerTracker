@@ -7,30 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **Real brand logos (Finnhub).** New `GET /api/logos?syms=…` endpoint returns
-  each company's official logo URL from Finnhub's `profile2` (cached a week,
-  fetched concurrently). The store loads logos for everything currently visible
-  and the `Logo` component prefers them, so tiles show the *actual* brand mark
-  (e.g. the red Coca-Cola logo for `KO`, which a favicon could only render as a
-  dark box). Logos degrade gracefully on load failure: **Finnhub brand logo →
-  Google favicon (by domain) → colored monogram.**
-
-### Fixed
-
-- **Stock logos: wrong or missing icons.** Logos were guessed from the ticker
-  symbol (`<symbol>.com`), so e.g. `WMT` resolved to `wmt.com` (an unrelated
-  company's logo) and `KO` to `ko.com` (a generic placeholder the favicon CDN
-  returns with HTTP 200, defeating the image-error fallback). The `Logo`
-  component now resolves a domain from a curated map plus the company website
-  surfaced from fundamentals (new `website` field on the fundamentals API),
-  **never guesses `<symbol>.com`** (unknown tickers cleanly show the colored
-  monogram instead of a wrong logo), and fetches icons from Google's favicon
-  service (colored/higher-res, broader coverage than DuckDuckGo). The curated
-  domain map was expanded to cover common large-caps for the watchlist/movers
-  tiles.
-
 ## [1.16.0] — 2026-06-28
 
 > **Moat: the Signal Intelligence layer.** Introduces **Pulse** — a transparent, explainable
@@ -67,16 +43,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`docs/marketing/positioning-and-copy.md`), an SEO program for real-data-backed `/signals` pages
   (`docs/marketing/seo-program.md`), and an HCI/UX interaction + a11y spec
   (`docs/design/hci-signal-layer.md`). New brand SVG assets under `frontend/public/brand/`.
+- **Pulse brand wired into the live app** — honest Pulse-forward `index.html` meta
+  (title/description/OG/Twitter), a 1200×630 OG share-card source
+  (`frontend/public/brand/og-card.svg`), and a "Signal, not noise." footer sign-off.
 
 ### Notes
 
-- Tests: backend 232 passing, frontend 63 passing; tsc clean; production build green.
+- Tests: backend 257 passing, frontend 87 passing (after integrating main); tsc clean; build green.
 - No changes to billing enforcement; `BILLING_ENABLED` remains as-is.
+- Follow-up: rasterize `og-card.svg` to PNG for `og:image` (Twitter/X won't render SVG OG).
+
+## [1.15.1] — 2026-06-28
+
+### Added
+
+- **Real brand logos (Finnhub).** New `GET /api/logos?syms=…` endpoint returns
+  each company's official logo URL from Finnhub's `profile2` (cached a week,
+  fetched concurrently). The store loads logos for everything currently visible
+  and the `Logo` component prefers them, so tiles show the *actual* brand mark
+  (e.g. the red Coca-Cola logo for `KO`, which a favicon could only render as a
+  dark box). Logos degrade gracefully on load failure: **Finnhub brand logo →
+  Google favicon (by domain) → colored monogram.**
+
+### Fixed
+
+- **Stock logos: wrong or missing icons.** Logos were guessed from the ticker
+  symbol (`<symbol>.com`), so e.g. `WMT` resolved to `wmt.com` (an unrelated
+  company's logo) and `KO` to `ko.com` (a generic placeholder the favicon CDN
+  returns with HTTP 200, defeating the image-error fallback). The `Logo`
+  component now resolves a domain from a curated map plus the company website
+  surfaced from fundamentals (new `website` field on the fundamentals API),
+  **never guesses `<symbol>.com`** (unknown tickers cleanly show the colored
+  monogram instead of a wrong logo), and fetches icons from Google's favicon
+  service (colored/higher-res, broader coverage than DuckDuckGo). The curated
+  domain map was expanded to cover common large-caps for the watchlist/movers
+  tiles.
+- **Market data no longer silently degrades to wrong mock data.** Yahoo's
+  unauthenticated endpoints rate-limit (HTTP 429) a single server IP under load;
+  previously history and fundamentals fell straight through to fabricated mock on
+  any failure (e.g. NVDA shown as sector *Financials* / industry *Banks*, fake
+  price charts). Now:
+  - **Fundamentals:** Yahoo → Finnhub (free `profile2`+`metric`, real) → mock only
+    as a last resort, so a cold cache during a Yahoo 429 still returns real data.
+  - **History:** retry-with-backoff on 429, plus stale-while-error (serve the last
+    good cached bars instead of fabricated mock), with an honest `stale` flag.
+
+### Verification
+
+- Added end-to-end billing data-flow + HTTP enforcement tests (subscription
+  lifecycle, idempotency, Pro unlock, 402 contract).
 
 ## [1.15.0] — 2026-06-28
 
 ### Added
 
+- **Multiple watchlists** — Pro users can create, rename, reorder (drag-and-drop),
+  and delete unlimited watchlists; free users are gated at one list with an upgrade
+  nudge. Tickers can be dragged between lists. The last remaining list cannot be
+  deleted. (Builds on, and defers premium status to, the Stripe billing feature.)
+- **Per-list sharing** — each watchlist has its own shareable `/s/<token>` link;
+  the shared view shows the list's name (falling back to "{owner}'s Watchlist")
+  with an "by {owner}" subline.
+- **Branded PNG export** — the ⋯ list menu offers "Download image", which
+  snapshots a styled ShareCard (list name, tickers with prices and % change, QR
+  code, and the Ticker Tracker logo) as a 2× PNG.
+- **Free / Pro gating** — `free_limit` (15-ticker cap) and `premium_required`
+  (multiple-list gate) surface as a dismissible banner with an Upgrade button
+  (`#pricing`). Premium status defers to the shipped Stripe billing
+  (`billing.is_pro`); enforcement is active only when `BILLING_ENABLED`.
 - **Crypto watchlist** — star any coin to track it; a "My Coins" section shows
   live price and 24 h change for all starred coins. Search any coin via CoinGecko
   to add coins beyond the top-25 default list.

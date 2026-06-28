@@ -43,6 +43,51 @@ def fetch_quote(sym: str) -> dict:
     }
 
 
+def fetch_fundamentals(sym: str) -> dict:
+    """Real fundamentals from the Finnhub FREE tier (profile2 + metric). Used as a
+    fallback when Yahoo is rate-limited (429), so we never serve fabricated mock
+    fundamentals. Returns the same shape as providers.yahoo.fetch_fundamentals.
+    Raises if no key or the symbol is unknown (empty payloads)."""
+    key = _key()
+    p = requests.get(f"{_BASE}/stock/profile2",
+                     params={"symbol": sym, "token": key}, timeout=10)
+    p.raise_for_status()
+    prof = p.json() or {}
+    m = requests.get(f"{_BASE}/stock/metric",
+                     params={"symbol": sym, "metric": "all", "token": key}, timeout=10)
+    m.raise_for_status()
+    met = (m.json() or {}).get("metric", {}) or {}
+
+    industry = prof.get("finnhubIndustry") or "—"
+    mc = prof.get("marketCapitalization")  # millions USD
+    if not prof.get("name") and not met:
+        raise RuntimeError(f"no Finnhub fundamentals for {sym}")
+
+    def _f(x):
+        try:
+            return round(float(x), 2)
+        except (TypeError, ValueError):
+            return 0.0
+
+    from providers.yahoo import domain_from_url  # local import avoids import cycle
+    pe = met.get("peTTM")
+    return {
+        "pe": round(float(pe), 1) if pe else None,
+        "market_cap": int(float(mc) * 1_000_000) if mc else 0,
+        "sector": industry,      # Finnhub free tier exposes industry, not GICS sector
+        "industry": industry,
+        "week52_high": _f(met.get("52WeekHigh")),
+        "week52_low": _f(met.get("52WeekLow")),
+        "all_time_high": _f(met.get("52WeekHigh")),
+        "all_time_low": _f(met.get("52WeekLow")),
+        "beta": _f(met.get("beta")),
+        "dividend_yield": _f(met.get("dividendYieldIndicatedAnnual")
+                             or met.get("currentDividendYieldTTM")),
+        "eps": _f(met.get("epsTTM")),
+        "website": domain_from_url(prof.get("weburl")),  # for the brand-logo resolver
+    }
+
+
 def search_symbols(query: str) -> list:
     """Symbol search across the market (not a fixed universe). Returns a list of
     {symbol, description, type}. Raises without a key."""

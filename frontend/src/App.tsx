@@ -20,6 +20,7 @@ import { UpgradePrompt } from './components/UpgradePrompt'
 // The active view + selected ticker come from the URL via RouterBridge.
 export default function App() {
   const loadWatchlist = useStore((s) => s.loadWatchlist)
+  const loadWatchlists = useStore((s) => s.loadWatchlists)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
   const loadBilling = useStore((s) => s.loadBilling)
@@ -41,6 +42,7 @@ export default function App() {
     loadMe().then(() => {
       if (useStore.getState().currentUser) {
         loadWatchlist()
+        loadWatchlists()
         loadSettings()
         loadHoldings()
         loadBilling()
@@ -67,7 +69,7 @@ export default function App() {
     if (verify === 'ok' || verify === 'failed' || checkout === 'success' || checkout === 'cancel') {
       window.history.replaceState(null, '', window.location.pathname + window.location.hash)
     }
-  }, [loadMe, loadWatchlist, loadSettings, loadHoldings, loadBilling, openAuth])
+  }, [loadMe, loadWatchlist, loadWatchlists, loadSettings, loadHoldings, loadBilling, openAuth])
 
   // Poll quotes for the effective symbol list (the user's watchlist, or the
   // demo list when anonymous) so cards/movers/At-a-Glance always show LIVE

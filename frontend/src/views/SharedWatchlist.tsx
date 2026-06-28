@@ -73,7 +73,7 @@ export function SharedWatchlist({ token }: { token: string }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-.02em' }}>
-              {data.owner_name}'s Watchlist
+              {data.list_name ? data.list_name : `${data.owner_name}'s Watchlist`}
             </span>
             <span style={{
               fontSize: '11px', fontWeight: 600, letterSpacing: '.04em',
@@ -85,7 +85,7 @@ export function SharedWatchlist({ token }: { token: string }) {
             </span>
           </div>
           <span style={{ fontSize: '13px', color: 'var(--tx3)' }}>
-            {data.items.length} ticker{data.items.length === 1 ? '' : 's'} · shared via Ticker Tracker
+            by {data.owner_name} · {data.items.length} ticker{data.items.length === 1 ? '' : 's'} · shared via Ticker Tracker
           </span>
         </div>
 
