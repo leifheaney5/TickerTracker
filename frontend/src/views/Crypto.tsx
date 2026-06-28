@@ -30,15 +30,18 @@ export function Crypto() {
 
   useEffect(() => { loadCrypto(); loadFng() }, [loadCrypto, loadFng])
 
-  // Debounced coin search (300ms); only query for 2+ chars.
+  // Debounced coin search (300ms); only query for 2+ chars. The `cancelled`
+  // flag guards against stale in-flight responses repopulating the dropdown
+  // after the query changed/cleared (or two queries resolving out of order).
   useEffect(() => {
     const q = query.trim()
     if (q.length < 2) { setResults([]); return }
+    let cancelled = false
     const t = setTimeout(async () => {
-      try { const { data } = await api.cryptoSearch(q); setResults(data) }
-      catch { setResults([]) }
+      try { const { data } = await api.cryptoSearch(q); if (!cancelled) setResults(data) }
+      catch { if (!cancelled) setResults([]) }
     }, 300)
-    return () => clearTimeout(t)
+    return () => { cancelled = true; clearTimeout(t) }
   }, [query])
 
   function toggleStar(c: Coin) {
@@ -184,9 +187,9 @@ export function Crypto() {
               style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--card)', color: 'var(--tx)', fontSize: '13px', outline: 'none' }} />
             {results.length > 0 && (
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, zIndex: 20, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>
-                {results.map((r) => (
+                {results.map((r, i) => (
                   <button key={r.id} onClick={() => pickResult(r)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', borderTop: '1px solid var(--line)', cursor: 'pointer', color: 'var(--tx)' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', borderTop: i === 0 ? 'none' : '1px solid var(--line)', cursor: 'pointer', color: 'var(--tx)' }}>
                     <span style={{ fontWeight: 700, fontSize: '13px' }}>{r.symbol.toUpperCase()}</span>
                     <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>{r.name}</span>
                   </button>
