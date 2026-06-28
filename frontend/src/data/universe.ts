@@ -41,10 +41,33 @@ export const GROUPS = ['All', 'Tech', 'Energy', 'Finance', 'Crypto']
 
 export const DEFAULT_WATCH = ['NVDA', 'AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'AMD', 'COIN', 'XOM', 'JPM', 'PLTR']
 
-// Logo domain map (DuckDuckGo icon service), from prototype DOMAINS.
+// Logo domain map (DuckDuckGo icon service). A ticker symbol is NOT a domain
+// (KO≠ko.com, WMT≠wmt.com), so symbols absent here fall back to the monogram
+// rather than a guessed `<symbol>.com` favicon. The per-stock page additionally
+// uses the company website from fundamentals (see Logo's `domain` prop), which
+// covers any ticker; this curated map keeps common names correct on the small
+// watchlist/movers tiles where fundamentals aren't loaded.
 export const DOMAINS: Record<string, string> = {
+  // Seed universe
   NVDA: 'nvidia.com', AAPL: 'apple.com', MSFT: 'microsoft.com', TSLA: 'tesla.com',
-  AMZN: 'amazon.com', GOOGL: 'google.com', META: 'meta.com', AMD: 'amd.com',
+  AMZN: 'amazon.com', GOOGL: 'google.com', GOOG: 'google.com', META: 'meta.com', AMD: 'amd.com',
   NFLX: 'netflix.com', PLTR: 'palantir.com', COIN: 'coinbase.com',
   JPM: 'jpmorganchase.com', XOM: 'exxonmobil.com', SHEL: 'shell.com',
+  // Common large caps (verified domains)
+  KO: 'coca-cola.com', WMT: 'walmart.com', PEP: 'pepsico.com', PG: 'pg.com',
+  COST: 'costco.com', MCD: 'mcdonalds.com', NKE: 'nike.com', SBUX: 'starbucks.com',
+  DIS: 'disney.com', HD: 'homedepot.com', LOW: 'lowes.com', TGT: 'target.com',
+  V: 'visa.com', MA: 'mastercard.com', AXP: 'americanexpress.com', PYPL: 'paypal.com',
+  BAC: 'bankofamerica.com', WFC: 'wellsfargo.com', C: 'citigroup.com', GS: 'goldmansachs.com',
+  MS: 'morganstanley.com', BRK: 'berkshirehathaway.com',
+  JNJ: 'jnj.com', UNH: 'unitedhealthgroup.com', PFE: 'pfizer.com', MRK: 'merck.com',
+  ABBV: 'abbvie.com', LLY: 'lilly.com', ABT: 'abbott.com', TMO: 'thermofisher.com',
+  INTC: 'intel.com', CSCO: 'cisco.com', ORCL: 'oracle.com', IBM: 'ibm.com',
+  CRM: 'salesforce.com', ADBE: 'adobe.com', QCOM: 'qualcomm.com', TXN: 'ti.com',
+  AVGO: 'broadcom.com', MU: 'micron.com',
+  UBER: 'uber.com', ABNB: 'airbnb.com', SHOP: 'shopify.com', SPOT: 'spotify.com',
+  SNAP: 'snap.com', RBLX: 'roblox.com', BABA: 'alibaba.com',
+  CVX: 'chevron.com', BA: 'boeing.com', GE: 'ge.com', CAT: 'caterpillar.com',
+  DE: 'deere.com', MMM: '3m.com', HON: 'honeywell.com', UPS: 'ups.com', FDX: 'fedex.com',
+  F: 'ford.com', GM: 'gm.com', T: 'att.com', VZ: 'verizon.com',
 }
