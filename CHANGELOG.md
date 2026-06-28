@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.0] — 2026-06-28
+
+> **Moat: the Signal Intelligence layer.** Introduces **Pulse** — a transparent, explainable
+> composite score — plus a durable first-party signal history and smart multi-signal alerts.
+> Built on a worktree branch (`experimental/signal-intelligence`); honest by construction
+> (every signal maps to real data, none implies advice/prediction). Strategy:
+> `docs/strategy/2026-06-28-moat-signal-intelligence.md`.
+
+### Added
+
+- **Technical indicators service (F1)** — `backend/services/indicators.py`: pure, deterministic
+  RSI(14), MACD(12/26/9), Bollinger %B, SMA50/200 trend, 52-week range position, and volume ratio
+  over OHLC history. 21 hand-computed unit tests.
+- **Pulse composite score (F2)** — `backend/services/pulse.py` + `GET /api/pulse/<SYM>`. A 0-100
+  score blending momentum, trend, 52-week positioning, analyst consensus/target, and
+  news-headline sentiment with **published weights**. Honest by construction: every component
+  exposes its raw value + weight + contribution; a missing signal is **omitted and the weights
+  renormalized** (never zero-filled, which would falsely read bearish); sentiment is labeled
+  headline-based; output carries a not-advice disclaimer. Frontend **PulseDial** (`role="meter"`,
+  meaning carried by band word + numeral not color alone, no-red ramp) on the stock header and a
+  **PulseWhy "see the math"** breakdown panel.
+- **Signal history (F3)** — `signal_snapshots` table (Alembic `ff01`), `services/signal_history.py`,
+  the `snapshot-signals` cron command, and `GET /api/pulse/<SYM>/history`. A daily, idempotent
+  per-symbol Pulse snapshot — the durable first-party time-series competitors cannot backfill.
+  Frontend **PulseTrend** sparkline with an honest "accruing" empty state and a "shifted to
+  <band> N days ago" annotation.
+- **Smart / divergence alerts (F4)** — `services/signal_alerts.py` + `GET /api/pulse/<SYM>/signals`.
+  Named, explainable multi-signal conditions: near-analyst-target, overbought+bearish,
+  oversold+bullish, Pulse band change, and price/sentiment divergence — each states the readings
+  behind it. Frontend **SignalChips** in the Why panel. (Email fan-out via the alerts cron is a
+  deliberate follow-up.)
+- **Brand, marketing & design deliverables** — brand guide + OG-card spec + Pulse-dial token
+  mapping (`docs/brand/`), honest positioning & copy kit with a claim→shipped-behavior table
+  (`docs/marketing/positioning-and-copy.md`), an SEO program for real-data-backed `/signals` pages
+  (`docs/marketing/seo-program.md`), and an HCI/UX interaction + a11y spec
+  (`docs/design/hci-signal-layer.md`). New brand SVG assets under `frontend/public/brand/`.
+
+### Notes
+
+- Tests: backend 232 passing, frontend 63 passing; tsc clean; production build green.
+- No changes to billing enforcement; `BILLING_ENABLED` remains as-is.
+
 ## [1.14.0] — 2026-06-27
 
 ### Added
