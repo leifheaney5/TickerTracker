@@ -134,8 +134,10 @@ export function Footer() {
           fontFamily: FONT_SANS, fontSize: '12px', color: 'var(--tx3)',
         }}
       >
-        <span style={{ whiteSpace: 'nowrap' }}>
+        <span style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 9 }}>
           © {YEAR} Ticker Tracker™
+          <span style={{ color: 'var(--line2)' }}>·</span>
+          <span style={{ color: 'var(--tx2)', fontWeight: 600 }}>Signal, not noise.</span>
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button style={linkStyle} onClick={() => setOpen('help')}>Help</button>

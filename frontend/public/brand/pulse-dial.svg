@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="300" viewBox="0 0 320 300" role="img" aria-label="Pulse dial showing 72, Building band, for AAPL">
+  <!-- Ticker Tracker — Pulse dial brand motif. Self-contained demo asset.
+       Colors are the REAL app tokens (frontend/src/theme/tokens.ts):
+       bg #0a0b0d, card #14171c, line2 rgba(255,255,255,.12), tx #e9ebee,
+       tx2 #9aa1ab, tx3 #5b626c, down #ff5d73 (NOT used as a band — avoids
+       implying "sell"). Band scale is cool->warm->energized:
+       Cooling=#4f8cff (compare-blue), Neutral=#9aa1ab (tx2),
+       Building=#ffb347 (warn), Hot=#3ddc84 (accent/up). -->
+  <defs>
+    <linearGradient id="ttPlate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#14171c"/>
+      <stop offset="1" stop-color="#0f1115"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="319" height="299" rx="20" fill="url(#ttPlate)" stroke="rgba(255,255,255,.07)"/>
+
+  <!-- Gauge geometry: cx=160 cy=150 r=120, 270deg arc, gap at bottom.
+       Circumference = 753.98; quarter-band = 141.37 (drawn 133.37 w/ 8px gap). -->
+  <g transform="rotate(135 160 150)" fill="none" stroke-width="16" stroke-linecap="butt">
+    <!-- track -->
+    <circle cx="160" cy="150" r="120" stroke="rgba(255,255,255,.12)"
+            stroke-dasharray="565.49 188.49"/>
+    <!-- Cooling 0-25 -->
+    <circle cx="160" cy="150" r="120" stroke="#4f8cff"
+            stroke-dasharray="133.37 620.61" stroke-dashoffset="0"/>
+    <!-- Neutral 25-50 -->
+    <circle cx="160" cy="150" r="120" stroke="#9aa1ab"
+            stroke-dasharray="133.37 620.61" stroke-dashoffset="-141.37"/>
+    <!-- Building 50-75 -->
+    <circle cx="160" cy="150" r="120" stroke="#ffb347"
+            stroke-dasharray="133.37 620.61" stroke-dashoffset="-282.74"/>
+    <!-- Hot 75-100 -->
+    <circle cx="160" cy="150" r="120" stroke="#3ddc84"
+            stroke-dasharray="133.37 620.61" stroke-dashoffset="-424.12"/>
+  </g>
+
+  <!-- Scale ends -->
+  <text x="58" y="248" fill="#5b626c" font-family="'JetBrains Mono',monospace" font-size="12">0</text>
+  <text x="250" y="248" fill="#5b626c" font-family="'JetBrains Mono',monospace" font-size="12">100</text>
+
+  <!-- Value marker dot on the arc at v=72 (angle 329.4deg) -->
+  <circle cx="263.3" cy="88.9" r="6.5" fill="#ffb347" stroke="#0f1115" stroke-width="3"/>
+
+  <!-- Needle from hub to value (r=98) -->
+  <g stroke-linecap="round">
+    <line x1="160" y1="150" x2="244.3" y2="100.1" stroke="#e9ebee" stroke-width="3"/>
+  </g>
+  <circle cx="160" cy="150" r="9" fill="#14171c" stroke="#e9ebee" stroke-width="2.5"/>
+
+  <!-- Score readout -->
+  <text x="160" y="158" text-anchor="middle" fill="#e9ebee"
+        font-family="'Sora',system-ui,sans-serif" font-weight="800" font-size="56">72</text>
+  <text x="160" y="184" text-anchor="middle" fill="#ffb347"
+        font-family="'Sora',system-ui,sans-serif" font-weight="700" font-size="15"
+        letter-spacing="2.5">BUILDING</text>
+  <text x="160" y="278" text-anchor="middle" fill="#9aa1ab"
+        font-family="'JetBrains Mono',monospace" font-size="13" letter-spacing="1">AAPL &#183; PULSE</text>
+</svg>

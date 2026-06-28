@@ -3,6 +3,7 @@ import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from './Logo'
+import { PulseDial } from './PulseDial'
 import { money, pct } from '../lib/format'
 
 // Stock header — ported from the prototype template (lines 241-296): logo,
@@ -75,6 +76,8 @@ export function StockHeader() {
         </div>
       </div>
 
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+      <PulseDial symbol={selected} size={58} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'flex-end' }}>
         {editing ? (
           <div style={{ display: 'flex', gap: 7, alignItems: 'center', padding: '7px 9px', borderRadius: 11, background: 'var(--card)', border: '1px solid var(--accent)' }}>
@@ -102,6 +105,7 @@ export function StockHeader() {
           </button>
         )}
         {targetHit && <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent)' }}>● Target reached</span>}
+      </div>
       </div>
     </div>
   )

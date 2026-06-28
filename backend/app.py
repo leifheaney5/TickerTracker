@@ -70,7 +70,8 @@ _rl_lock = _threading.Lock()
 # Only throttle the public provider-proxy routes (read-only market data).
 _RL_PREFIXES = ("/api/quotes", "/api/history", "/api/fundamentals",
                 "/api/news", "/api/ratings", "/api/crypto", "/api/fng",
-                "/api/search", "/api/earnings", "/api/sentiment", "/api/logos")
+                "/api/search", "/api/earnings", "/api/sentiment", "/api/pulse",
+                "/api/logos")
 
 
 def _client_ip():
@@ -259,6 +260,42 @@ def ratings_route(sym):
         return envelope({"error": "invalid symbol"}), 400
     data, source = get_ratings(sym)
     return envelope(data, source=source)
+
+
+from services import pulse as pulse_svc
+
+
+@app.route("/api/pulse/<sym>")
+def pulse_route(sym):
+    sym = sym.upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    data = pulse_svc.compute_pulse(sym)
+    return envelope(data, source="composite")
+
+
+from services import signal_history as signal_history_svc
+
+
+@app.route("/api/pulse/<sym>/history")
+def pulse_history_route(sym):
+    sym = sym.upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    data = signal_history_svc.get_signal_history(sym, days=90)
+    return envelope(data, source="signal_history")
+
+
+from services import signal_alerts as signal_alerts_svc
+
+
+@app.route("/api/pulse/<sym>/signals")
+def pulse_signals_route(sym):
+    sym = sym.upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    data = signal_alerts_svc.evaluate_signal_alerts(sym)
+    return envelope(data, source="signal_alerts")
 
 
 # ─── Persistence (Postgres/SQLite via DATABASE_URL) ──────────────────────────
