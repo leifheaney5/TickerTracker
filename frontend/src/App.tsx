@@ -35,6 +35,7 @@ export default function App() {
   const shareToken = _parseShareToken()
 
   const loadWatchlist = useStore((s) => s.loadWatchlist)
+  const loadWatchlists = useStore((s) => s.loadWatchlists)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
   const loadMe = useStore((s) => s.loadMe)
@@ -55,6 +56,7 @@ export default function App() {
     loadMe().then(() => {
       if (useStore.getState().currentUser) {
         loadWatchlist()
+        loadWatchlists()
         loadSettings()
         loadHoldings()
       }
@@ -82,7 +84,7 @@ export default function App() {
     if (sym || verify === 'ok' || verify === 'failed') {
       window.history.replaceState(null, '', window.location.pathname)
     }
-  }, [loadMe, loadWatchlist, loadSettings, loadHoldings, openAuth])
+  }, [loadMe, loadWatchlist, loadWatchlists, loadSettings, loadHoldings, openAuth])
 
   // Poll quotes for the effective symbol list (the user's watchlist, or the
   // demo list when anonymous) so cards/movers/At-a-Glance always show LIVE
