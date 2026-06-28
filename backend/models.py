@@ -26,6 +26,8 @@ class WatchlistItem(Base):
     alert_dir = Column(String, default="above")
     alert_active = Column(Boolean, default=False)
     alert_last_fired_at = Column(DateTime, nullable=True)
+    kind = Column(String, default="stock")            # "stock" | "crypto"
+    coin_name = Column(String, default="")            # cached display name (crypto)
     created_at = Column(DateTime, server_default=func.now())
 
 
