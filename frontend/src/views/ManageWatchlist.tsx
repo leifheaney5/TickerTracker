@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { toPng } from 'html-to-image'
+import QRCode from 'qrcode'
 import {
   DndContext,
   PointerSensor,
@@ -23,6 +25,7 @@ import { StarterPicker } from '../components/StarterPicker'
 import { money, pct } from '../lib/format'
 import { api } from '../api/client'
 import type { WatchlistWithItems, WatchlistItemFull } from '../api/types'
+import { ShareCard } from '../components/ShareCard'
 
 // ── id encoding helpers ──────────────────────────────────────────────────────
 // Each dnd-kit sortable id encodes the type so onDragEnd can dispatch the
@@ -244,7 +247,8 @@ interface WatchlistCardProps {
   renameList: (id: number, name: string) => void
   deleteList: (id: number) => void
   addToList: (listId: number, sym: string) => Promise<boolean>
-  onShare: (list: WatchlistWithItems) => void
+  onCopyLink: (list: WatchlistWithItems) => void
+  onDownloadImage: (list: WatchlistWithItems) => void
 }
 
 function WatchlistCard({
@@ -259,7 +263,8 @@ function WatchlistCard({
   renameList,
   deleteList,
   addToList,
-  onShare,
+  onCopyLink,
+  onDownloadImage,
 }: WatchlistCardProps) {
   const [renaming, setRenaming] = useState(false)
   const [renameVal, setRenameVal] = useState(list.name)
@@ -376,12 +381,17 @@ function WatchlistCard({
               >
                 Rename
               </button>
-              {/* Share seam — Task 12 will extend this to PNG download */}
               <button
-                onClick={() => { onShare(list); setMenuOpen(false) }}
+                onClick={() => { onCopyLink(list); setMenuOpen(false) }}
                 style={menuItemStyle}
               >
-                Share
+                Copy link
+              </button>
+              <button
+                onClick={() => { onDownloadImage(list); setMenuOpen(false) }}
+                style={menuItemStyle}
+              >
+                Download image
               </button>
               <button
                 onClick={() => { if (totalLists > 1) { deleteList(list.id); setMenuOpen(false) } }}
@@ -480,29 +490,53 @@ export function ManageWatchlist() {
   const reorderTicker = useStore((s) => s.reorderTicker)
   const lastLimitError = useStore((s) => s.lastLimitError)
   const clearLimitError = useStore((s) => s.clearLimitError)
-  // Legacy share state (per-list; Task 12 will extend with PNG)
-  const [shareLabel, setShareLabel] = useState<'Share' | 'Copying…' | 'Copied!'>('Share')
+  const [shareLabel, setShareLabel] = useState<'Copying…' | 'Copied!' | null>(null)
   const [sharingListId, setSharingListId] = useState<number | null>(null)
+  // Download-image state: which list is being snapshotted + its QR data URL
+  const [downloadList, setDownloadList] = useState<WatchlistWithItems | null>(null)
+  const [downloadQr, setDownloadQr] = useState<string>('')
+  const cardRef = useRef<HTMLDivElement>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const handleShare = async (list: WatchlistWithItems) => {
+  const handleCopyLink = async (list: WatchlistWithItems) => {
     setSharingListId(list.id)
     setShareLabel('Copying…')
     try {
-      const res = await api.createShare()
+      const res = await api.shareList(list.id)
       const url = `${location.origin}/s/${res.data.token}`
       await navigator.clipboard.writeText(url)
       setShareLabel('Copied!')
-      setTimeout(() => { setShareLabel('Share'); setSharingListId(null) }, 2500)
+      setTimeout(() => { setShareLabel(null); setSharingListId(null) }, 2500)
     } catch {
-      setShareLabel('Share')
+      setShareLabel(null)
       setSharingListId(null)
     }
   }
+
+  const handleDownloadImage = useCallback(async (list: WatchlistWithItems) => {
+    try {
+      const res = await api.shareList(list.id)
+      const link = `${location.origin}/s/${res.data.token}`
+      const qr = await QRCode.toDataURL(link)
+      setDownloadQr(qr)
+      setDownloadList(list)
+      // Wait a tick for the card to render into the DOM
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+      if (!cardRef.current) return
+      const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true })
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `${list.name.replace(/\s+/g, '-').toLowerCase()}-watchlist.png`
+      a.click()
+    } finally {
+      setDownloadList(null)
+      setDownloadQr('')
+    }
+  }, [])
 
   const handleNewList = async () => {
     const isPremium = currentUser?.plan === 'premium'
@@ -644,7 +678,8 @@ export function ManageWatchlist() {
                   renameList={renameList}
                   deleteList={deleteList}
                   addToList={addToList}
-                  onShare={handleShare}
+                  onCopyLink={handleCopyLink}
+                  onDownloadImage={handleDownloadImage}
                 />
               ))}
             </div>
@@ -652,10 +687,20 @@ export function ManageWatchlist() {
         </DndContext>
 
         {/* Share status toast */}
-        {sharingListId !== null && shareLabel !== 'Share' && (
+        {sharingListId !== null && shareLabel !== null && (
           <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 500, padding: '12px 20px', borderRadius: 10, background: shareLabel === 'Copied!' ? 'var(--up)' : 'var(--card)', border: '1px solid var(--line)', boxShadow: '0 4px 16px rgba(0,0,0,.2)', color: shareLabel === 'Copied!' ? 'var(--accentInk)' : 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600 }}>
             {shareLabel === 'Copied!' ? '✓ Link copied!' : 'Copying…'}
           </div>
+        )}
+
+        {/* Off-screen ShareCard for PNG snapshot */}
+        {downloadList && (
+          <ShareCard
+            ref={cardRef}
+            list={downloadList}
+            qrDataUrl={downloadQr}
+            quote={(sym) => ({ price: price(sym), pct: chg(sym) })}
+          />
         )}
       </div>
     </div>
