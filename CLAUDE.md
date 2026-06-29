@@ -218,8 +218,13 @@ worktrees). Scripts live in `.claude/hooks/` (Node, no external deps):
 | `dangerous-bash-guard.js` | `PreToolUse` `Bash` | **Blocks** clearly destructive ops: broad `rm -rf`, `flask db downgrade`, SQL `DROP`/`TRUNCATE`, `railway down`/delete. |
 | `oxlint-fix.js` | `PostToolUse` `Write`/`Edit` | Best-effort `oxlint --fix` (safe fixes) on edited `frontend/**` JS/TS. Never blocks. |
 | `py-syntax-check.js` | `PostToolUse` `Write`/`Edit` | `py_compile` on edited `.py`; feeds any `SyntaxError` back as context. Never blocks. |
+| `related-test-runner.js` | `PostToolUse` `Write`/`Edit` | If an edited `frontend/src` file has a related test, runs `vitest related --run` and feeds failures back. Self-gating, never blocks. |
 | `context-injector.js` | `UserPromptSubmit` | Injects current version, branch, working-tree status, worktree flag, `BILLING_ENABLED` into each prompt. |
-| `test-before-done.js` | `Stop` | If backend/frontend source changed this session, runs scoped `pytest -q` / `vitest related`; **blocks finishing** while they fail (loop-guarded, no-ops if no relevant change). |
+| `session-briefing.js` | `SessionStart` | Prints version / branch / tree / recent commits / open-PR count at session start. |
+| `subagent-logger.js` | `SubagentStop` | Appends an audit line per finished subagent to `.claude/logs/subagents.log` (gitignored). |
+| `test-before-done.js` | `Stop` | If backend/frontend source changed, runs scoped `pytest -q` / `vitest related`; **blocks finishing** while they fail (loop-guarded). |
+| `typecheck-frontend.js` | `Stop` | If `frontend/src` TS changed, runs `tsc --noEmit`; **blocks finishing** on type errors (loop-guarded). |
+| `changelog-reminder.js` | `Stop` | If source changed but `CHANGELOG.md`/`VERSION` didn't, nudges once (loop-guarded). |
 
 These mechanize the rules above — they tighten, never loosen, normal permissions.
 Each is a dependency-free Node script using shell-free `execFileSync`. To disable one, remove its entry from `.claude/settings.json`.
