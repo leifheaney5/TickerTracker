@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.0] — 2026-06-29
+
+> **Market Map follow-ups.** Sharpens the interactive map from v1.17.0 with an exchange
+> filter, crypto drill-down, and honest tooltips.
+
+### Added
+
+- **Exchange filter** on the Market Map (Stocks): filter the map to `NASDAQ` or `NYSE`
+  alongside the sector chips. Listing venue is sourced from a verified, stable per-symbol
+  fact (`hmExchange` in `frontend/src/data/market.ts`) — not fabricated index membership,
+  which churns and is deliberately not modelled.
+- **Crypto-tile drill-down**: clicking a tile in the Crypto universe opens the Crypto view
+  (the honest destination until a per-coin page exists).
+- **`data-testid`s** on the map controls and treemap tiles, so e2e tests use stable
+  locators instead of structural ones. New e2e coverage for the exchange filter and crypto
+  drill-down (full Playwright suite: 18 passing).
+
+### Changed
+
+- **Map tooltip never shows a seed price** (extends the v1.17.1 accurate-numbers rule):
+  the hover tooltip now subscribes to live quotes and omits the price until a real quote
+  has loaded, rather than falling back to the `UNIVERSE` seed value.
+
 ## [1.17.1] — 2026-06-29
 
 > **Accurate numbers only — no placeholder data.** The UI no longer renders fabricated
