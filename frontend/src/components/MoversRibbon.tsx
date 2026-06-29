@@ -12,7 +12,9 @@ export function MoversRibbon() {
   const watchSymbols = useStore((s) => s.watchSymbols)
   const chg = useStore((s) => s.chg)
   const price = useStore((s) => s.price)
-  const hasQuote = useStore((s) => s.hasQuote)
+  // Subscribe to quotes directly so the ribbon re-renders when they arrive
+  // (s.hasQuote is a stable fn ref and would not trigger a re-render).
+  const quotes = useStore((s) => s.quotes)
   const setSelected = useStore((s) => s.setSelected)
   const [tab, setTab] = useState<'gainers' | 'losers'>('gainers')
 
@@ -37,7 +39,7 @@ export function MoversRibbon() {
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2, flex: 1 }}>
         {ranked.map((sym) => {
           const c = chg(sym)
-          const live = hasQuote(sym)
+          const live = quotes[sym]?.price != null
           return (
             <div
               key={sym}

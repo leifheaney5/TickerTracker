@@ -18,7 +18,9 @@ const CAP_TABS = ['All', 'Mega', 'Large']
 export function Screener() {
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
-  const hasQuote = useStore((s) => s.hasQuote)
+  // Subscribe to quotes so rows re-render when they arrive (hasQuote is a
+  // stable fn ref and wouldn't trigger a re-render on quote updates).
+  const quotes = useStore((s) => s.quotes)
   const fundamentals = useStore((s) => s.fundamentals)
   const loadFundamentals = useStore((s) => s.loadFundamentals)
   const setSelected = useStore((s) => s.setSelected)
@@ -256,7 +258,7 @@ export function Screener() {
             {rows.map((sym) => {
               const u = UNIVERSE[sym]
               const c = chg(sym)
-              const live = hasQuote(sym)
+              const live = quotes[sym]?.price != null
               const f = fundamentals[sym]
               const inCmp = cmp.includes(sym)
               return (
