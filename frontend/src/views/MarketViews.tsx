@@ -3,6 +3,7 @@ import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO, IDX_COLORS } from '../theme/tokens'
 import { SECTORS, IDX, HM, hmChange, sectorPerf } from '../data/market'
 import { Treemap, heatColor, type TreemapItem } from '../charts/Treemap'
+import { UNIVERSE } from '../data/universe'
 import { api } from '../api/client'
 import { asOf } from '../lib/format'
 
@@ -15,15 +16,27 @@ const SUB_TABS: { label: string; view: Sub }[] = [
   { label: 'Overview', view: 'market' }, { label: 'Map', view: 'map' }, { label: 'Sectors', view: 'sectors' },
 ]
 const SEC_TFS = ['1D', '1W', '1M', '3M', 'YTD', '1Y']
+type Universe = 'stocks' | 'crypto'
+// Sector chips for the Map: 'All' + every real HM sector key.
+const SECTOR_KEYS = ['All', ...Object.keys(HM)]
 
 export function MarketViews({ sub }: { sub: Sub }) {
   const setView = useStore((s) => s.setView)
   const fng = useStore((s) => s.fng)
   const loadFng = useStore((s) => s.loadFng)
+  const setSelected = useStore((s) => s.setSelected)
+  const crypto = useStore((s) => s.crypto)
+  const loadCrypto = useStore((s) => s.loadCrypto)
+  const price = useStore((s) => s.price)
   const [secTf, setSecTf] = useState('1M')
   const [mapW, setMapW] = useState(800)
   const mapRef = useRef<HTMLDivElement | null>(null)
   const [fngFetchedAt, setFngFetchedAt] = useState('')
+  const [universe, setUniverse] = useState<Universe>('stocks')
+  const [sector, setSector] = useState<string>('All')
+
+  // Load crypto lazily the first time the crypto universe is chosen.
+  useEffect(() => { if (universe === 'crypto' && crypto == null) loadCrypto() }, [universe, crypto, loadCrypto])
 
   useEffect(() => {
     loadFng()
@@ -54,8 +67,27 @@ export function MarketViews({ sub }: { sub: Sub }) {
     </div>
   )
 
-  // Map: all heatmap symbols as one treemap.
-  const mapItems: TreemapItem[] = Object.values(HM).flat().map(([sym, cap]) => ({ sym, value: cap, chg: hmChange(sym) }))
+  // Map items derive from the chosen universe + sector. Stocks come from the
+  // synthetic HM set (filterable by sector); crypto from the live CoinGecko feed.
+  const stockItems = (sec: string): TreemapItem[] => {
+    const rows = sec === 'All' ? Object.values(HM).flat() : (HM[sec] || [])
+    return rows.map(([sym, cap]) => ({ sym, value: cap, chg: hmChange(sym) }))
+  }
+  const cryptoItems: TreemapItem[] = (crypto?.coins || []).map((c) => ({ sym: c.symbol, value: c.market_cap || 1, chg: c.change_pct }))
+  const mapItems: TreemapItem[] = universe === 'stocks' ? stockItems(sector) : cryptoItems
+
+  const stockTip = (sym: string) => {
+    const name = UNIVERSE[sym]?.name || sym
+    const p = price(sym)
+    const chg = hmChange(sym)
+    const priceStr = p ? ` · $${p.toFixed(2)}` : ''
+    return `${sym} · ${name}${priceStr} · ${(chg >= 0 ? '+' : '') + chg.toFixed(1)}%`
+  }
+  const cryptoTip = (sym: string) => {
+    const c = crypto?.coins.find((x) => x.symbol === sym)
+    if (!c) return sym
+    return `${sym} · ${c.name} · $${c.price.toLocaleString('en-US')} · ${(c.change_pct >= 0 ? '+' : '') + c.change_pct.toFixed(1)}%`
+  }
 
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -94,17 +126,39 @@ export function MarketViews({ sub }: { sub: Sub }) {
           {header('Market Map', 'The whole market at a glance — sized by market cap, colored by daily move')}
           <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12, flex: '0 0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>All sectors</span>
+              <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 10, background: 'var(--bg)' }}>
+                <button onClick={() => setUniverse('stocks')} style={subStyle(universe === 'stocks')}>Stocks</button>
+                <button onClick={() => setUniverse('crypto')} style={subStyle(universe === 'crypto')}>Crypto</button>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '10.5px', color: 'var(--tx3)', fontFamily: FONT_MONO }}>−3%</span>
                 <div style={{ width: 124, height: 8, borderRadius: 4, background: 'linear-gradient(90deg,#d63a3a,#3a3e46,#22ac60)' }} />
                 <span style={{ fontSize: '10.5px', color: 'var(--tx3)', fontFamily: FONT_MONO }}>+3%</span>
               </div>
             </div>
+            {universe === 'stocks' && (
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: 2 }}>
+                {SECTOR_KEYS.map((s) => (
+                  <button key={s} onClick={() => setSector(s)} style={{ ...subStyle(s === sector), flex: '0 0 auto', whiteSpace: 'nowrap' }}>{s === 'All' ? 'All sectors' : s}</button>
+                ))}
+              </div>
+            )}
             <div ref={mapRef} style={{ position: 'relative', width: '100%', height: 460, background: 'var(--bg)', borderRadius: 6, overflow: 'hidden' }}>
-              <Treemap items={mapItems} width={mapW} height={460} />
+              {mapItems.length > 0 ? (
+                <Treemap
+                  items={mapItems}
+                  width={mapW}
+                  height={460}
+                  onTileClick={universe === 'stocks' ? (sym) => setSelected(sym) : undefined}
+                  tipFor={universe === 'stocks' ? stockTip : cryptoTip}
+                />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--tx3)', fontSize: '13px' }}>
+                  {universe === 'crypto' && crypto == null ? 'Loading…' : 'No data available.'}
+                </div>
+              )}
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>Tile size = market cap · color = daily change</span>
+            <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>Tile size = market cap · color = daily change{universe === 'stocks' ? ' · click a tile to open it' : ''}</span>
           </div>
         </>
       )}
