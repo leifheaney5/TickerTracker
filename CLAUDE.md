@@ -28,7 +28,7 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 | `e2e-engineer` | `.claude/agents/e2e-engineer.md` | sonnet | Playwright authoring, execution, triage | tests |
 | `hf-engineer` | `.claude/agents/hf-engineer.md` | sonnet | UX research, feature specs, accessibility | read-only |
 | `performance-engineer` | `.claude/agents/performance-engineer.md` | sonnet | Query perf, Finnhub/YF caching, bundle size | read-only |
-| `database-optimizer` | `.claude/agents/database-optimizer.md` | sonnet | Slow query analysis, indexing, psycopg v3 | code |
+| `database-optimizer` _(optional, not installed)_ | external — VoltAgent `voltagent-data-ai` (see note below) | sonnet | Slow query analysis, indexing, psycopg v3 | code |
 
 **Growth & Web**
 
