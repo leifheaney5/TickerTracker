@@ -204,6 +204,21 @@ Backend is a flat `backend/` package (no `app/` dir, no per-route blueprints).
 
 ---
 
+## Automated Guardrails (Claude Code hooks)
+
+Enforced automatically via `.claude/settings.json` (tracked, shared across all
+worktrees). Scripts live in `.claude/hooks/` (Node, no external deps):
+
+| Hook | Event / scope | What it does |
+|---|---|---|
+| `secret-guard.js` | `PreToolUse` on `Write`/`Edit` | **Blocks** writing hardcoded secrets (Stripe/Resend/AWS keys, private-key blocks, or a sensitive env-var name assigned a string literal) into source. Allows env lookups, placeholders, and `.env*` files. |
+| `protect-main.js` | `PreToolUse` on `Bash` | **Blocks** direct `git push` to `main` (incl. `HEAD:main`, `--force`, and bare `git push` while on `main`). Feature-branch pushes pass. |
+| `oxlint-fix.js` | `PostToolUse` on `Write`/`Edit` | Best-effort: runs `oxlint --fix` (safe fixes only) on edited `frontend/**` JS/TS files. Never blocks. Backend `.py` is untouched (no formatter configured). |
+
+These mechanize the rules above — they tighten, never loosen, normal permissions.
+
+---
+
 ## Output Format (all subagents)
 ```
 ## [Agent Name] — Summary

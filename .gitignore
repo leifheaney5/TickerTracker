@@ -17,8 +17,10 @@ frontend/playwright/.cache/
 # Node
 node_modules/
 .env.railway.local
-# Claude Code: track the shared subagent network, ignore local/runtime state
+# Claude Code: track the shared subagent network + hooks, ignore local/runtime state
 .claude/*
 !.claude/agents/
+!.claude/hooks/
+!.claude/settings.json
 .claude/settings.local.json
 .superpowers/
