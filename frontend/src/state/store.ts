@@ -160,6 +160,10 @@ interface StoreState {
   // ── selectors ──
   price: (sym: string) => number
   chg: (sym: string) => number
+  // True once a LIVE quote has loaded for the symbol. Display sites gate on
+  // this to show a skeleton instead of a fabricated number; price()/chg()
+  // return 0 when false, which is safe for math but must never be shown.
+  hasQuote: (sym: string) => boolean
   watchSymbols: () => string[]
 }
 
@@ -488,7 +492,7 @@ export const useStore = create<StoreState>((set, get) => ({
       // clear flash after the prototype's ~650ms window
       setTimeout(() => set({ flash: {} }), 650)
     } catch {
-      // keep last-known quotes; selectors fall back to UNIVERSE
+      // keep last-known quotes; symbols without one render a skeleton (hasQuote=false)
     }
   },
 
@@ -499,7 +503,7 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data } = await api.history(sym, tf)
       set((st) => ({ history: { ...st.history, [key]: data } }))
     } catch {
-      /* chart uses fallbackSeries */
+      /* no history → chart renders a skeleton until a later load succeeds */
     }
   },
 
@@ -508,7 +512,7 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       const { data } = await api.fundamentals(sym)
       set((st) => ({ fundamentals: { ...st.fundamentals, [sym]: data } }))
-    } catch { /* uses UNIVERSE */ }
+    } catch { /* no fundamentals → cells render a skeleton until a later load succeeds */ }
   },
 
   loadLogos: async (syms) => {
@@ -618,8 +622,12 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
-  price: (sym) => get().quotes[sym]?.price ?? UNIVERSE[sym]?.price ?? 0,
-  chg: (sym) => get().quotes[sym]?.change_pct ?? UNIVERSE[sym]?.dchg ?? 0,
+  // Live-only: no UNIVERSE seed fallback. Returns 0 when no quote has loaded so
+  // dependent math stays defined, but callers MUST gate display on hasQuote()
+  // and render a <Skeleton> instead — never show this 0 as a real price.
+  price: (sym) => get().quotes[sym]?.price ?? 0,
+  chg: (sym) => get().quotes[sym]?.change_pct ?? 0,
+  hasQuote: (sym) => get().quotes[sym]?.price != null,
   // Effective symbols shown to the user: the authed user's saved watchlist, or
   // the read-only demo list when anonymous. Used by the cards, quote polling,
   // the movers ribbon, and At-a-Glance so anonymous users get LIVE prices too

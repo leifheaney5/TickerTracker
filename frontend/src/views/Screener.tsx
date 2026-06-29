@@ -3,6 +3,7 @@ import { useStore, isAuthed } from '../state/store'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
+import { Skeleton } from '../components/Skeleton'
 import { money, pct, capStr } from '../lib/format'
 import { api, ApiError } from '../api/client'
 import type { SavedScreen } from '../api/types'
@@ -17,6 +18,7 @@ const CAP_TABS = ['All', 'Mega', 'Large']
 export function Screener() {
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
+  const hasQuote = useStore((s) => s.hasQuote)
   const fundamentals = useStore((s) => s.fundamentals)
   const loadFundamentals = useStore((s) => s.loadFundamentals)
   const setSelected = useStore((s) => s.setSelected)
@@ -254,6 +256,8 @@ export function Screener() {
             {rows.map((sym) => {
               const u = UNIVERSE[sym]
               const c = chg(sym)
+              const live = hasQuote(sym)
+              const f = fundamentals[sym]
               const inCmp = cmp.includes(sym)
               return (
                 <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,1.4fr) 130px 96px 78px 96px 60px 124px', alignItems: 'center', borderTop: '1px solid var(--line)' }}>
@@ -265,10 +269,10 @@ export function Screener() {
                     </div>
                   </div>
                   <div style={{ padding: '12px 12px', fontSize: '12px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.sector}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{money(price(sym))}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: c >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{fundamentals[sym] ? capStr(fundamentals[sym].market_cap) : u.cap}</div>
-                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{fundamentals[sym] && fundamentals[sym].pe ? String(fundamentals[sym].pe) : u.pe}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{live ? money(price(sym)) : <Skeleton inline width={56} height={12} />}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: live ? (c >= 0 ? 'var(--up)' : 'var(--down)') : undefined }}>{live ? pct(c) : <Skeleton inline width={40} height={11} />}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{f ? capStr(f.market_cap) : <Skeleton inline width={48} height={12} />}</div>
+                  <div style={{ padding: '12px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{f ? (f.pe ? String(f.pe) : '—') : <Skeleton inline width={32} height={12} />}</div>
                   <div style={{ padding: '12px 12px' }}>
                     <button onClick={() => toggleCmp(sym)} style={{ height: 28, padding: '0 11px', borderRadius: 7, cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, border: `1px solid ${inCmp ? 'var(--accent)' : 'var(--line2)'}`, background: inCmp ? 'rgba(61,220,132,.1)' : 'transparent', color: inCmp ? 'var(--accent)' : 'var(--tx2)' }}>
                       {inCmp ? '✓ Added' : '+ Compare'}

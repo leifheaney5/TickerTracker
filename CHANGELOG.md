@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.1] — 2026-06-29
+
+> **Accurate numbers only — no placeholder data.** The UI no longer renders fabricated
+> seed values while real data loads. Previously, every price/change fell back to a hardcoded
+> `UNIVERSE` seed (e.g. NVDA $131.26), fundamentals fell back to seed cap/PE strings, charts
+> drew fully synthetic candles, and the crypto Fear & Greed gauge flashed a templated
+> `50 / Neutral` before the real reading (e.g. 12) arrived. Now anything still in flight shows
+> a shimmer **skeleton**, so a number on screen is always genuine.
+
+### Changed
+
+- **Live-only store selectors** — `price()`/`chg()` no longer fall back to `UNIVERSE` seed
+  prices; they return `0` for math safety and expose a new `hasQuote(sym)` predicate that
+  display sites gate on.
+- **Skeleton loading states** — new `<Skeleton>` shimmer component replaces placeholder values
+  across Crypto (Fear & Greed, total cap, BTC dominance), Watchlist, At-a-Glance (overview +
+  deep-dive), Screener, Key Statistics, Stock Header, Movers Ribbon, Holdings, Alerts,
+  Manage Watchlists, and Due Diligence (analyst price-target band).
+- **Charts render real history only** — `StockChart` and `Sparkline` show a skeleton until
+  `/api/history` data loads instead of drawing synthetic seed candles; the synthetic series
+  generators in `data/series.ts` were removed.
+
+### Notes
+
+- The **Market/Map/Sectors** views (`data/market.ts`) and the **Strategy** cockpit remain
+  illustrative — they have no real-data backend, so they're a separate product decision (build
+  an endpoint or label as illustrative) rather than a load-window fix.
+
 ## [1.16.0] — 2026-06-28
 
 > **Moat: the Signal Intelligence layer.** Introduces **Pulse** — a transparent, explainable
