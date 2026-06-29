@@ -211,11 +211,18 @@ worktrees). Scripts live in `.claude/hooks/` (Node, no external deps):
 
 | Hook | Event / scope | What it does |
 |---|---|---|
-| `secret-guard.js` | `PreToolUse` on `Write`/`Edit` | **Blocks** writing hardcoded secrets (Stripe/Resend/AWS keys, private-key blocks, or a sensitive env-var name assigned a string literal) into source. Allows env lookups, placeholders, and `.env*` files. |
-| `protect-main.js` | `PreToolUse` on `Bash` | **Blocks** direct `git push` to `main` (incl. `HEAD:main`, `--force`, and bare `git push` while on `main`). Feature-branch pushes pass. |
-| `oxlint-fix.js` | `PostToolUse` on `Write`/`Edit` | Best-effort: runs `oxlint --fix` (safe fixes only) on edited `frontend/**` JS/TS files. Never blocks. Backend `.py` is untouched (no formatter configured). |
+| `secret-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** hardcoded secrets (Stripe/Resend/AWS keys, private-key blocks, or a sensitive env-var name assigned a string literal) in source. Allows env lookups, placeholders, `.env*`. |
+| `frontend-provider-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** adding a Finnhub/Yahoo/CoinGecko host to a `frontend/**` source file (data must flow backend→cache→frontend). Skips test/mock files. |
+| `migration-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** editing an already-committed Flask-Migrate revision in `migrations/versions/`. New (untracked) migrations pass. |
+| `protect-main.js` | `PreToolUse` `Bash` | **Blocks** direct push to `main` (incl. `HEAD:main`, `--force`, bare push on `main`). Feature-branch pushes pass. |
+| `dangerous-bash-guard.js` | `PreToolUse` `Bash` | **Blocks** clearly destructive ops: broad `rm -rf`, `flask db downgrade`, SQL `DROP`/`TRUNCATE`, `railway down`/delete. |
+| `oxlint-fix.js` | `PostToolUse` `Write`/`Edit` | Best-effort `oxlint --fix` (safe fixes) on edited `frontend/**` JS/TS. Never blocks. |
+| `py-syntax-check.js` | `PostToolUse` `Write`/`Edit` | `py_compile` on edited `.py`; feeds any `SyntaxError` back as context. Never blocks. |
+| `context-injector.js` | `UserPromptSubmit` | Injects current version, branch, working-tree status, worktree flag, `BILLING_ENABLED` into each prompt. |
+| `test-before-done.js` | `Stop` | If backend/frontend source changed this session, runs scoped `pytest -q` / `vitest related`; **blocks finishing** while they fail (loop-guarded, no-ops if no relevant change). |
 
 These mechanize the rules above — they tighten, never loosen, normal permissions.
+Each is a dependency-free Node script using shell-free `execFileSync`. To disable one, remove its entry from `.claude/settings.json`.
 
 ---
 
