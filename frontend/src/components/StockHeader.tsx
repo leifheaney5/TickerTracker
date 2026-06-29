@@ -4,6 +4,7 @@ import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from './Logo'
 import { PulseDial } from './PulseDial'
+import { Skeleton } from './Skeleton'
 import { money, pct } from '../lib/format'
 
 // Stock header — ported from the prototype template (lines 241-296): logo,
@@ -13,6 +14,7 @@ export function StockHeader() {
   const selected = useStore((s) => s.selected)
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
+  const hasQuote = useStore((s) => s.hasQuote)
   const flash = useStore((s) => s.flash)
   const watchlist = useStore((s) => s.watchlist)
   const fundamentals = useStore((s) => s.fundamentals)
@@ -29,6 +31,7 @@ export function StockHeader() {
   const wl = watchlist.find((w) => w.symbol === selected)
   const tracked = !!wl
   const target = wl?.target ?? 0
+  const live = hasQuote(selected)
   const p = price(selected)
   const c = chg(selected)
   const up = c >= 0
@@ -68,11 +71,20 @@ export function StockHeader() {
         </div>
         <span style={{ fontSize: '14px', color: 'var(--tx2)' }}>{u.name} · {sector}</span>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: '32px', fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1, color: priceColor }}>{money(p)}</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 11px', borderRadius: 9, fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 600, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>
-            {up ? '▲' : '▼'} {pct(c)} <span style={{ opacity: 0.8 }}>{(dayAbs >= 0 ? '+' : '') + money(Math.abs(dayAbs)).replace('$', '$')}</span>
-          </span>
-          <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>Today</span>
+          {live ? (
+            <>
+              <span style={{ fontFamily: FONT_MONO, fontSize: '32px', fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1, color: priceColor }}>{money(p)}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 11px', borderRadius: 9, fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 600, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>
+                {up ? '▲' : '▼'} {pct(c)} <span style={{ opacity: 0.8 }}>{(dayAbs >= 0 ? '+' : '') + money(Math.abs(dayAbs)).replace('$', '$')}</span>
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>Today</span>
+            </>
+          ) : (
+            <>
+              <Skeleton width={150} height={32} radius={8} />
+              <Skeleton width={92} height={26} radius={9} />
+            </>
+          )}
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { FONT_SANS, FONT_MONO, COMPARE_COLORS } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { Donut } from '../charts/Donut'
+import { Skeleton } from '../components/Skeleton'
 import { money, pct } from '../lib/format'
 
 // Portfolio / Holdings view — ported from the prototype template (lines
@@ -19,6 +20,9 @@ export function Holdings() {
   const authed = useStore(isAuthed)
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
+  // Subscribe to quotes so rows/summary re-render when they arrive (hasQuote is
+  // a stable fn ref and wouldn't trigger a re-render on quote updates).
+  const quotes = useStore((s) => s.quotes)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
   const openAuth = useStore((s) => s.openAuth)
@@ -38,14 +42,18 @@ export function Holdings() {
         .map(([symbol, u]) => ({ symbol, shares: u.shares, avg_cost: u.cost }))
 
   const rows = positions.map((h) => {
+    const live = quotes[h.symbol]?.price != null
     const p = price(h.symbol)
     const value = p * h.shares
     const cost = h.avg_cost * h.shares
     const gain = value - cost
     const gainPct = cost ? (gain / cost) * 100 : 0
     const day = chg(h.symbol)
-    return { ...h, p, value, cost, gain, gainPct, day, name: UNIVERSE[h.symbol]?.name || h.symbol }
+    return { ...h, live, p, value, cost, gain, gainPct, day, name: UNIVERSE[h.symbol]?.name || h.symbol }
   })
+  // Portfolio-level figures only mean something once EVERY position has a live
+  // quote — a partial sum would understate value. Until then, show skeletons.
+  const allLive = rows.length > 0 && rows.every((r) => r.live)
   const totalValue = rows.reduce((a, r) => a + r.value, 0)
   const totalCost = rows.reduce((a, r) => a + r.cost, 0)
   const totalGain = totalValue - totalCost
@@ -120,15 +128,19 @@ export function Holdings() {
         </div>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {summaryCard('TOTAL VALUE', <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(totalValue))}</span>)}
+          {summaryCard('TOTAL VALUE', allLive
+            ? <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(totalValue))}</span>
+            : <Skeleton width={120} height={22} />)}
           {summaryCard('COST BASIS', <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx2)' }}>{mask(money(totalCost))}</span>)}
-          {summaryCard('TOTAL RETURN', (
+          {summaryCard('TOTAL RETURN', allLive ? (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((totalGain >= 0 ? '+' : '') + money(totalGain))}</span>
               <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(totalGainPct)}</span>
             </div>
-          ))}
-          {summaryCard('TODAY', <span style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: todayVal >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((todayVal >= 0 ? '+' : '') + money(todayVal))}</span>)}
+          ) : <Skeleton width={140} height={22} />)}
+          {summaryCard('TODAY', allLive
+            ? <span style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: todayVal >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((todayVal >= 0 ? '+' : '') + money(todayVal))}</span>
+            : <Skeleton width={100} height={16} />)}
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap' }}>
@@ -147,7 +159,9 @@ export function Holdings() {
                   <div key={r.symbol} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span style={{ width: 9, height: 9, borderRadius: 3, background: DONUT_COLORS[i % DONUT_COLORS.length], flex: '0 0 auto' }} />
                     <span style={{ flex: 1, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{r.symbol}</span>
-                    <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{totalValue ? ((r.value / totalValue) * 100).toFixed(1) + '%' : '—'}</span>
+                    {allLive
+                      ? <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{totalValue ? ((r.value / totalValue) * 100).toFixed(1) + '%' : '—'}</span>
+                      : <Skeleton inline width={38} height={11} />}
                   </div>
                 ))}
               </div>
@@ -173,11 +187,15 @@ export function Holdings() {
                     </div>
                     <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{r.shares}</div>
                     <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{money(r.avg_cost)}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{money(r.p)}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(r.value))}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{r.live ? money(r.p) : <Skeleton inline width={56} height={12} />}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{r.live ? mask(money(r.value)) : <Skeleton inline width={64} height={12} />}</div>
                     <div style={{ padding: '13px 12px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: r.gain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((r.gain >= 0 ? '+' : '') + money(r.gain))}</span>
-                      <span style={{ fontFamily: FONT_MONO, fontSize: '10.5px', color: r.gain >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(r.gainPct)}</span>
+                      {r.live ? (
+                        <>
+                          <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: r.gain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((r.gain >= 0 ? '+' : '') + money(r.gain))}</span>
+                          <span style={{ fontFamily: FONT_MONO, fontSize: '10.5px', color: r.gain >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(r.gainPct)}</span>
+                        </>
+                      ) : <Skeleton inline width={70} height={12} />}
                     </div>
                   </div>
                 ))}
