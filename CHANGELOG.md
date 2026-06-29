@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.17.0] — 2026-06-29
+
+> **The Market Map becomes explorable.** Turns the static market heatmap into an
+> interactive drill-down: click into any stock, hover for detail, and focus the
+> map on the market you care about.
+
+### Added
+
+- **Interactive Market Map** (`frontend/src/views/MarketViews.tsx`,
+  `frontend/src/charts/Treemap.tsx`):
+  - **Click-to-drill-down** — clicking a stock tile opens that ticker's full
+    Dashboard page (chart, key stats, news, due-diligence) via the existing
+    `/ticker/<SYM>` route.
+  - **Hover tooltips** — hovering any tile shows symbol · name · price · daily
+    change, with the active tile outlined, so the map reads as interactive.
+  - **"Pick your market" picker** — a `Stocks` / `Crypto` universe toggle plus a
+    horizontally scrollable row of sector chips (`All sectors` + the 11 real
+    sectors). Selecting a sector redraws the map to just those tickers, making
+    them large and legible instead of crammed into one blob.
+  - Crypto tiles use the live CoinGecko feed and show tooltips; drill-down stays
+    stocks-only (no `/ticker` route for coins). No fabricated index membership —
+    only the two real datasets the app already tracks.
+
 ## [1.16.0] — 2026-06-28
 
 > **Moat: the Signal Intelligence layer.** Introduces **Pulse** — a transparent, explainable
