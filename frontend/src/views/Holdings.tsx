@@ -20,7 +20,9 @@ export function Holdings() {
   const authed = useStore(isAuthed)
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
-  const hasQuote = useStore((s) => s.hasQuote)
+  // Subscribe to quotes so rows/summary re-render when they arrive (hasQuote is
+  // a stable fn ref and wouldn't trigger a re-render on quote updates).
+  const quotes = useStore((s) => s.quotes)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
   const openAuth = useStore((s) => s.openAuth)
@@ -40,7 +42,7 @@ export function Holdings() {
         .map(([symbol, u]) => ({ symbol, shares: u.shares, avg_cost: u.cost }))
 
   const rows = positions.map((h) => {
-    const live = hasQuote(h.symbol)
+    const live = quotes[h.symbol]?.price != null
     const p = price(h.symbol)
     const value = p * h.shares
     const cost = h.avg_cost * h.shares

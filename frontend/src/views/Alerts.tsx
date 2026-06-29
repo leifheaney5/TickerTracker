@@ -10,7 +10,9 @@ import { money } from '../lib/format'
 export function Alerts() {
   const watchlist = useStore((s) => s.watchlist)
   const price = useStore((s) => s.price)
-  const hasQuote = useStore((s) => s.hasQuote)
+  // Subscribe to quotes so rows re-render when they arrive (hasQuote is a
+  // stable fn ref and wouldn't trigger a re-render on quote updates).
+  const quotes = useStore((s) => s.quotes)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
   const updateWatch = useStore((s) => s.updateWatch)
@@ -36,7 +38,7 @@ export function Alerts() {
             <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>{active.length} active</span>
           </div>
           {active.map((a) => {
-            const live = hasQuote(a.symbol)
+            const live = quotes[a.symbol]?.price != null
             const cur = price(a.symbol)
             // HIT is only meaningful against a live price — never trigger off the 0 fallback.
             const hit = live && (a.alert_dir === 'above' ? cur >= a.alert_price : cur <= a.alert_price)

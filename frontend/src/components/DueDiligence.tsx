@@ -29,8 +29,10 @@ export function DueDiligence() {
   const sector = f?.sector && f.sector !== '—' ? f.sector : u.sector
   const r = ratings[selected]
   const loaded = !!r
-  const hasQuote = useStore((s) => s.hasQuote)
-  const live = hasQuote(selected)
+  // Subscribe to quotes so the price-target band re-renders when the quote
+  // arrives (hasQuote is a stable fn ref and wouldn't trigger a re-render).
+  const quote = useStore((s) => s.quotes[selected])
+  const live = quote?.price != null
   const p = price(selected)
   // The price-target band needs BOTH real analyst targets and a live price; the
   // marker position and upside are computed from the current quote.
