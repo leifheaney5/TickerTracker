@@ -73,6 +73,7 @@ export function Treemap({ items, width, height, onTileClick, highlight, tipFor }
   return (
     <div style={{ position: 'relative', width, height }}>
       <svg
+        data-testid="treemap-svg"
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
@@ -85,6 +86,7 @@ export function Treemap({ items, width, height, onTileClick, highlight, tipFor }
           return (
             <g
               key={t.sym}
+              data-testid={`treemap-tile-${t.sym}`}
               onClick={() => onTileClick?.(t.sym)}
               onMouseEnter={tipFor ? () => setTip({ sym: t.sym, x: t.x + t.w / 2, y: t.y }) : undefined}
               style={{ cursor: onTileClick ? 'pointer' : 'default' }}
