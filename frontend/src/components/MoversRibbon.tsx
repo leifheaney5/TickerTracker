@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { Logo } from './Logo'
+import { Skeleton } from './Skeleton'
 import { money, pct } from '../lib/format'
 
 // Movers ribbon — gainers/losers toggle + horizontally scrollable chips,
@@ -11,6 +12,9 @@ export function MoversRibbon() {
   const watchSymbols = useStore((s) => s.watchSymbols)
   const chg = useStore((s) => s.chg)
   const price = useStore((s) => s.price)
+  // Subscribe to quotes directly so the ribbon re-renders when they arrive
+  // (s.hasQuote is a stable fn ref and would not trigger a re-render).
+  const quotes = useStore((s) => s.quotes)
   const setSelected = useStore((s) => s.setSelected)
   const [tab, setTab] = useState<'gainers' | 'losers'>('gainers')
 
@@ -35,6 +39,7 @@ export function MoversRibbon() {
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2, flex: 1 }}>
         {ranked.map((sym) => {
           const c = chg(sym)
+          const live = quotes[sym]?.price != null
           return (
             <div
               key={sym}
@@ -46,8 +51,12 @@ export function MoversRibbon() {
                 <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--tx)' }}>{sym}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '11px', color: 'var(--tx2)' }}>{money(price(sym))}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '11px', fontWeight: 600, color: c >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
+                {live
+                  ? <span style={{ fontFamily: FONT_MONO, fontSize: '11px', color: 'var(--tx2)' }}>{money(price(sym))}</span>
+                  : <Skeleton inline width={46} height={11} />}
+                {live
+                  ? <span style={{ fontFamily: FONT_MONO, fontSize: '11px', fontWeight: 600, color: c >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
+                  : <Skeleton inline width={34} height={11} />}
               </div>
             </div>
           )
