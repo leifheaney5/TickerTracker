@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { FONT_SANS } from '../theme/tokens'
 
 // Squarified treemap — ported from the prototype's _treemap. Tiles sized by
@@ -61,29 +62,71 @@ interface TreemapProps {
   height: number
   onTileClick?: (sym: string) => void
   highlight?: Set<string>
+  // When provided, hovering a tile shows a tooltip with this string and
+  // outlines the hovered tile. Omitted (e.g. the Crypto map's call) → no hover.
+  tipFor?: (sym: string) => string
 }
 
-export function Treemap({ items, width, height, onTileClick, highlight }: TreemapProps) {
+export function Treemap({ items, width, height, onTileClick, highlight, tipFor }: TreemapProps) {
   const tiles = squarify(items, 1, 1, width - 2, height - 2)
+  const [tip, setTip] = useState<{ sym: string; x: number; y: number } | null>(null)
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
-      {tiles.map((t) => {
-        const showLabel = t.w > 34 && t.h > 22
-        return (
-          <g key={t.sym} onClick={() => onTileClick?.(t.sym)} style={{ cursor: onTileClick ? 'pointer' : 'default' }}>
-            <rect x={t.x} y={t.y} width={Math.max(0, t.w - 1)} height={Math.max(0, t.h - 1)}
-              fill={heatColor(t.chg)}
-              stroke={highlight?.has(t.sym) ? '#fff' : undefined}
-              strokeWidth={highlight?.has(t.sym) ? 2 : undefined} />
-            {showLabel && (
-              <>
-                <text x={t.x + t.w / 2} y={t.y + t.h / 2 - 2} fill="#fff" fontSize={Math.min(13, t.w / 4)} fontWeight={700} fontFamily={FONT_SANS} textAnchor="middle">{t.sym}</text>
-                <text x={t.x + t.w / 2} y={t.y + t.h / 2 + 12} fill="rgba(255,255,255,.85)" fontSize={Math.min(11, t.w / 5)} fontFamily="'JetBrains Mono',monospace" textAnchor="middle">{(t.chg >= 0 ? '+' : '') + t.chg.toFixed(1) + '%'}</text>
-              </>
-            )}
-          </g>
-        )
-      })}
-    </svg>
+    <div style={{ position: 'relative', width, height }}>
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        style={{ display: 'block' }}
+        onMouseLeave={() => setTip(null)}
+      >
+        {tiles.map((t) => {
+          const showLabel = t.w > 34 && t.h > 22
+          const outlined = highlight?.has(t.sym) || tip?.sym === t.sym
+          return (
+            <g
+              key={t.sym}
+              onClick={() => onTileClick?.(t.sym)}
+              onMouseEnter={tipFor ? () => setTip({ sym: t.sym, x: t.x + t.w / 2, y: t.y }) : undefined}
+              style={{ cursor: onTileClick ? 'pointer' : 'default' }}
+            >
+              <rect x={t.x} y={t.y} width={Math.max(0, t.w - 1)} height={Math.max(0, t.h - 1)}
+                fill={heatColor(t.chg)}
+                stroke={outlined ? '#fff' : undefined}
+                strokeWidth={outlined ? 2 : undefined} />
+              {showLabel && (
+                <>
+                  <text x={t.x + t.w / 2} y={t.y + t.h / 2 - 2} fill="#fff" fontSize={Math.min(13, t.w / 4)} fontWeight={700} fontFamily={FONT_SANS} textAnchor="middle">{t.sym}</text>
+                  <text x={t.x + t.w / 2} y={t.y + t.h / 2 + 12} fill="rgba(255,255,255,.85)" fontSize={Math.min(11, t.w / 5)} fontFamily="'JetBrains Mono',monospace" textAnchor="middle">{(t.chg >= 0 ? '+' : '') + t.chg.toFixed(1) + '%'}</text>
+                </>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+      {tip && tipFor && (
+        <div
+          data-treemap-tip
+          style={{
+            position: 'absolute',
+            left: Math.min(Math.max(tip.x, 4), width - 4),
+            top: tip.y,
+            transform: 'translate(-50%, calc(-100% - 6px))',
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+            background: 'var(--panel,#1a1d24)',
+            color: 'var(--tx,#fff)',
+            border: '1px solid var(--line,#2a2e36)',
+            borderRadius: 8,
+            padding: '6px 9px',
+            fontSize: 11.5,
+            fontFamily: FONT_SANS,
+            boxShadow: '0 6px 20px rgba(0,0,0,.4)',
+            zIndex: 5,
+          }}
+        >
+          {tipFor(tip.sym)}
+        </div>
+      )}
+    </div>
   )
 }
