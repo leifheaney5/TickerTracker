@@ -35,6 +35,34 @@ export const HM: Record<string, [string, number][]> = {
   Materials: [['LIN', 220], ['SHW', 80], ['APD', 60], ['FCX', 65], ['NEM', 50]],
 }
 
+// Listing exchange for the heatmap tickers. Only NASDAQ-listed symbols are
+// enumerated; every other symbol in HM lists on the NYSE. A company's listing
+// venue is a stable, public fact (verified against each issuer's current quote
+// listing) — unlike index membership, which churns and is deliberately not
+// modelled here. Consistent with UNIVERSE.exch for the symbols both cover.
+const HM_NASDAQ = new Set([
+  // Technology
+  'AAPL', 'MSFT', 'NVDA', 'AVGO', 'AMD', 'ADBE', 'CSCO', 'TXN', 'QCOM', 'INTC', 'INTU', 'AMAT', 'MU',
+  // Communication
+  'GOOGL', 'META', 'NFLX', 'CMCSA', 'TMUS', 'CHTR',
+  // Consumer Cyclical
+  'AMZN', 'TSLA', 'SBUX', 'BKNG',
+  // Consumer Defensive
+  'PEP', 'COST', 'MDLZ',
+  // Healthcare
+  'AMGN',
+  // Industrials
+  'HON',
+  // Real Estate
+  'EQIX',
+  // Materials
+  'LIN',
+])
+
+export function hmExchange(sym: string): 'NASDAQ' | 'NYSE' {
+  return HM_NASDAQ.has(sym) ? 'NASDAQ' : 'NYSE'
+}
+
 // Deterministic daily change for a heatmap symbol (matches _hchg).
 export function hmChange(sym: string): number {
   const h = hashStr('HM_' + sym)
