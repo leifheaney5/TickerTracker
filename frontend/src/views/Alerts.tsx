@@ -1,6 +1,7 @@
 import { useStore, isAuthed } from '../state/store'
 import { FONT_SANS } from '../theme/tokens'
 import { Logo } from '../components/Logo'
+import { Skeleton } from '../components/Skeleton'
 import { money } from '../lib/format'
 
 // Alerts view — ported from the prototype template (lines 1049-1091). Active
@@ -9,6 +10,7 @@ import { money } from '../lib/format'
 export function Alerts() {
   const watchlist = useStore((s) => s.watchlist)
   const price = useStore((s) => s.price)
+  const hasQuote = useStore((s) => s.hasQuote)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
   const updateWatch = useStore((s) => s.updateWatch)
@@ -34,8 +36,10 @@ export function Alerts() {
             <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>{active.length} active</span>
           </div>
           {active.map((a) => {
+            const live = hasQuote(a.symbol)
             const cur = price(a.symbol)
-            const hit = a.alert_dir === 'above' ? cur >= a.alert_price : cur <= a.alert_price
+            // HIT is only meaningful against a live price — never trigger off the 0 fallback.
+            const hit = live && (a.alert_dir === 'above' ? cur >= a.alert_price : cur <= a.alert_price)
             const cond = a.alert_dir === 'above' ? `Rises to ${money(a.alert_price)}` : `Falls to ${money(a.alert_price)}`
             return (
               <div key={a.symbol} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: '1px solid var(--line)' }}>
@@ -45,7 +49,9 @@ export function Alerts() {
                     <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--tx)' }}>{a.symbol}</span>
                     {hit && <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '.04em', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 5, padding: '1px 5px' }}>HIT</span>}
                   </div>
-                  <span style={{ fontSize: '12px', color: 'var(--tx2)' }}>{cond} · now {money(cur)}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--tx2)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {cond} · now {live ? money(cur) : <Skeleton inline width={52} height={11} />}
+                  </span>
                 </div>
                 <button
                   onClick={() => updateWatch(a.symbol, { alert_price: 0 })}

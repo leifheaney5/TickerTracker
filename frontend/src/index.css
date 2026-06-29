@@ -16,6 +16,10 @@ html, body { margin: 0; padding: 0; background: var(--app-bg); overflow-x: hidde
 input { outline: none; }
 @keyframes ttpulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 @keyframes ttspin { to { transform: rotate(360deg); } }
+/* Loading shimmer — sweeps a soft highlight across skeleton placeholders.
+   Used by <Skeleton> to signal "real data loading" without ever rendering a
+   plausible-but-fake number. */
+@keyframes ttshimmer { 0% { background-position: -150% 0; } 100% { background-position: 150% 0; } }
 
 /* Responsive padding tokens — views use var(--mpad) and var(--gap) */
 :root { --mpad: 22px 26px; --gap: 16px; }

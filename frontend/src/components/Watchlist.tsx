@@ -5,6 +5,7 @@ import { GROUPS, UNIVERSE } from '../data/universe'
 import { DEMO_WATCH } from '../data/demo'
 import { Logo } from './Logo'
 import { Sparkline } from '../charts/Sparkline'
+import { Skeleton } from './Skeleton'
 import { money, pct } from '../lib/format'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -38,6 +39,7 @@ export function Watchlist() {
   const setSortBy = useStore((s) => s.setSortBy)
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
+  const hasQuote = useStore((s) => s.hasQuote)
   const flash = useStore((s) => s.flash)
   const addWatch = useStore((s) => s.addWatch)
   const history = useStore((s) => s.history)
@@ -151,12 +153,13 @@ export function Watchlist() {
                 const u = UNIVERSE[sym] || { name: sym, target: 0 } as typeof UNIVERSE[string]
                 const wl = watchlist.find((w) => w.symbol === sym)
                 const target = wl?.target ?? u.target ?? 0
+                const live = hasQuote(sym)
                 const p = price(sym)
                 const c = chg(sym)
                 const up = c >= 0
                 const fl = flash[sym]
                 const hasT = target > 0
-                const near = hasT && p / target >= 0.92
+                const near = live && hasT && p / target >= 0.92
                 const priceColor = fl === 'up' ? 'var(--up)' : fl === 'down' ? 'var(--down)' : 'var(--tx)'
                 return (
                   <div
@@ -179,19 +182,25 @@ export function Watchlist() {
                           {near && <span title="Near target" style={{ fontSize: '10px', color: 'var(--accent)' }}>◆</span>}
                         </div>
                         <span style={{ fontSize: '11.5px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{u.name}</span>
-                        <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 500, marginTop: 2, color: priceColor }}>{money(p)}</span>
+                        {live
+                          ? <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 500, marginTop: 2, color: priceColor }}>{money(p)}</span>
+                          : <Skeleton width={70} height={14} style={{ marginTop: 4 }} />}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                        <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
+                        {live
+                          ? <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
+                          : <Skeleton width={46} height={18} />}
                         <Sparkline symbol={sym} />
                       </div>
                     </div>
                     {hasT && (
                       <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--tx3)' }}>
                         <span>Target {money(target)}</span>
-                        <span style={{ color: p >= target ? 'var(--up)' : 'var(--tx3)', fontWeight: p >= target ? 600 : 400 }}>
-                          {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
-                        </span>
+                        {live && (
+                          <span style={{ color: p >= target ? 'var(--up)' : 'var(--tx3)', fontWeight: p >= target ? 600 : 400 }}>
+                            {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -283,12 +292,13 @@ export function Watchlist() {
           const u = UNIVERSE[sym] || { name: sym, target: 0 } as typeof UNIVERSE[string]
           const wl = watchlist.find((w) => w.symbol === sym)
           const target = wl?.target ?? u.target ?? 0
+          const live = hasQuote(sym)
           const p = price(sym)
           const c = chg(sym)
           const up = c >= 0
           const fl = flash[sym]
           const hasT = target > 0
-          const near = hasT && p / target >= 0.92
+          const near = live && hasT && p / target >= 0.92
           const priceColor = fl === 'up' ? 'var(--up)' : fl === 'down' ? 'var(--down)' : 'var(--tx)'
           return (
             <div
@@ -320,10 +330,14 @@ export function Watchlist() {
                     {near && <span title="Near target" style={{ fontSize: '10px', color: 'var(--accent)' }}>◆</span>}
                   </div>
                   <span style={{ fontSize: '11.5px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{u.name}</span>
-                  <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 500, marginTop: 2, color: priceColor }}>{money(p)}</span>
+                  {live
+                    ? <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 500, marginTop: 2, color: priceColor }}>{money(p)}</span>
+                    : <Skeleton width={70} height={14} style={{ marginTop: 4 }} />}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
+                  {live
+                    ? <span style={{ fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_MONO, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span>
+                    : <Skeleton width={46} height={18} />}
                   <Sparkline symbol={sym} />
                 </div>
               </div>
@@ -332,9 +346,11 @@ export function Watchlist() {
                 // list / cut the wall of green). "reached" highlights in accent.
                 <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--tx3)' }}>
                   <span>Target {money(target)}</span>
-                  <span style={{ color: p >= target ? 'var(--up)' : 'var(--tx3)', fontWeight: p >= target ? 600 : 400 }}>
-                    {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
-                  </span>
+                  {live && (
+                    <span style={{ color: p >= target ? 'var(--up)' : 'var(--tx3)', fontWeight: p >= target ? 600 : 400 }}>
+                      {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

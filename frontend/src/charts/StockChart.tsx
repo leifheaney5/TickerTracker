@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import { COMPARE_COLORS, FONT_MONO, FONT_SANS } from '../theme/tokens'
-import { fallbackSeries } from '../data/series'
+import { Skeleton } from '../components/Skeleton'
 import type { Bar, Timeframe } from '../api/types'
 
 // Interactive price chart — ported from the prototype's _chart() (lines
@@ -60,9 +60,24 @@ export function StockChart() {
     return () => ro.disconnect()
   }, [width])
 
-  const seriesOf = (sym: string): Bar[] => history[`${sym}:${timeframe}`] || fallbackSeries(sym, timeframe)
+  // Live-only: real OHLC from /api/history (no synthetic seed series). Symbols
+  // without loaded history yield an empty array and trigger the skeleton below.
+  const seriesOf = (sym: string): Bar[] => history[`${sym}:${timeframe}`] || []
 
   const compareActive = compare.length > 0
+
+  // Render a skeleton until EVERY involved symbol has real history — never draw
+  // a chart from fabricated candles.
+  const involved = compareActive ? [selected, ...compare] : [selected]
+  const ready = involved.every((s) => (history[`${s}:${timeframe}`]?.length ?? 0) > 0)
+  if (!ready) {
+    return (
+      <div ref={elRef} style={{ width: '100%', height: 366, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 0 }}>
+        <Skeleton height={300} radius={8} />
+      </div>
+    )
+  }
+
   const ACC = 'var(--accent)'
   const W = Math.max(360, Math.round(width))
   const H = 366
