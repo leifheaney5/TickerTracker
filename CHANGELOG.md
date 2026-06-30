@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.1] — 2026-06-29
+
+### Fixed
+
+- **P0 data-integrity: Deep Dive fabricated ratios** (`AtAGlance.tsx`): The Fundamentals
+  sub-tab was computing P/S, P/B, PEG, EBITDA, FCF Yield, ROIC, Gross Margin, and
+  Net Debt/EBITDA by ad-hoc arithmetic on unrelated fields (`beta`, `market_cap`,
+  `dividend_yield`, `pe`), presenting invented numbers as real financial ratios. All eight
+  fabricated columns now render `—` (the project-standard "no data" state). P/E remains,
+  as it is a genuine backend field. A disclosure note — "Extended ratios require a premium
+  data feed — coming soon." — is shown in the table footer.
+
+- **P0 UX: Alert direction had no UI control** (`ManageWatchlist.tsx`): The watchlist
+  alert section had an `alert_price` input and an ON/OFF toggle, but no way to set
+  `alert_dir` (above/below). Users could only create stop-loss/downside alerts by editing
+  the DB directly. Added an accessible "↑ Above / ↓ Below" segmented control using
+  `<button>` elements with `aria-pressed` and `data-testid` attributes. Direction is
+  persisted immediately via the existing `updateListWatch` optimistic update path. The
+  Alerts view already reads `alert_dir` correctly and required no change.
+
 ## [1.18.0] — 2026-06-29
 
 > **Market Map follow-ups.** Sharpens the interactive map from v1.17.0 with an exchange
