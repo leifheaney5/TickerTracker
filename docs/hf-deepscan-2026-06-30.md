@@ -16,9 +16,9 @@ durable backlog; tick items as they ship.
 | F2 | Alert direction (above/below) no UI | P0 | ✅ Shipped (PR #14, v1.18.1) |
 | F3 | Strategy KPI cards hardcoded fiction | P1 | ✅ Content fixed (PR #14, v1.18.2) — view stays parked |
 | F5 | Market Overview index/sector seed data | P1 | ✅ Shipped (PR #14, v1.18.2) |
-| F4 | No price freshness / market-status on StockHeader | P1 | ⏳ Next tier (trust signals) |
-| F13 | `quotesFetchedAt` is a single global timestamp | P2 | ⏳ Next tier (trust signals) |
-| F16 | Holdings "Synced from broker" has no timestamp | P2 | ⏳ Next tier (trust signals) |
+| F4 | No price freshness / market-status on StockHeader | P1 | ✅ Shipped (PR #14, v1.18.3) — real backend market_status; +A7 aria-live |
+| F13 | `quotesFetchedAt` is a single global timestamp | P2 | ✅ Shipped (PR #14, v1.18.3) — per-symbol fetchedAt stamp |
+| F16 | Holdings "Synced from broker" has no timestamp | P2 | ✅ Shipped (PR #14, v1.18.3) — copy softened "synced from"→"via" (no sync-time source) |
 | F6 | Mobile nav exposes only 4 of 9 views | P1 | ☐ Open |
 | F7 | Alerts empty state has no CTA | P1 | ☐ Open |
 | F8 | Alert price saves on blur (accidental triggers) | P1 | ☐ Open |
@@ -89,7 +89,7 @@ NVDA showed "ROIC: 34.8%" = `beta * 12`. Highest-severity data-integrity issue. 
 | A4 | 4.1.3 Status Messages | `AuthScreen.tsx:174,223,258,288` | Auth errors not announced | `role="alert" aria-live="assertive"` + `aria-describedby` |
 | A5 | 4.1.2 / 2.1.1 | `Header.tsx:213-220`, `AtAGlance.tsx:153-172`, `MoversRibbon.tsx:40-54` | Interactive `<div onClick>` w/o keyboard | `<button>` or `role="button" tabIndex={0} onKeyDown` |
 | A6 | 2.3.3 Animation | `store.ts:487-489`, `Crypto.tsx:100` | Price flash (650ms) + pulse anim ignore `prefers-reduced-motion` | Wrap anims in `@media (prefers-reduced-motion: no-preference)` |
-| A7 | 4.1.3 Status Messages | `StockHeader.tsx:71` | No `aria-live` for price updates | `aria-live="polite"` region (throttled) |
+| A7 | 4.1.3 Status Messages | `StockHeader.tsx:71` | No `aria-live` for price updates | ✅ Shipped (PR #14, v1.18.3) — price wrapped in `role=status aria-live=polite` |
 | A8 | 1.4.3 Contrast | global — `--tx3` `#5b626c` on `--card` `#14171c` ≈ 3.2:1 | Fails AA (needs 4.5:1) for 10-12px secondary text | Lighten dark `--tx3` to ≈ `#7a8290` (≈ 4.8:1) |
 | A9 | 1.3.1 / 2.5.3 | `SignalChips.tsx:28-37` | Chip detail only via `title` (hover) — no mobile/keyboard/SR access | `<details>`/`<summary>` or proper `role="tooltip"` |
 | A10 | 4.1.2 | `UpgradePrompt.tsx:26` | Modal missing dialog semantics (same as A3) | Add `role="dialog"`/`aria-modal`/`aria-labelledby` |
