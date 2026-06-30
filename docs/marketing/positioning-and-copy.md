@@ -1,10 +1,25 @@
 # Ticker Tracker — Positioning & Copy
 
 > DRAFT material in Leif's voice. Calm, precise, confident-without-hype. Every claim here maps to
-> shipped behavior (see §6 Honesty checklist). The named metric **Pulse** is being built tonight;
-> lines that depend on it are marked **[ships when Pulse lands]** so nothing goes live ahead of
-> the code. Grounded in: `docs/strategy/2026-06-28-moat-signal-intelligence.md`,
-> `docs/market-and-marketing.md`, and `README.md`.
+> shipped behavior (see §6 Honesty checklist). Grounded in:
+> `docs/strategy/2026-06-28-moat-signal-intelligence.md`, `docs/market-and-marketing.md`, and
+> `README.md`.
+
+> **Update 2026-06-30 — Pulse is live in production.**
+> Core Pulse confirmed shipped via code review: the 0–100 composite score (`/api/pulse/<sym>`,
+> `compute_pulse()` in `backend/services/pulse.py`), the "Why" panel (`PulseWhy.tsx` with full
+> component breakdown), and the momentum/trend inputs (RSI via `_momentum()`, SMA50/200 + MACD via
+> `_trend()`). All `[ships when Pulse lands]` tags have been removed from those features.
+>
+> Sub-features that remain gated (do not use in live copy until confirmed):
+> - **Crypto Pulse variant** (Fear & Greed + BTC dominance substitution) — no crypto branch found
+>   in `pulse.py`; `compute_pulse()` always returns `kind: "stock"`. Leif to confirm before
+>   un-gating.
+> - **Pulse history / sparkline / "shifted N days ago"** (F3) — backend + frontend code exists but
+>   not confirmed live on production data.
+> - **Smart / divergence signal alerts** (F4) — `signal_alerts.py` and `SignalChips.tsx` exist but
+>   not confirmed live on production data.
+> - **"What changed since you last visited" strip** (F5) — no code found.
 
 ---
 
@@ -23,8 +38,7 @@ brokerage required. What sets it apart isn't another chart: it's **Pulse**, a si
 score per ticker that reads momentum, trend, analyst consensus, and news-headline sentiment and
 tells you, in one number with a labeled band, whether a name is heating up or cooling off — with a
 "Why" panel that shows every component and its raw value. No black box, no predictions, no advice.
-Just the public signals, summarized honestly, with the math in plain sight. **[Pulse and the "Why"
-panel ship when Pulse lands.]**
+Just the public signals, summarized honestly, with the math in plain sight.
 
 **Who it's for.** People who hold both stocks and crypto, are tired of tab-hopping between Yahoo,
 Finviz, and a coin app, and want a calm signal-over-noise read instead of a social feed or a pro
@@ -52,8 +66,7 @@ copyable; an honest insight layer that compounds the longer it runs is not.
 
 1. **One score, fully transparent.** Pulse blends momentum, trend, analyst consensus, and
    news-headline sentiment into a single 0–100 read with a clear band — and a "Why" panel that
-   breaks down every input. You never have to trust a number you can't inspect. **[ships when Pulse
-   lands]**
+   breaks down every input. You never have to trust a number you can't inspect.
 
 2. **Stocks and crypto, one surface.** A curated watchlist, a Finviz-style market map, sector
    performance, and a live crypto Fear & Greed index — together, in one clean dark UI. No brokerage,
@@ -74,7 +87,7 @@ copyable; an honest insight layer that compounds the longer it runs is not.
 > / Hot), and we show you every component and its raw value in the "Why" panel. For crypto, where
 > analyst targets don't exist, Pulse substitutes the market's Fear & Greed reading and BTC
 > dominance. The point isn't a magic number — it's breadth across independent signals, with nothing
-> hidden. **[Pulse ships when F2 lands; the headline-sentiment input ships today as labeled.]**
+> hidden.
 
 ---
 
@@ -128,12 +141,9 @@ Unified stocks+crypto (remixed from existing):
 > Honest caveat: it's an indie project, not a pro terminal — it won't out-chart TradingView or
 > out-screen Finviz, and it doesn't do brokerage sync, options, or predictions. It's the calm,
 > honest tracker I wanted for myself. Would genuinely love feedback on Pulse and the watchlist flow.
->
-> *(Maker note: keep this comment in the drafts queue until Pulse is merged and live; until then,
-> lead the launch with the unified-tracker story and the alerts/digest features that ship today.)*
 
 ### Gallery caption ideas
-1. **"Pulse: one score, fully shown."** — the dial + "Why" component table on a stock card. **[needs Pulse]**
+1. **"Pulse: one score, fully shown."** — the dial + "Why" component table on a stock card.
 2. **"Stocks and crypto in one map."** — the market treemap beside the crypto map with Fear & Greed.
 3. **"Your watchlist, your alerts."** — curated watchlist with per-row target arming.
 4. **"Read the mood, not the feed."** — per-watchlist sentiment "mood" chips.
@@ -144,7 +154,7 @@ Unified stocks+crypto (remixed from existing):
 
 ## 5. Social posts (value-first, no hype)
 
-### X / Twitter — Pulse intro **[ships when Pulse lands]**
+### X / Twitter — Pulse intro
 > Most trackers show you a number and hide how they got it.
 >
 > Ticker Tracker's Pulse is one 0–100 score per ticker — momentum, trend, analyst consensus, and
@@ -176,8 +186,7 @@ Unified stocks+crypto (remixed from existing):
 >
 > It also just unifies stocks and crypto in one dark dashboard (watchlist, market map, alerts).
 > Free to browse. I'd genuinely value feedback on whether the score's breakdown actually feels
-> trustworthy vs. hand-wavy. *(The score itself is rolling out now; happy to point to the methodology
-> when it's live.)*
+> trustworthy vs. hand-wavy.
 
 ---
 
@@ -198,12 +207,12 @@ Unified stocks+crypto (remixed from existing):
 | Light/Dark theme | Theme toggle — README | **Shipped** |
 | Mobile-responsive + home-screen install | Web manifest + favicons — README | **Shipped** |
 | Sentiment is headline-keyword based, not ML | Explicitly labeled per strategy §3 honesty note | **Shipped (honesty req)** |
-| **Pulse: one 0–100 transparent score** | F2 in strategy §4; `/api/pulse/<SYM>` | **Ships when F2/Pulse lands** |
-| **"Why" panel showing every component + raw value** | F2 component table — strategy §4 | **Ships when F2/Pulse lands** |
-| **Momentum/trend inputs (RSI, MACD, SMA cross)** | F1 indicators service — strategy §4 | **Ships when F1 lands** |
-| **Crypto Pulse variant (F&G + BTC dominance)** | F2 crypto variant — strategy §4 | **Ships when F2 lands** |
-| **Pulse history / sparkline / "shifted bullish"** | F3 signal history — strategy §4 | **Ships when F3 lands** |
-| **Smart/divergence alerts (not just price thresholds)** | F4 — strategy §4 | **Ships when F4 lands** |
+| **Pulse: one 0–100 transparent score** | `/api/pulse/<sym>` → `compute_pulse()` in `backend/services/pulse.py`; `PulseDial.tsx` | **Shipped** |
+| **"Why" panel showing every component + raw value** | `PulseWhy.tsx` — component table with label, raw reading, state, contribution bar | **Shipped** |
+| **Momentum/trend inputs (RSI, MACD, SMA cross)** | `_momentum()` (RSI 14) + `_trend()` (SMA50/200 + MACD hist) in `pulse.py` | **Shipped** |
+| **Crypto Pulse variant (F&G + BTC dominance)** | Described in strategy §4 — no crypto branch found in `pulse.py`; `compute_pulse()` returns `kind: "stock"` only. Leif to confirm before un-gating. | **Not confirmed — stays gated** |
+| **Pulse history / sparkline / "shifted bullish"** | F3 signal history — `signal_history.py` + `PulseTrend.tsx` exist; not confirmed live on production data | **Ships when F3 confirmed live** |
+| **Smart/divergence alerts (not just price thresholds)** | F4 — `signal_alerts.py` + `SignalChips.tsx` exist; not confirmed live on production data | **Ships when F4 confirmed live** |
 | **"What changed since you last visited" strip** | F5 — strategy §4 | **Ships when F5 lands** |
 
 ### Never claim (not built — see strategy §2.2 / §6)

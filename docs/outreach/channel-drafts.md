@@ -2,12 +2,18 @@
 
 > DRAFT ONLY. Leif reviews and posts himself. Nothing here is submitted or published.
 >
-> Honesty rule applied throughout: Pulse, the "Why" panel, smart/divergence alerts,
-> and Pulse history are NOT shipped. All copy that depends on them is in a clearly
-> labeled HOLD bucket at the bottom of this file. Primary drafts lead with shipped
-> features only: unified stock+crypto dashboard, curated watchlist, email price alerts
-> + weekly digest, market map, news sentiment (headline-based, labeled), analyst
-> ratings, crypto Fear and Greed.
+> Gate status updated 2026-06-30: Pulse (F1 + F2 — core score + Why panel) is
+> confirmed live in production. Pulse is now the lead story in all primary drafts.
+>
+> Still gated — do not reference in any active draft:
+>   - F3: Pulse signal-history sparkline and "shifted N days ago" annotation.
+>     Data has not accrued; the claim would be misleading on launch day.
+>   - F4: Smart/divergence alerts (signal_alerts service).
+>   - F5: "What changed since you last visited" digest strip.
+>
+> Honesty rule (standing): Pulse is a transparent summary of public signals, not a
+> prediction or advice. News-headline sentiment is keyword-based from Finnhub's news
+> feed; it is always labeled as such in every draft below.
 >
 > Sources: positioning-and-copy.md §5, brand-guide.md §1 and §7, README.md.
 
@@ -126,30 +132,37 @@ link in tweet is fine.
 
 ---
 
-## Drafted posts — SHIPS TODAY (no Pulse dependency)
+## Drafted posts — PRIMARY (Pulse-forward; Pulse is live as of 2026-06-30)
 
 ---
 
 ### [r/SideProject] Launch post
 
-**Title:** [Launch] Ticker Tracker — stocks and crypto in one dark dashboard, with email price alerts and a weekly digest
+**Title:** [Launch] Ticker Tracker — stocks and crypto in one dark dashboard, with a transparent signal score and email price alerts
 
 ---
 
 I built Ticker Tracker because I track both stocks and crypto and I was tired of
 bouncing between Yahoo Finance, Finviz, and a coin app just to keep an eye on a small
-watchlist.
+watchlist. And I was even more tired of every "signal" being either buried or a black
+box.
 
-**What it does (shipped, today):**
+**What it does (shipped today):**
 
+- Pulse: a single 0–100 score per ticker that reads four public signals — momentum
+  (RSI + MACD state), trend (price vs. moving averages), analyst consensus (buy/hold/
+  sell distribution and distance to the mean target), and news-headline sentiment —
+  and shows every component and its raw value in a "Why" panel. Not a prediction, not
+  advice. The sentiment input is headline-based from Finnhub's news feed and is labeled
+  exactly as that. Weights are published constants, not a hidden model.
 - Curated watchlist: bulk add tickers (CSV, comma/space delimited), set a price target
   per ticker, arm an email alert. You get an email the moment a target is crossed, plus
   a weekly digest of your full list. The alert engine runs on Railway cron and sends
   through Resend.
 - Finviz-style market treemap alongside a crypto world view (market cap, 24h change)
   and a live Fear and Greed index.
-- News sentiment mood chips per watchlist — these are based on headline keywords from
-  Finnhub's news feed, not social media, and I label them as that.
+- News sentiment mood chips per watchlist — based on headline keywords from Finnhub's
+  news feed, not social media, and labeled as that.
 - Analyst ratings and price targets per stock (buy/hold/sell distribution, mean target,
   distance from current price).
 - Shareable read-only watchlist links (/s/<token>).
@@ -162,42 +175,48 @@ alternative.me for data.
 
 **Live at:** tickertracker.info
 
-What I am looking for: honest feedback on the watchlist flow and the alert UX. Does the
-email alert actually feel useful or does it feel like spam? Is the sentiment mood chip
-trustworthy-looking or hand-wavy?
+What I am looking for: honest feedback on whether the Pulse transparency framing
+(showing every component and raw value) actually feels trustworthy or whether it just
+adds noise. And whether the email alert actually feels useful or like spam.
 
 Happy to answer any questions about the build.
 
 ---
 
 > Posting guidance: Post on a weekday. Add at least one screenshot in the post body
-> (watchlist + market map screenshot recommended). Respond to every comment. Disclose
+> (Pulse Why panel + market map recommended). Respond to every comment. Disclose
 > maker status in the post (already done above). Do not coordinate upvotes.
 
 ---
 
-### [r/stocks] Value-first variant (use ONLY if rules permit after verification)
+### [r/stocks] Value-first variant — Pulse-forward (use ONLY if rules permit after verification)
 
-**Title:** Built a tool that puts stocks and crypto in one watchlist with email price alerts — looking for feedback on what's actually useful vs. noise
+**Title:** Built a tool that shows every signal behind its score — looking for feedback on whether the transparency approach actually helps
 
 ---
 
 Full disclosure: I built this, so take it as a maker's perspective.
 
-I track both stocks and crypto and got frustrated that no single tracker handles both
-without either a brokerage connection or a noisy social feed. So I built Ticker Tracker
-(tickertracker.info) — a curated watchlist where you set price targets and get an email
-when they hit, alongside a market treemap, sector view, analyst ratings, news sentiment
-(headline-based, not social media), and a live crypto Fear and Greed index. Free to
-browse, no brokerage required.
+Most stock trackers show you a composite signal — "Bullish," "Strong Buy," a score
+out of 10 — and hide how they computed it. I tried to do the opposite.
 
-The part I am genuinely curious about from this community: does the analyst ratings
-panel feel useful alongside price alerts, or is it too much data on one screen? And
-does the idea of a weekly watchlist digest email appeal to people who do not check
-prices every day, or does that feel like a feature that sounds good but nobody uses?
+Ticker Tracker's Pulse is a 0–100 score per ticker that reads four public signals:
+momentum (RSI and MACD state), trend (price vs. moving averages), analyst consensus
+(buy/hold/sell distribution and distance to the mean target from Finnhub), and
+news-headline sentiment (based on headline keywords, labeled as that — not claimed to
+be ML or social sentiment). The "Why" panel breaks down every component with its raw
+value and source label. Weights are published constants. It is explicitly not a
+prediction and not advice.
 
-Any candid reactions appreciated. Not looking for upvotes — looking for actual opinions
-from people who use this kind of tool.
+The app also just unifies stocks and crypto in one dark dashboard (watchlist, Finviz-
+style market map, crypto world view, analyst ratings, email price alerts). Free to
+browse, no brokerage required: tickertracker.info.
+
+The question I am genuinely curious about from this community: does showing the
+underlying signal breakdown make the composite score more useful or just more
+overwhelming? Is there a "right" number of inputs for something like this?
+
+Candid reactions appreciated.
 
 ---
 
@@ -222,9 +241,10 @@ use" appears organically. Contribute as a comment with full maker disclosure.
 Full disclosure: I built this one, so biased — but since people are sharing tools, I
 will mention Ticker Tracker (tickertracker.info). Curated watchlist with email price
 alerts when a target is crossed, market treemap, analyst ratings, and news sentiment
-chips (headline-based, not social, I label it as that). Free to browse without an
-account. No brokerage sync — it is just a tracker. Happy to share more about how the
-alert engine works if useful.
+chips (headline-based, not social, labeled as that). It also has Pulse — a transparent
+0–100 score per ticker that shows every signal component and raw value behind it, with
+an explicit note that it is not a prediction. Free to browse without an account. No
+brokerage sync. Happy to share more about how the signal breakdown works if useful.
 
 ---
 
@@ -260,43 +280,104 @@ answer questions about how the data layer works.
 
 **Title:**
 
-> Show HN: Ticker Tracker – stocks and crypto in one dark dashboard with email alerts
+> Show HN: Ticker Tracker – a transparent signal score for stocks and crypto, one dark dashboard
 
 **Body (posted in the URL field's companion text box OR as the first comment):**
 
 > I built Ticker Tracker (tickertracker.info) because I track both stocks and crypto
-> and no existing tracker handled both without either requiring a brokerage connection
-> or becoming a noisy social feed.
+> and no existing tracker handled both without requiring a brokerage connection or
+> becoming a social feed — and every composite "signal" I found hid how it was computed.
 >
-> The app is a Flask backend (Finnhub, Yahoo Finance, CoinGecko, alternative.me as
-> data sources, per-source TTL cache, deterministic seeded mock fallbacks so it never
-> shows a broken page) serving a React 18 + Vite + TypeScript SPA. State via Zustand.
+> The app is a Flask backend (Finnhub, Yahoo Finance, CoinGecko, alternative.me as data
+> sources, per-source TTL cache, deterministic seeded mock fallbacks so it never shows
+> a broken page) serving a React 18 + Vite + TypeScript SPA. State via Zustand.
 > Deployed on Railway with Postgres and two cron services for the alert engine (Resend
 > for email delivery).
 >
-> What it ships today: curated watchlist with per-ticker price targets and email alerts
+> What it ships: Pulse — a 0–100 composite score per ticker with a "Why" panel that
+> breaks down every component (momentum via RSI/MACD state, trend via price vs. moving
+> averages, analyst consensus from Finnhub buy/hold/sell distribution, and news-headline
+> sentiment from Finnhub's news feed — labeled as a keyword heuristic, not ML). Weights
+> are module-level constants in pulse.py; not a model. Explicitly not a prediction and
+> not advice.
+>
+> On top of that: curated watchlist with per-ticker price targets and email alerts
 > (triggered by Railway cron when a target is crossed), a Finviz-style market treemap
 > alongside a crypto world view, sector performance matrix, live Fear and Greed index
-> (alternative.me), news sentiment mood chips (headline keyword heuristic — labeled
-> as such, not claimed to be ML), analyst ratings and price targets from Finnhub,
-> shareable read-only watchlist links, and a weekly watchlist digest email.
+> (alternative.me), analyst ratings and price targets from Finnhub, shareable read-only
+> watchlist links, and a weekly watchlist digest email.
 >
 > Free to browse without an account. Account required to save watchlist and arm alerts.
 >
-> Happy to go deep on the data-provider abstraction layer, the alert cron design, or
-> any other part of the build.
+> Happy to go deep on the Pulse scoring architecture, the data-provider abstraction
+> layer, the alert cron design, or any other part of the build.
 
 ---
 
 > Posting guidance: Post during US business hours (9am–2pm ET weekdays) for best HN
 > visibility. Do not ask friends to upvote. Leif's HN username should be a personal
 > handle, not "tickertracker" or "leif_tt." Be in the thread for the first 2 hours to
-> answer technical questions. HN readers will ask about the data sources, rate limits,
-> and what the fallback mocks do — be prepared with specifics.
+> answer technical questions. HN readers will ask about the Pulse weights and
+> methodology, the data sources, rate limits, and what the fallback mocks do — be
+> prepared with specifics. Be ready to explain why Pulse weights are fixed constants
+> rather than trained parameters.
 
 ---
 
-### [X / Twitter] Launch thread (ships-today version)
+### [X / Twitter] Pulse launch thread — PRIMARY
+
+**Tweet 1 (hook):**
+
+> Most trackers show you a number and hide how they got it.
+>
+> Ticker Tracker's Pulse is one 0–100 score per ticker — momentum, trend, analyst
+> consensus, and news-headline sentiment — and it shows you every component and raw
+> value behind it.
+>
+> Not a prediction. Not advice. Just the public signals, summarized honestly.
+>
+> tickertracker.info
+
+**Tweet 2 (what's in the score):**
+
+> What Pulse reads:
+>
+> — Momentum: RSI level + MACD state
+> — Trend: price position vs. moving averages
+> — Analyst consensus: buy/hold/sell distribution + distance to mean target
+> — News sentiment: headline keywords from Finnhub's news feed
+>
+> Every component shows its raw value. Weights are published. Nothing hidden.
+
+**Tweet 3 (honesty framing):**
+
+> Important: Pulse is not a buy signal. It is not advice. It is a transparent
+> summary of public data that any investor can already read — just collected in
+> one place, with the math shown.
+>
+> The sentiment piece is based on headline keywords. The label says that.
+>
+> I think honesty about what a signal IS matters more than sounding impressive.
+
+**Tweet 4 (broader app + CTA):**
+
+> Pulse lives inside a full stock + crypto dashboard: curated watchlist, email
+> price alerts, Finviz-style market map, crypto world view, Fear and Greed, analyst
+> ratings.
+>
+> One dark surface for both asset classes. Free to browse.
+>
+> If you track both stocks and crypto and bounce between tabs: tickertracker.info
+
+---
+
+> Thread guidance: Post tweets 1-4 as a thread. No exclamation storms, no rocket
+> emoji, no "to the moon" language. Space out feature-spotlight singles (below) over
+> the days following launch, not all at once.
+
+---
+
+### [X / Twitter] Alternate launch thread (lighter touch — use if Pulse framing tests poorly)
 
 **Tweet 1 (hook):**
 
@@ -311,20 +392,22 @@ answer questions about how the data layer works.
 
 > What ships today:
 >
+> — Pulse: a transparent 0–100 signal score with a full "Why" breakdown
 > — Curated watchlist: set a price target, get an email when it hits
 > — Finviz-style market map + crypto world view in one surface
 > — Live Fear & Greed index (alternative.me)
 > — Analyst ratings + price targets from Finnhub
 > — News sentiment per watchlist (headline-based — I label it that, not "AI")
 > — Weekly watchlist digest email
-> — Shareable read-only watchlist links
 
 **Tweet 3 (honest caveat):**
 
 > Honest caveats, because I think they matter:
 >
-> It does not connect to your brokerage. It does not do options or predictions.
-> It does not claim the sentiment data is anything more than headline keywords.
+> Pulse is not a prediction. It is not advice. The sentiment input is headline
+> keywords, labeled as that.
+>
+> It does not connect to your brokerage. It does not do options.
 >
 > It is the calm, honest tracker I wanted for myself. Would value feedback.
 
@@ -335,12 +418,6 @@ answer questions about how the data layer works.
 > If something feels off or missing, reply here or open an issue — I read both.
 >
 > tickertracker.info
-
----
-
-> Thread guidance: Post tweets 1-4 as a thread. No exclamation storms, no rocket
-> emoji, no "to the moon" language. Space out feature-spotlight singles (below) over
-> the days following launch, not all at once.
 
 ---
 
@@ -385,36 +462,40 @@ answer questions about how the data layer works.
 >
 > tickertracker.info
 
----
+**Spotlight E — Pulse (now active):**
 
-## HOLD BUCKET — Pulse-dependent copy (do not use until Pulse is merged and live in production)
-
-> Everything below requires the Pulse feature (F2 in the strategy doc, `/api/pulse/<SYM>`)
-> to be shipped and live. Check README and the strategy doc before moving any of this
-> to the active drafts above.
-
-**[HOLD] r/stocks or r/investing — Pulse-forward post:**
-
-> I got tired of every "signal" in retail trackers being either buried or a black box,
-> so I built one that shows its work. Ticker Tracker's Pulse reads four public signals
-> for a ticker — momentum (RSI, MACD state), trend (price vs. moving averages), analyst
-> consensus and distance to the mean target, and news-headline sentiment — and rolls
-> them into a single transparent 0–100 score, with a "Why" panel that breaks down each
-> input and its raw value. It is explicitly not a prediction and not advice. The
-> sentiment piece is a headline-keyword read and I label it as that.
+> Pulse shows its work.
 >
-> It also just unifies stocks and crypto in one dark dashboard (watchlist, market map,
-> email alerts). Free to browse. I'd genuinely value feedback on whether the score's
-> breakdown actually feels trustworthy vs. hand-wavy.
-
-**[HOLD] X / Twitter — Pulse intro thread (from positioning-and-copy.md §5):**
-
-> Most trackers show you a number and hide how they got it.
+> Most composite scores are a black box. Ticker Tracker's Pulse breaks down every
+> input — momentum, trend, analyst consensus, headline sentiment — with its raw value
+> visible in the "Why" panel.
 >
-> Ticker Tracker's Pulse is one 0–100 score per ticker — momentum, trend, analyst
-> consensus, and news-headline sentiment — and it shows you every component and raw
-> value behind it.
->
-> Not a prediction. Not advice. Just the public signals, summarized honestly.
+> Not a prediction. Just the public signals, with nothing hidden.
 >
 > tickertracker.info
+
+---
+
+## HOLD BUCKET — Sub-features not yet meaningfully live (do not use in any draft)
+
+> The following items remain gated. Do not reference them in any channel post, tweet,
+> or outreach until Leif confirms the feature is live, has accumulated real data, and
+> the claim is accurate for a new user on their first visit.
+
+**[HOLD] F3 — Pulse signal-history sparkline and "shifted N days ago" annotation:**
+The PulseTrend component exists in the frontend and is mounted in the Why panel, but
+it renders an "accruing" fallback message until a symbol has at least two days of
+snapshot history. On launch day, no user will see a meaningful sparkline. Do not
+mention signal history, trend sparklines, or "shifted to [band] N days ago" in any
+launch copy. Gate lifts when at least a week of real Pulse snapshots exist and the
+sparkline is visually meaningful for the top watched symbols.
+
+**[HOLD] F4 — Smart/divergence alerts:**
+signal_alerts service exists in backend but is not surfaced in UI or in the alert
+email flow in a way users would recognize as distinct from price alerts. Do not
+reference "divergence alerts," "overbought + bearish alerts," "pulse-band-change
+alerts," or any named signal alert condition in outreach until these are discoverable
+by users.
+
+**[HOLD] F5 — "What changed since you last visited" digest strip:**
+No frontend component for this exists. Do not reference in any channel post.

@@ -14,6 +14,16 @@
 > merged and live. Lead now with the unified-tracker and alert/digest story — those features are
 > confirmed shipped per `docs/marketing/positioning-and-copy.md §6`.
 >
+> **Update 2026-06-30 — core Pulse is live.** Stock Pulse is now confirmed shipped (the 0–100
+> composite `/api/pulse/<sym>`, the "Why" panel, and the RSI/MACD/SMA momentum-trend inputs). So the
+> `[ACTIVATES WHEN PULSE SHIPS]` campaigns that depend ONLY on the core stock score — Campaign C
+> ("One Honest Score"), the week-7 Pulse launch / maker-story / Reddit-thread items, and the digest
+> Pulse upgrade — are now **ACTIVE** and may run. Tags REMAIN in force (do not run yet) for anything
+> depending on: the **crypto Pulse variant** (no crypto branch in `compute_pulse()` — Leif to
+> confirm), **F3** signal history / sparkline, **F4** divergence/smart alerts, **F5** "what changed,"
+> and the **`/signals/<TICKER>` programmatic pages** (not built yet). See the dated note atop
+> `positioning-and-copy.md` for the per-feature shipped/gated breakdown.
+>
 > **Billing gate.** `BILLING_ENABLED=false` in production. While that flag is false, no plan limits
 > are enforced and Pro copy cannot truthfully gate any feature. Do not advertise Pro tiers, pricing,
 > or feature restrictions until Leif flips the flag. See §9 Open Questions.
