@@ -187,31 +187,38 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
               )}
               {sorted.map((sym) => {
                 const f = fundOf(sym)
-                // All deep-dive ratios derive from real fundamentals; until they
-                // load, every metric cell is a skeleton (no seed fallbacks).
+                // Only P/E has a real backend source in the Fundamentals payload.
+                // All other ratio columns (P/S, P/B, PEG, EBITDA, FCF Yld, ROIC,
+                // Gr. Margin, Net Debt/EBITDA) have no backend field — render '—'
+                // rather than fabricating values from unrelated fields like beta or
+                // market_cap. Extended ratios will populate when a premium data
+                // feed is integrated.
                 const cells: React.ReactNode[] = f
                   ? [
-                      f.pe ? String(f.pe) : '—',
-                      (f.market_cap / 1e11).toFixed(2),
-                      (f.beta * 4).toFixed(2),
-                      f.pe ? (f.pe / 20).toFixed(2) : '—',
-                      '$' + (f.market_cap / 1e10).toFixed(1) + 'B',
-                      (f.dividend_yield + 1).toFixed(2) + '%',
-                      (f.beta * 12).toFixed(1) + '%',
-                      (40 + f.beta * 10).toFixed(1) + '%',
-                      (f.beta).toFixed(2) + 'x',
+                      f.pe ? String(f.pe) : '—',  // P/E — real backend field
+                      '—',                          // P/S — no backend source
+                      '—',                          // P/B — no backend source
+                      '—',                          // PEG — no backend source
+                      '—',                          // EBITDA — no backend source
+                      '—',                          // FCF Yld — no backend source
+                      '—',                          // ROIC — no backend source
+                      '—',                          // Gr. Margin — no backend source
+                      '—',                          // Net Debt/EBITDA — no backend source
                     ]
                   : Array.from({ length: DEEP_COLS.length - 1 }, (_, i) => <Skeleton key={i} inline width={40} height={12} />)
                 return (
-                  <div key={sym} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, alignItems: 'center', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
+                  <div key={sym} data-testid={`deep-dive-row-${sym}`} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, alignItems: 'center', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 12px', minWidth: 0 }}>
                       <Logo symbol={sym} size={26} />
                       <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--tx)' }}>{sym}</span>
                     </div>
-                    {cells.map((cell, i) => <div key={i} style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{cell}</div>)}
+                    {cells.map((cell, i) => <div key={i} data-testid={i === 0 ? `deep-dive-cell-pe-${sym}` : undefined} style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{cell}</div>)}
                   </div>
                 )
               })}
+              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--line)', fontSize: '11.5px', color: 'var(--tx3)', fontFamily: FONT_SANS, fontStyle: 'italic' }}>
+                Extended ratios require a premium data feed — coming soon.
+              </div>
             </div>
           )}
         </div>

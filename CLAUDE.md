@@ -37,11 +37,20 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 | `marketing-strategist` | `.claude/agents/marketing-strategist.md` | sonnet | Positioning, messaging, brand voice, copy, SEO content strategy | drafts → `docs/marketing/` |
 | `web-seo-engineer` | `.claude/agents/web-seo-engineer.md` | sonnet | On-page SEO (meta/OG/JSON-LD/sitemap), Core Web Vitals, brand visual assets | code (auto-commit low-risk SEO) |
 | `outreach-coordinator` | `.claude/agents/outreach-coordinator.md` | sonnet | Distribution: Product Hunt/Reddit/HN/X drafts, target lists, launch sequencing | drafts → `docs/outreach/` |
+| `pr-backlink-builder` | `.claude/agents/pr-backlink-builder.md` | sonnet | Earned media + off-page SEO: journalist/newsletter pitches, HARO responses, directory/listicle submissions, guest-post angles, backlink pipeline | drafts → `docs/outreach/pr-backlink/` |
 
-> **Action boundaries:** `marketing-strategist` and `outreach-coordinator` are
-> DRAFT-ONLY — they never publish, post, or send; they write artifacts for Leif to
-> review. `web-seo-engineer` may auto-commit low-risk technical-SEO code (like
-> `site-maintainer`'s tier) but flags visual-identity / CSP / copy changes.
+> **Action boundaries:** `marketing-strategist`, `outreach-coordinator`, and
+> `pr-backlink-builder` are DRAFT-ONLY — they never publish, post, pitch, submit, or
+> send; they write artifacts for Leif to review. `web-seo-engineer` may auto-commit
+> low-risk technical-SEO code (like `site-maintainer`'s tier) but flags
+> visual-identity / CSP / copy changes.
+>
+> **`outreach-coordinator` vs. `pr-backlink-builder`:** outreach-coordinator owns the
+> *launch burst* on community channels (Product Hunt / Reddit / HN / X) and launch-day
+> sequencing; pr-backlink-builder owns *earned media + off-page SEO* that compounds
+> over time (journalist/newsletter pitches, HARO, directories/roundups, guest posts,
+> the backlink pipeline). Won/target backlinks flow from pr-backlink-builder →
+> `web-seo-engineer`.
 >
 > **`database-optimizer` is not installed locally** — it's an external VoltAgent
 > agent (`voltagent-data-ai`). Install before routing to it:
@@ -55,7 +64,7 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 ### Parallel dispatch — independent tasks, no shared write targets
 ```
 "Full health check"
-  → security-auditor + e2e-engineer + performance-engineer (parallel)
+  → security-auditor + e2e-engineer + performance-engineer + hf-engineer (parallel)
   → synthesize into prioritized action list
 
 "Review the auth layer and run tests"
@@ -66,7 +75,8 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 
 "Launch prep / go-to-market"
   → marketing-strategist (positioning + copy + keyword strategy)
-  → then web-seo-engineer (implement SEO) + outreach-coordinator (channel drafts) (parallel)
+  → then web-seo-engineer (implement SEO) + outreach-coordinator (channel drafts)
+    + pr-backlink-builder (earned-media + backlink pipeline) (parallel)
 ```
 
 ### Sequential chains — output of one feeds the next
@@ -79,7 +89,7 @@ hf-engineer produces feature spec
   → site-maintainer implements it
   → e2e-engineer writes e2e tests for the new flow
 
-database-optimizer identifies slow queries
+performance-engineer (or database-optimizer, if installed) identifies slow queries
   → site-maintainer applies index migrations
 
 performance-engineer flags Finnhub over-fetching
@@ -92,6 +102,10 @@ marketing-strategist writes positioning + landing copy
   → web-seo-engineer builds the SEO-structured page (+ site-maintainer if app code)
   → outreach-coordinator adapts the message into channel-specific launch drafts
 
+marketing-strategist supplies positioning + proof points
+  → pr-backlink-builder drafts journalist/newsletter pitches + backlink pipeline
+  → web-seo-engineer tracks won links / builds any linkable data-asset page
+
 hf-engineer surfaces a UX value prop
   → marketing-strategist turns it into messaging
 ```
@@ -102,14 +116,15 @@ hf-engineer surfaces a UX value prop
 | "fix", "refactor", "implement", "add", "update" | `site-maintainer` |
 | "audit", "security", "CVE", "OWASP", "vuln", "key leak" | `security-auditor` |
 | "test", "e2e", "playwright", "flaky", "coverage" | `e2e-engineer` |
-| "UX", "feature idea", "improve", "usability", "user flow" | `hf-engineer` |
+| "UX", "feature idea", "improve UX/usability", "user flow" | `hf-engineer` |
 | "slow", "latency", "perf", "bottleneck", "bundle" | `performance-engineer` |
-| "query", "index", "postgres", "slow query", "N+1" | `database-optimizer` |
+| "query", "index", "postgres", "slow query", "N+1" | `performance-engineer` (diagnose) → `site-maintainer` (apply index migration); escalate to `database-optimizer` only if installed |
 | "marketing", "positioning", "messaging", "copy", "tagline", "campaign", "value prop" | `marketing-strategist` |
 | "SEO", "meta tags", "structured data", "schema", "sitemap", "open graph", "page speed", "Core Web Vitals", "favicon", "brand assets" | `web-seo-engineer` |
-| "outreach", "launch", "Product Hunt", "Reddit", "Hacker News", "social post", "distribution", "PR", "backlinks", "community" | `outreach-coordinator` |
+| "outreach", "launch", "Product Hunt", "Reddit", "Hacker News", "social post", "distribution", "community" | `outreach-coordinator` |
+| "press", "press release", "PR (media/outreach — not a pull request)", "backlinks", "link building", "journalist", "newsletter pitch", "HARO", "directory", "roundup", "guest post", "earned media" | `pr-backlink-builder` |
 | "health check", "full audit", "review everything" | engineering core parallel (security + e2e + performance + hf) |
-| "launch prep", "go-to-market", "growth" | `marketing-strategist` → web-seo-engineer + outreach-coordinator |
+| "launch prep", "go-to-market", "growth" | `marketing-strategist` → web-seo-engineer + outreach-coordinator + pr-backlink-builder |
 
 ### Context passing rules
 - Always pass relevant file paths, module names, and route names when delegating
@@ -201,6 +216,34 @@ Backend is a flat `backend/` package (no `app/` dir, no per-route blueprints).
 - Run `pytest` (from `backend/`) + `npm run test` (from `frontend/`) before any
   commit; `npm run e2e` before marking any e2e task done
 - Never push to `main` directly; use feature branches
+
+---
+
+## Automated Guardrails (Claude Code hooks)
+
+Enforced automatically via `.claude/settings.json` (tracked, shared across all
+worktrees). Scripts live in `.claude/hooks/` (Node, no external deps):
+
+| Hook | Event / scope | What it does |
+|---|---|---|
+| `secret-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** hardcoded secrets (Stripe/Resend/AWS keys, private-key blocks, or a sensitive env-var name assigned a string literal) in source. Allows env lookups, placeholders, `.env*`. |
+| `frontend-provider-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** adding a Finnhub/Yahoo/CoinGecko host to a `frontend/**` source file (data must flow backend→cache→frontend). Skips test/mock files. |
+| `migration-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** editing an already-committed Flask-Migrate revision in `migrations/versions/`. New (untracked) migrations pass. |
+| `protect-main.js` | `PreToolUse` `Bash` | **Blocks** direct push to `main` (incl. `HEAD:main`, `--force`, bare push on `main`). Feature-branch pushes pass. |
+| `dangerous-bash-guard.js` | `PreToolUse` `Bash` | **Blocks** clearly destructive ops: broad `rm -rf`, `flask db downgrade`, SQL `DROP`/`TRUNCATE`, `railway down`/delete. |
+| `commit-confidence.js` | `PreToolUse` `Bash` | **Blocks** `git commit` unless the message has a `Confidence: <0-100>/100` trailer — forces a stated confidence score (and one-line justification to the user) before every commit. |
+| `oxlint-fix.js` | `PostToolUse` `Write`/`Edit` | Best-effort `oxlint --fix` (safe fixes) on edited `frontend/**` JS/TS. Never blocks. |
+| `py-syntax-check.js` | `PostToolUse` `Write`/`Edit` | `py_compile` on edited `.py`; feeds any `SyntaxError` back as context. Never blocks. |
+| `related-test-runner.js` | `PostToolUse` `Write`/`Edit` | If an edited `frontend/src` file has a related test, runs `vitest related --run` and feeds failures back. Self-gating, never blocks. |
+| `context-injector.js` | `UserPromptSubmit` | Injects current version, branch, working-tree status, worktree flag, `BILLING_ENABLED` into each prompt. |
+| `session-briefing.js` | `SessionStart` | Prints version / branch / tree / recent commits / open-PR count at session start. |
+| `subagent-logger.js` | `SubagentStop` | Appends an audit line per finished subagent to `.claude/logs/subagents.log` (gitignored). |
+| `test-before-done.js` | `Stop` | If backend/frontend source changed, runs scoped `pytest -q` / `vitest related`; **blocks finishing** while they fail (loop-guarded). |
+| `typecheck-frontend.js` | `Stop` | If `frontend/src` TS changed, runs `tsc --noEmit`; **blocks finishing** on type errors (loop-guarded). |
+| `changelog-reminder.js` | `Stop` | If source changed but `CHANGELOG.md`/`VERSION` didn't, nudges once (loop-guarded). |
+
+These mechanize the rules above — they tighten, never loosen, normal permissions.
+Each is a dependency-free Node script using shell-free `execFileSync`. To disable one, remove its entry from `.claude/settings.json`.
 
 ---
 

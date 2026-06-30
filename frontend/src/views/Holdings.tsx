@@ -124,7 +124,9 @@ export function Holdings() {
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Portfolio</span>
-          <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{rows.length} positions · synced from {settings?.broker_name || 'your broker'}</span>
+          {/* "via" rather than "synced from" — no sync timestamp is returned by the     */}
+          {/* holdings API, so we cannot honestly claim when the data was last synced.   */}
+          <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{rows.length} positions · via {settings?.broker_name || 'your broker'}</span>
         </div>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

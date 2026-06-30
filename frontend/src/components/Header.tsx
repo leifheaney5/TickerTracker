@@ -148,7 +148,8 @@ export function Header() {
 
           {/* Current view label — fills space */}
           <span style={{ flex: 1, fontSize: '13.5px', fontWeight: 700, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {NAV.find((n) => n.view === view)?.label ?? 'Ticker Tracker'}
+            {NAV.find((n) => n.view === view)?.label
+              ?? (view === 'alerts' ? 'Alerts' : view === 'holdings' ? 'Portfolio' : 'Ticker Tracker')}
           </span>
 
           {/* Theme toggle */}
@@ -267,6 +268,23 @@ export function Header() {
                 {n.label}
               </button>
             ))}
+            {/* Alerts link — only shown when signed in */}
+            {authed && (
+              <button
+                key="alerts"
+                data-testid="mobile-nav-alerts"
+                onClick={() => navigate('alerts')}
+                style={{
+                  padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  fontFamily: FONT_SANS, fontSize: '14px', textAlign: 'left',
+                  fontWeight: view === 'alerts' ? 700 : 500,
+                  background: view === 'alerts' ? 'var(--accent,#3ddc84)' : 'transparent',
+                  color: view === 'alerts' ? 'var(--accentInk)' : 'var(--tx2)',
+                }}
+              >
+                Alerts
+              </button>
+            )}
             {/* Portfolio link in menu on mobile (when connected) */}
             {connected && (
               <div style={{ marginTop: 6, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
