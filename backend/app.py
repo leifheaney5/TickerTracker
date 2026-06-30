@@ -1,7 +1,8 @@
 import os
 import re
+import json as _json
 import datetime as _dt
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, make_response
 
 # Serve the built frontend (Vite emits to ../frontend/dist). In production a
 # single Flask service hosts both the SPA and the /api endpoints. We disable
@@ -662,9 +663,161 @@ def stripe_webhook():
     return jsonify({"received": True}), 200
 
 
+# ─── Per-page SEO meta injection ─────────────────────────────────────────────
+# Flask reads the built index.html and rewrites <title>, <meta>, OG/Twitter tags,
+# canonical, and JSON-LD for specific public routes before serving. This gives
+# crawlers and social-unfurl bots correct per-page meta without a Node SSR server.
+# The React SPA still boots normally in the browser on top of the returned HTML.
+
+_BASE_URL = "https://tickertracker.info"
+
+# path → (title, meta description, canonical URL)
+# "path" here is the value Flask passes to the catch-all (no leading slash).
+_PAGE_META: dict = {
+    "": (  # /
+        "Ticker Tracker — Stocks & Crypto in One Dark Dashboard | Free Watchlist + Alerts",
+        "Track stocks and crypto in one dark dashboard. Build your free watchlist, set price"
+        " alerts, and get live prices, news sentiment, and analyst ratings. No brokerage required.",
+        f"{_BASE_URL}/",
+    ),
+    "dashboard": (
+        "Ticker Tracker — Stocks & Crypto in One Dark Dashboard | Free Watchlist + Alerts",
+        "Track stocks and crypto in one dark dashboard. Build your free watchlist, set price"
+        " alerts, and get live prices, news sentiment, and analyst ratings. No brokerage required.",
+        f"{_BASE_URL}/dashboard",
+    ),
+    "market": (
+        "Stock Market Heatmap — Finviz Alternative with Crypto | Ticker Tracker",
+        "Explore the stock market with a Finviz-style heatmap and live sector performance,"
+        " plus a crypto market map — all in one dark, unified view. Free, no account required.",
+        f"{_BASE_URL}/market",
+    ),
+    "crypto": (
+        "Crypto Dashboard — Fear & Greed Index, Market Map & Watchlist | Ticker Tracker",
+        "Monitor crypto prices, track the live Fear & Greed Index, and manage a unified"
+        " crypto and stock watchlist. Live data from CoinGecko and alternative.me.",
+        f"{_BASE_URL}/crypto",
+    ),
+    "earnings": (
+        "Earnings Calendar — Upcoming Stock Earnings Dates & Estimates | Ticker Tracker",
+        "Upcoming stock earnings dates and EPS estimates. Know when your companies report"
+        " before the market opens.",
+        f"{_BASE_URL}/earnings",
+    ),
+}
+
+
+def _get_index_html_str() -> str:
+    """Read the built index.html. Returns empty string if not built yet."""
+    index = os.path.join(_FRONTEND_DIST, "index.html")
+    try:
+        with open(index, "r", encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def _esc_attr(s: str) -> str:
+    """Minimal HTML attribute-value escaping."""
+    return s.replace("&", "&amp;").replace('"', "&quot;")
+
+
+def _inject_meta(
+    html: str,
+    title: str,
+    description: str,
+    canonical: str,
+    og_title: str | None = None,
+    og_description: str | None = None,
+    extra_head: str = "",
+) -> str:
+    """Return a copy of index.html with per-page meta tags injected."""
+    ot = og_title or title
+    od = og_description or description
+
+    html = re.sub(r"<title>[^<]*</title>",
+                  f"<title>{_esc_attr(title)}</title>", html)
+    html = re.sub(r'<meta name="description" content="[^"]*"',
+                  f'<meta name="description" content="{_esc_attr(description)}"', html)
+    html = re.sub(r'<meta property="og:title" content="[^"]*"',
+                  f'<meta property="og:title" content="{_esc_attr(ot)}"', html)
+    html = re.sub(r'<meta property="og:description" content="[^"]*"',
+                  f'<meta property="og:description" content="{_esc_attr(od)}"', html)
+    html = re.sub(r'<meta property="og:url" content="[^"]*"',
+                  f'<meta property="og:url" content="{_esc_attr(canonical)}"', html)
+    html = re.sub(r'<meta name="twitter:title" content="[^"]*"',
+                  f'<meta name="twitter:title" content="{_esc_attr(ot)}"', html)
+    html = re.sub(r'<meta name="twitter:description" content="[^"]*"',
+                  f'<meta name="twitter:description" content="{_esc_attr(od)}"', html)
+
+    canonical_tag = f'<link rel="canonical" href="{_esc_attr(canonical)}" />'
+    inject = f"  {canonical_tag}"
+    if extra_head:
+        inject += f"\n  {extra_head}"
+    html = html.replace("</head>", f"{inject}\n  </head>", 1)
+    return html
+
+
+def _html_response(html: str):
+    resp = make_response(html, 200)
+    resp.content_type = "text/html; charset=utf-8"
+    return resp
+
+
+def _serve_fng_page():
+    """Serve /crypto/fear-and-greed with live F&G data injected into meta + JSON-LD."""
+    raw = _get_index_html_str()
+    if not raw:
+        return jsonify({"error": "frontend not built",
+                        "hint": "run: cd frontend && npm run build"}), 503
+
+    fng_data, _ = get_fng()
+    value: int = fng_data.get("value", 50) if isinstance(fng_data, dict) else 50
+    label: str = fng_data.get("label", "Neutral") if isinstance(fng_data, dict) else "Neutral"
+    today = _dt.date.today().isoformat()
+
+    title = f"Crypto Fear & Greed Index Today — {value} ({label}) | Ticker Tracker"
+    description = (
+        f"Today's Crypto Fear & Greed Index: {value}/100 ({label}). "
+        "Updated daily by alternative.me. "
+        "Includes BTC dominance and major crypto-coin market context."
+    )
+    canonical = f"{_BASE_URL}/crypto/fear-and-greed"
+
+    dataset_ld = _json.dumps({
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": f"Crypto Fear & Greed Index — {today}",
+        "description": (
+            "Daily 0–100 index measuring crypto market sentiment. "
+            "Source: alternative.me Fear & Greed Index."
+        ),
+        "url": "https://tickertracker.info/crypto/fear-and-greed",
+        "creator": {
+            "@type": "Organization",
+            "name": "alternative.me",
+            "url": "https://alternative.me",
+        },
+        "temporalCoverage": "2018-02-01/..",
+        "measurementTechnique": (
+            "Composite of volatility, market momentum/volume, social media, "
+            "surveys, Bitcoin dominance, and Google Trends."
+        ),
+        "variableMeasured": "Crypto market sentiment (0=Extreme Fear, 100=Extreme Greed)",
+        "license": "https://alternative.me/crypto/fear-and-greed-index/",
+    }, ensure_ascii=False)
+
+    extra_head = f'<script type="application/ld+json">{dataset_ld}</script>'
+
+    html = _inject_meta(raw, title, description, canonical, extra_head=extra_head)
+    return _html_response(html)
+
+
 # ─── SPA fallback ────────────────────────────────────────────────────────────
 # Serve the built index.html for any non-API path so client-side state-driven
-# navigation works on hard refresh. Unknown /api/* paths still 404 as JSON.
+# navigation works on hard refresh. Known public routes get per-page meta
+# injected before the HTML is returned so crawlers and social unfurls see the
+# correct title/description/OG tags. Unknown /api/* paths still 404 as JSON.
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def spa(path):
@@ -673,6 +826,18 @@ def spa(path):
     full = os.path.join(_FRONTEND_DIST, path)
     if path and os.path.isfile(full):
         return send_from_directory(_FRONTEND_DIST, path)
+
+    # /crypto/fear-and-greed: live F&G value injected into title + Dataset JSON-LD.
+    if path == "crypto/fear-and-greed":
+        return _serve_fng_page()
+
+    # Known marketing-adjacent routes: inject static per-page meta for SEO/social.
+    if path in _PAGE_META:
+        raw = _get_index_html_str()
+        if raw:
+            title, desc, canonical = _PAGE_META[path]
+            return _html_response(_inject_meta(raw, title, desc, canonical))
+
     index = os.path.join(_FRONTEND_DIST, "index.html")
     if os.path.isfile(index):
         return send_from_directory(_FRONTEND_DIST, "index.html")
