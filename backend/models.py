@@ -2,6 +2,7 @@ from sqlalchemy import (Column, Integer, String, Float, Boolean, DateTime, Date,
                         ForeignKey, func, UniqueConstraint, Index, Text)
 from db import Base
 from flask_login import UserMixin
+from auth.crypto import EncryptedString
 
 
 class User(UserMixin, Base):
@@ -9,7 +10,7 @@ class User(UserMixin, Base):
     id = Column(Integer, primary_key=True)
     email = Column(String, nullable=False, unique=True, index=True)
     name = Column(String, default="")
-    phone = Column(String, default="")
+    phone = Column(EncryptedString, default="")
     created_at = Column(DateTime, server_default=func.now())
     password_hash = Column(String, nullable=True)
     email_verified = Column(Boolean, default=False)

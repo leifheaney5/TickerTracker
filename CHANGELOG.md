@@ -10,6 +10,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
 > engagement, and security. Batch A below; subsequent batches follow.
 
+## [1.24.0] — 2026-06-30
+
+> **Platform expansion — Batch E1: field encryption + Apple Sign In.** AES-256-GCM
+> at-rest encryption for PII and a second OAuth provider.
+
+### Added
+
+- **AES-256-GCM field encryption** (`backend/auth/crypto.py`): `encrypt`/`decrypt` (fresh
+  per-value nonce, `ENCRYPTION_KEY` from env) plus an `EncryptedString` SQLAlchemy
+  `TypeDecorator`. Applied to `User.phone` (PII). A `gcm1:` version marker makes encryption
+  **backward-compatible**: legacy plaintext rows read verbatim, decrypt failures degrade
+  gracefully (logged, never a 500), and an unset key = transparent passthrough for dev.
+- **Sign in with Apple** (`backend/auth/apple.py`): Authlib provider with Apple's required
+  short-lived **ES256 client-secret JWT** (`build_client_secret`), `form_post` callback,
+  first-auth name handling, linked via the existing `OAuthIdentity` (`provider='apple'`).
+  New `GET /api/auth/providers` reports which OAuth providers are configured; `AuthScreen`
+  renders the Google/Apple buttons accordingly. All env-gated (`APPLE_CLIENT_ID/TEAM_ID/
+  KEY_ID/PRIVATE_KEY`) — hidden when unconfigured, so current behavior is unchanged.
+
+### Changed
+
+- OAuth user find-or-create centralized in `auth/oauth_common.py`; Google delegates to it
+  with identical behavior.
+
+### Notes
+
+- New env vars: `ENCRYPTION_KEY` (urlsafe-base64 of 32 bytes; absent = passthrough),
+  `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (.p8 contents).
+  No DB migration — `EncryptedString` is backed by the existing `String` column.
+
 ## [1.23.0] — 2026-06-30
 
 > **Platform expansion — Batch D: real-time streaming + optional Redis.** A backend

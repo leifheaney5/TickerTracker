@@ -54,6 +54,9 @@ def _security_headers(resp):
 from auth.google import register as register_google
 register_google(app)
 
+from auth.apple import register as register_apple
+register_apple(app)
+
 # ─── Lightweight IP-keyed rate limit for the public market proxy ─────────────
 # The unauthenticated /api market endpoints proxy upstream providers (Finnhub/
 # Yahoo). A caller rotating symbols can force cache-miss fetches and burn our
