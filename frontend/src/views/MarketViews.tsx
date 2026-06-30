@@ -102,9 +102,9 @@ export function MarketViews({ sub }: { sub: Sub }) {
           {header('Market Overview', 'How the broad market is trading right now')}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flex: '0 0 auto' }}>
             {Object.entries(IDX).map(([key, ix]) => (
-              <div key={key} style={{ flex: '1 1 0', minWidth: 170, padding: '15px 17px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <span style={{ fontSize: '11px', color: 'var(--tx3)', letterSpacing: '.04em' }}>{ix.name.toUpperCase()}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '20px', fontWeight: 600, color: 'var(--tx3)' }}>—</span>
+              <div key={key} data-testid={`idx-card-${key}`} style={{ flex: '1 1 0', minWidth: 170, padding: '15px 17px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span data-testid={`idx-name-${key}`} style={{ fontSize: '11px', color: 'var(--tx3)', letterSpacing: '.04em' }}>{ix.name.toUpperCase()}</span>
+                <span data-testid={`idx-value-${key}`} style={{ fontFamily: FONT_MONO, fontSize: '20px', fontWeight: 600, color: 'var(--tx3)' }}>—</span>
                 <span style={{ fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: 'var(--tx3)' }}>—</span>
                 <div style={{ height: 3, borderRadius: 2, background: IDX_COLORS[key as keyof typeof IDX_COLORS], opacity: 0.25 }} />
               </div>
@@ -183,7 +183,7 @@ export function MarketViews({ sub }: { sub: Sub }) {
           {header('Sector Performance', 'How every sector is performing across timeframes — green is up, red is down')}
           <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12, flex: '0 0 auto' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Performance Matrix · % change</span>
-            <div style={{ overflowX: 'auto' }}>
+            <div data-testid="sectors-performance-matrix" style={{ overflowX: 'auto' }}>
               <div style={{ minWidth: 640 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: `minmax(150px,1.4fr) repeat(${SEC_TFS.length}, 1fr)`, gap: 4 }}>
                   <div />
