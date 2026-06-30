@@ -25,6 +25,21 @@ export function pulseColor(band: PulseBand): string {
   return BAND_COLORS[band]
 }
 
+// Plain-language caption for the compact dial. The band words (Cooling/Building/…) are kept as the
+// canonical model — used for color, the breakdown panel, and aria — but the dial shows this instead,
+// because "Building" reads as a loading state and never names WHAT is building. Naming the subject
+// ("signals") makes the dial impossible to misread as data-integrity or stock-quality.
+const BAND_CAPTIONS: Record<PulseBand, string> = {
+  Cooling: 'signals quiet',
+  Neutral: 'signals mixed',
+  Building: 'signals rising',
+  Hot: 'signals strong',
+}
+
+export function pulseCaption(band: PulseBand): string {
+  return BAND_CAPTIONS[band]
+}
+
 // Fraction (0..1) of the 270° gauge sweep for a given 0..100 score. Clamps out-of-range input.
 export function pulseArc(score: number): number {
   const s = Math.max(0, Math.min(100, score))

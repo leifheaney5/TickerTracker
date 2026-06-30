@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.18.1] — 2026-06-30
+## [1.18.2] — 2026-06-30
 
 > **Market Map drill-down perf.** Three targeted fixes eliminate redundant O(n log n)
 > treemap layout recalculations on hover and on every 60s quote poll.
@@ -27,6 +27,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `React.memo`; `stockTip` and `cryptoTip` are wrapped in `useCallback` with correct
   dep arrays so the memo'd child isn't defeated by new closure identities on unrelated
   renders (e.g. `secTf` timeframe toggle, container resize).
+
+## [1.18.1] — 2026-06-30
+
+> **Discoverable on the open web + Pulse in plain language.** Adds real per-page SEO
+> metadata, a public Fear & Greed page search engines and social cards can surface,
+> and a proper share image — so links to Ticker Tracker render and rank — and makes
+> the Pulse dial self-explanatory with a "What is Pulse?" explainer.
+
+### Added
+
+- **Per-page meta injection** (`backend/app.py`): the Flask SPA shell now rewrites
+  `<title>`, meta description, canonical, and Open Graph / Twitter tags per route
+  for `/` (home), `/dashboard`, `/market`, and `/crypto` — no Node SSR introduced.
+- **Public `/crypto/fear-and-greed` page** (`frontend/src/views/FearAndGreed.tsx`,
+  `backend/app.py`): a standalone, indexable page showing the live crypto Fear &
+  Greed reading with `Dataset` JSON-LD and honest alternative.me attribution; the
+  page title carries the live value (e.g. *"72 (Greed)"*).
+- **1200×630 Open Graph share card** (`frontend/public/brand/og-card.png`): a real
+  rasterized share image (was a 512px square icon); `twitter:card` upgraded to
+  `summary_large_image`.
+- Site-wide `WebSite` + `Organization` JSON-LD; `robots.txt` now disallows `/api/`;
+  `sitemap.xml` covers the public routes.
+- **"What is Pulse?" explainer modal** (`frontend/src/components/PulseAbout.tsx`):
+  an ⓘ info chip on the dial opens an accessible dialog (`role="dialog"`,
+  `aria-modal`, Escape/backdrop close, focus returns to the chip) describing the
+  five signals and their weights (momentum 22% · trend 22% · analyst 20% ·
+  52-week positioning 18% · news sentiment 18%), how missing signals are omitted
+  and reweighted, and the not-investment-advice disclaimer.
+
+### Changed
+
+- **Plain-language Pulse dial caption** (`frontend/src/components/PulseDial.tsx`,
+  `frontend/src/lib/pulse.ts`): the compact dial now shows a plain caption —
+  `signals quiet / mixed / rising / strong` — instead of the internal band word
+  (`Cooling / Neutral / Building / Hot`), which read like a loading state and
+  never named *what* was building. The band identity is unchanged: it still
+  drives the arc color, the `Why Pulse` breakdown, and the meter's `aria-label`
+  (which now announces both, e.g. *"Pulse 57 of 100, Building — signals rising"*).
+
+### Removed
+
+- **`/earnings` SEO surface**: removed the `/earnings` entry from per-page meta and
+  the sitemap. The standalone earnings page was intentionally retired (its data now
+  lives in the per-stock Due Diligence card), so advertising a crawlable URL that
+  redirects to `/dashboard` was incorrect.
 
 ## [1.18.0] — 2026-06-29
 
