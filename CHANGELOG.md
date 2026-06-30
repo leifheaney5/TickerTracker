@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.18.4] — 2026-06-30
+## [1.18.5] — 2026-06-30
 
 ### Added
 
@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "via {broker}" — the holdings API returns no sync timestamp, so the previous wording
   falsely implied a known recency. No time is invented or hardcoded.
 
-## [1.18.3] — 2026-06-30
+## [1.18.4] — 2026-06-30
 
 ### Fixed
 
@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   data — live market index quotes coming soon" disclosure note added after the index card
   group and within each sector section. Removed unused `sectorPerf` and `heatColor` imports.
 
-## [1.18.2] — 2026-06-29
+## [1.18.3] — 2026-06-29
 
 ### Fixed
 
@@ -77,6 +77,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `<button>` elements with `aria-pressed` and `data-testid` attributes. Direction is
   persisted immediately via the existing `updateListWatch` optimistic update path. The
   Alerts view already reads `alert_dir` correctly and required no change.
+
+## [1.18.2] — 2026-06-30
+
+> **Market Map drill-down perf.** Three targeted fixes eliminate redundant O(n log n)
+> treemap layout recalculations on hover and on every 60s quote poll.
+
+### Performance
+
+- **Memoize squarify layout** (`Treemap.tsx`): `squarify` is now wrapped in `useMemo`
+  keyed on `[items, width, height]`. Previously the full layout ran on every hover
+  event (`setTip` state change) — now it runs only when tile geometry actually changes.
+- **Stop quote poll from rebuilding the map** (`MarketViews.tsx`): `mapItems` is now
+  `useMemo`'d keyed on `[universe, sector, exchange, crypto]`. The previous
+  `useStore((s) => s.quotes)` subscription caused a full rebuild of the 96-tile array
+  and a cascading re-layout on every 60s poll. `stockTip` now reads the live price
+  lazily via `useStore.getState()` at hover time — satisfying the accurate-numbers rule
+  (price visible once a real quote loads) without triggering re-renders.
+- **React.memo boundary** (`Treemap.tsx`, `MarketViews.tsx`): `Treemap` is wrapped in
+  `React.memo`; `stockTip` and `cryptoTip` are wrapped in `useCallback` with correct
+  dep arrays so the memo'd child isn't defeated by new closure identities on unrelated
+  renders (e.g. `secTf` timeframe toggle, container resize).
 
 ## [1.18.1] — 2026-06-30
 
