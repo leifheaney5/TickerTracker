@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+> **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
+> engagement, and security. Batch A below; subsequent batches follow.
+
+## [1.19.0] — 2026-06-29
+
+> **Platform expansion — Batch A: analytics & engagement quick wins.** Extends existing
+> charting, portfolio, watchlist, and alert surfaces — no new infrastructure.
+
+### Added
+
+- **Chart timeframes 5D / YTD / MAX** on top of the existing 1D–5Y set
+  (`ChartControls.tsx`, backed by new `yahooquery` period mappings in
+  `backend/providers/yahoo.py`: `5D→5d/15m`, `YTD→ytd/1d`, `MAX→max/1mo`).
+- **Allocation grouping** on the Holdings/Portfolio donut: toggle between
+  **Position**, **Sector** (from `UNIVERSE[sym].sector`), and **Asset Class**
+  (Crypto vs Stocks). Pure, tested aggregator in `frontend/src/lib/allocation.ts`.
+- **Daily change-$ column and per-row sparkline** in the multi-watchlist manage grid
+  (`ManageWatchlist.tsx`), mirroring the sidebar watchlist. New tested helper
+  `frontend/src/lib/dailyChg.ts`.
+- **In-app toast system** (`state/toastStore.ts` + `components/Toaster.tsx`): alert
+  threshold crossings detected during the quote poll now raise an in-app toast on first
+  transition (tested helper `frontend/src/lib/alertDetect.ts`); the ad-hoc "Copied!" toast
+  is unified onto the same system.
+
 ## [1.18.0] — 2026-06-29
 
 > **Market Map follow-ups.** Sharpens the interactive map from v1.17.0 with an exchange

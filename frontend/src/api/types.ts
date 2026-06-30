@@ -165,7 +165,7 @@ export interface Holding {
   avg_cost: number
 }
 
-export type Timeframe = '1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'
+export type Timeframe = '1D' | '5D' | '1W' | '1M' | '3M' | '1Y' | '5Y' | 'YTD' | 'MAX'
 
 export interface AuthUser { id: number; email: string; name: string; email_verified: boolean; plan: 'free' | 'premium' }
 

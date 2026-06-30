@@ -12,6 +12,9 @@ import type {
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 import { reorderLists, moveItem, reorderWithinList, flattenActive } from './watchlistReducers'
 import { pathForView } from '../routes'
+import { detectAlertCrossings } from '../lib/alertDetect'
+import { useToastStore } from './toastStore'
+import { money } from '../lib/format'
 
 function errStatus(e: unknown): number | null {
   const m = String((e as Error)?.message || '').match(/→\s*(\d+)/)
@@ -43,6 +46,10 @@ export type SortBy = 'manual' | 'change' | 'price' | 'az'
 // Module-level guard so the first-run watchlist seed runs at most once even if
 // loadWatchlist is invoked twice (React StrictMode double-invokes effects).
 let seedInFlight = false
+
+// Tracks which alert-symbol keys were in "hit" state on the previous poll
+// cycle, so we only fire a toast on the first transition (not every poll).
+let _alertHitSet = new Set<string>()
 
 // Symbols whose brand logo we've already requested this session (success or a
 // confirmed "no logo"), so repeated polls don't re-hit /api/logos for them.
@@ -491,6 +498,22 @@ export const useStore = create<StoreState>((set, get) => ({
       set({ quotes: { ...prev, ...data.quotes }, marketStatus: data.market_status, flash, quotesFetchedAt: fetchedAt })
       // clear flash after the prototype's ~650ms window
       setTimeout(() => set({ flash: {} }), 650)
+
+      // Detect alert crossings and push in-app toasts on first transition.
+      const { watchlist: wl } = get()
+      if (wl.length > 0) {
+        const mergedQuotes = { ...prev, ...data.quotes }
+        const { newHits, nextHitSet } = detectAlertCrossings(_alertHitSet, wl, mergedQuotes)
+        _alertHitSet = nextHitSet
+        const { pushToast } = useToastStore.getState()
+        for (const hit of newHits) {
+          const dir = hit.dir === 'above' ? 'above' : 'below'
+          pushToast(
+            `${hit.symbol} ${dir} ${money(hit.alertPrice)} — now ${money(hit.price)}`,
+            { kind: 'alert' },
+          )
+        }
+      }
     } catch {
       // keep last-known quotes; symbols without one render a skeleton (hasQuote=false)
     }

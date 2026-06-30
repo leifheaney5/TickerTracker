@@ -3,8 +3,9 @@ from yahooquery import Ticker
 
 logger = logging.getLogger(__name__)
 
-_TF_PERIOD = {"1D": ("1d", "5m"), "1W": ("7d", "1d"), "1M": ("1mo", "1d"),
-              "3M": ("3mo", "1d"), "1Y": ("1y", "1wk"), "5Y": ("5y", "1mo")}
+_TF_PERIOD = {"1D": ("1d", "5m"), "5D": ("5d", "15m"), "1W": ("7d", "1d"),
+              "1M": ("1mo", "1d"), "3M": ("3mo", "1d"), "1Y": ("1y", "1wk"),
+              "5Y": ("5y", "1mo"), "YTD": ("ytd", "1d"), "MAX": ("max", "1mo")}
 
 
 def fetch_quote(sym: str) -> dict:
