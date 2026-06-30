@@ -7,6 +7,235 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+> **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
+> engagement, and security. Batch A below; subsequent batches follow.
+
+## [1.25.1] — 2026-06-30
+
+> **Platform expansion — e2e hardening + two crash fixes.** Browser-level Playwright
+> coverage for the new surfaces surfaced two real crashes that unit tests (single-state
+> jsdom renders) could not.
+
+### Fixed
+
+- **Settings page crash (React #310)** for authenticated users: `usePushSubscription`,
+  `useTwoFactor`, and `usePasskey` were called *after* the unauthenticated early-return, so
+  the hook count changed across the unauth→auth transition. Hoisted all three above the guard.
+- **Home-page crash on incomplete Pulse data**: `PulseDial` / `PulseWhy` called
+  `band.toUpperCase()` / `components.map()` on a pulse object that was present but missing
+  fields, crashing the whole view. Both now require a complete pulse before rendering.
+
+### Added
+
+- **Playwright e2e coverage** for the expansion surfaces (`auth`, `holdings`, `settings`,
+  `watchlist` specs): OAuth-provider button gating, TOTP challenge step, allocation-mode
+  toggle, dividends + benchmark panels, the new watchlist grid columns, and the Security
+  card. Full suite green (52 tests).
+
+### Changed
+
+- Minor `vite build` strict-type fixes (`AuthScreen`, `usePushSubscription`, `streamHelpers`)
+  that `tsc --noEmit` did not flag; `data-testid="alloc-center-label"` added to the Holdings
+  allocation donut for a stable e2e locator.
+
+## [1.25.0] — 2026-06-30
+
+> **Platform expansion — Batch E2: TOTP 2FA + passkey entrypoint.** Optional
+> time-based two-factor auth with recovery codes, and a feature-gated WebAuthn scaffold.
+
+### Added
+
+- **TOTP two-factor authentication** (`backend/auth/twofactor.py`): enroll
+  (`POST /api/2fa/setup` → secret + `otpauth://` URI), confirm (`POST /api/2fa/verify` →
+  enables 2FA, returns one-time **recovery codes**), `disable`, and `status` endpoints. The
+  TOTP secret is stored **encrypted at rest** (reuses Batch E1's `EncryptedString`); recovery
+  codes are Argon2-hashed and single-use. Login now returns a `two_factor_required` challenge
+  with a 5-minute `itsdangerous` token, exchanged at `POST /api/auth/2fa` for the session
+  (TOTP code **or** a recovery code). **Users without 2FA are unaffected** — the existing login
+  path is unchanged (covered by `test_login_no_2fa_path_unchanged`).
+- **Frontend 2FA**: a Security section in Settings (QR enrolment via the `qrcode` dep,
+  verify, recovery-code display, disable) and a TOTP challenge step in `AuthScreen`.
+- **WebAuthn / passkey entrypoint** (`backend/auth/webauthn_auth.py`): real but feature-gated
+  register/auth begin+complete endpoints + `WebAuthnCredential` model + a Settings "Add a
+  passkey" button. Gated on `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` (+ the `webauthn` lib) —
+  returns `{enabled:false}` when unconfigured rather than faking success.
+
+### Security
+
+- **2FA setup step-up guard**: `POST /api/2fa/setup` now refuses to rotate the TOTP secret
+  while 2FA is already enabled (returns 400 — must `/disable` first, which requires a current
+  factor). Prevents a hijacked session from silently resetting a victim's working 2FA.
+
+### Notes
+
+- New deps (guarded imports): `pyotp`, `webauthn`. New env vars: `WEBAUTHN_RP_ID`,
+  `WEBAUTHN_RP_NAME`, `WEBAUTHN_ORIGIN`. Migration `ii01_2fa_webauthn` (totp columns +
+  `recovery_codes` + `webauthn_credentials`); new columns are nullable/defaulted.
+
+## [1.24.0] — 2026-06-30
+
+> **Platform expansion — Batch E1: field encryption + Apple Sign In.** AES-256-GCM
+> at-rest encryption for PII and a second OAuth provider.
+
+### Added
+
+- **AES-256-GCM field encryption** (`backend/auth/crypto.py`): `encrypt`/`decrypt` (fresh
+  per-value nonce, `ENCRYPTION_KEY` from env) plus an `EncryptedString` SQLAlchemy
+  `TypeDecorator`. Applied to `User.phone` (PII). A `gcm1:` version marker makes encryption
+  **backward-compatible**: legacy plaintext rows read verbatim, decrypt failures degrade
+  gracefully (logged, never a 500), and an unset key = transparent passthrough for dev.
+- **Sign in with Apple** (`backend/auth/apple.py`): Authlib provider with Apple's required
+  short-lived **ES256 client-secret JWT** (`build_client_secret`), `form_post` callback,
+  first-auth name handling, linked via the existing `OAuthIdentity` (`provider='apple'`).
+  New `GET /api/auth/providers` reports which OAuth providers are configured; `AuthScreen`
+  renders the Google/Apple buttons accordingly. All env-gated (`APPLE_CLIENT_ID/TEAM_ID/
+  KEY_ID/PRIVATE_KEY`) — hidden when unconfigured, so current behavior is unchanged.
+
+### Changed
+
+- OAuth user find-or-create centralized in `auth/oauth_common.py`; Google delegates to it
+  with identical behavior.
+
+### Notes
+
+- New env vars: `ENCRYPTION_KEY` (urlsafe-base64 of 32 bytes; absent = passthrough),
+  `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (.p8 contents).
+  No DB migration — `EncryptedString` is backed by the existing `String` column.
+
+## [1.23.0] — 2026-06-30
+
+> **Platform expansion — Batch D: real-time streaming + optional Redis.** A backend
+> Finnhub WebSocket ingestion pipeline with reconnect/backoff + circuit breaker, an
+> opt-in SSE bridge to the browser, and a shared Redis cache backend. **All opt-in and
+> env-gated — with no env set, runtime behavior is unchanged (60s poll + in-process cache).**
+
+### Added
+
+- **Backend Finnhub WebSocket ingestion** (`providers/finnhub_ws.py`, `services/stream.py`):
+  a daemon-thread WS client (guarded `websocket-client` import) that feeds the latest trade
+  prices into the cache. Resilience: tested **exponential backoff** (`backoff_delay`) and a
+  tested **circuit breaker** (closed/open/half-open with injected clock). Gated on
+  `FINNHUB_STREAM_ENABLED` — a no-op otherwise. Provider stays backend-side (never the browser).
+- **SSE browser bridge**: `GET /api/stream/quotes` (env-gated `text/event-stream`) +
+  `GET /api/stream/status`. Frontend `hooks/useQuoteStream.ts` checks status, opens an
+  `EventSource`, merges quotes via the existing flash path, and reconnects with backoff +
+  a circuit breaker — **falling back to the always-on 60s poll** on failure or when disabled.
+  Pure tested helpers `streamBackoff` + `StreamCircuitBreaker`.
+- **Optional Redis cache backend** (`cache.py`): when `REDIS_URL` is set, `cached()` uses Redis
+  (JSON-serialized, shared across instances) with the same stale-while-error semantics;
+  otherwise the in-process LRU is used unchanged. Guarded `redis` import with transparent fallback.
+
+### Notes
+
+- Each SSE connection occupies one gunicorn sync worker for its lifetime; before enabling in
+  production, raise worker count or switch to gevent/eventlet, and tune `SSE_MAX_TICKS` /
+  `SSE_TICK_INTERVAL`. WS price injection preserves `prev_close`/OHLC baselines (no partial quotes).
+
+## [1.22.0] — 2026-06-30
+
+> **Platform expansion — Batch C2: dividends + index benchmarking.** Real dividend
+> projections from holdings and a portfolio-vs-benchmark performance overlay.
+
+### Added
+
+- **Dividend tracking** (`services/dividends.py`, route `GET /api/portfolio/dividends`):
+  projects upcoming/recent dividends per held symbol (ex-date, per-share, shares, total,
+  upcoming/paid status) and an annual-income estimate, sourced from Yahoo dividend history
+  (24h cache, non-fatal on failure, deterministic `mock.py` fallback). Pure tested helpers
+  `project_dividends` / `annual_income_estimate`. New **Dividends panel** in the Holdings view.
+- **Index benchmarking** (`services/benchmark.py`, route `GET /api/portfolio/benchmark`):
+  normalized %-growth overlay of the portfolio vs **SPY** or **QQQ** over a timeframe, built
+  from real Yahoo price history. New **Portfolio vs Benchmark** chart (`charts/BenchmarkChart.tsx`)
+  in the Holdings view with index + timeframe toggles. Pure tested helpers `normalize_pct` /
+  `portfolio_value_series`.
+
+### Notes
+
+- The benchmark overlay is a **current-holdings backtest** — it assumes today's holdings were
+  held across the whole window (historical positions aren't stored). This assumption is shown
+  as an always-visible disclaimer in the API response and the chart UI, per the no-fabrication rule.
+
+## [1.21.0] — 2026-06-29
+
+> **Platform expansion — Batch C1: transaction ledger + P&L engine.** A real
+> average-cost transaction ledger feeding a server-side profit/loss engine.
+
+### Added
+
+- **Transaction ledger** (`Transaction` model + `services/portfolio.py`): records buys/sells
+  with **fees**, updating each `Holding` via the **average-cost method** — buy fees raise the
+  cost basis; sells realize `qty*(price−avg_cost)−fees`; overselling is rejected. Accumulated
+  `realized_pnl` and `fees_paid` are stored on the `Holding` row. Pure tested helpers
+  `apply_buy` / `apply_sell`. Routes: `GET`/`POST /api/transactions`.
+- **Backend P&L engine** (`compute_pnl`, route `GET /api/portfolio/pnl`): per-position and
+  portfolio totals for cost basis, market value, unrealized $/%, **daily P&L from the real
+  previous close** (`(price − prev_close) × shares`; 0 when prev_close is unavailable — never
+  fabricated), realized P&L, and fees. Pure tested helper `position_pnl`.
+
+### Changed
+
+- **Holdings/Portfolio view** now consumes `/api/portfolio/pnl` for an accurate, prev_close-based
+  TODAY figure (replacing the day-% approximation) and surfaces realized-P&L and fees-paid cards
+  when non-zero.
+
+### Notes
+
+- Average-cost (not FIFO/specific-ID) accounting is used deliberately — per-lot tax accounting
+  was deferred with the tax-loss-harvesting feature. A transactions-entry UI is a tracked
+  follow-up (API + client methods are already wired).
+
+## [1.20.0] — 2026-06-29
+
+> **Platform expansion — Batch B: alert depth + web push.** Two new server-evaluated
+> alert rules and a browser-push delivery channel alongside the existing email path.
+
+### Added
+
+- **Volume-spike alerts**: opt-in per-watchlist-item rule (`WatchlistItem.vol_spike_pct`)
+  that fires when the latest daily volume exceeds the trailing ~20-session average by the
+  configured percent. Volume sourced from Yahoo daily history (Finnhub `/quote` reports 0).
+  Pure tested helper `volume_spike_triggered()`.
+- **Upcoming-earnings alerts**: opt-in rule (`WatchlistItem.earnings_days`) that fires when
+  a symbol's next earnings date is within X days, de-duplicated per event via `AlertLog`.
+  Pure tested helper `earnings_within()`.
+- **Web push delivery channel**: new `PushSubscription` model + `/api/push/{vapid-public-key,
+  subscribe,unsubscribe}` routes, a guarded `providers/webpush.py` (no-op when `pywebpush`
+  or VAPID env keys are absent), a `frontend/public/sw.js` service worker, a
+  `usePushSubscription` hook, and a Settings toggle. Alert fires now also send a best-effort
+  web push (pruning expired 404/410 subscriptions).
+
+### Changed
+
+- `services/alerts.py` reworked to evaluate price, volume-spike, and earnings rules in one
+  cron pass; alert emails `html.escape` the symbol (injection defense). `AlertLog.alert_kind`
+  records the rule type for per-kind dedup.
+
+### Notes
+
+- Web push is dormant until `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_CLAIMS_EMAIL`
+  are set and `pywebpush` is installed (pinned in `backend/requirements.txt`); the guarded
+  import keeps the app and tests running without it.
+
+## [1.19.0] — 2026-06-29
+
+> **Platform expansion — Batch A: analytics & engagement quick wins.** Extends existing
+> charting, portfolio, watchlist, and alert surfaces — no new infrastructure.
+
+### Added
+
+- **Chart timeframes 5D / YTD / MAX** on top of the existing 1D–5Y set
+  (`ChartControls.tsx`, backed by new `yahooquery` period mappings in
+  `backend/providers/yahoo.py`: `5D→5d/15m`, `YTD→ytd/1d`, `MAX→max/1mo`).
+- **Allocation grouping** on the Holdings/Portfolio donut: toggle between
+  **Position**, **Sector** (from `UNIVERSE[sym].sector`), and **Asset Class**
+  (Crypto vs Stocks). Pure, tested aggregator in `frontend/src/lib/allocation.ts`.
+- **Daily change-$ column and per-row sparkline** in the multi-watchlist manage grid
+  (`ManageWatchlist.tsx`), mirroring the sidebar watchlist. New tested helper
+  `frontend/src/lib/dailyChg.ts`.
+- **In-app toast system** (`state/toastStore.ts` + `components/Toaster.tsx`): alert
+  threshold crossings detected during the quote poll now raise an in-app toast on first
+  transition (tested helper `frontend/src/lib/alertDetect.ts`); the ad-hoc "Copied!" toast
+  is unified onto the same system.
 ## [1.18.7] — 2026-06-30
 
 > **WCAG 2.1 AA accessibility batch.** Six items from the hf-engineer deepscan:

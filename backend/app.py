@@ -1,8 +1,9 @@
+import json as _json
 import os
 import re
 import json as _json
 import datetime as _dt
-from flask import Flask, jsonify, request, send_from_directory, make_response
+from flask import Flask, Response, jsonify, request, send_from_directory, stream_with_context, make_response
 
 # Serve the built frontend (Vite emits to ../frontend/dist). In production a
 # single Flask service hosts both the SPA and the /api endpoints. We disable
@@ -24,6 +25,12 @@ def _require_user():
 
 from auth.routes import auth_bp
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
+
+from auth.twofactor import twofactor_bp
+app.register_blueprint(twofactor_bp, url_prefix="/api/2fa")
+
+from auth.webauthn_auth import webauthn_bp
+app.register_blueprint(webauthn_bp, url_prefix="/api/webauthn")
 
 
 @app.after_request
@@ -54,6 +61,9 @@ def _security_headers(resp):
 from auth.google import register as register_google
 register_google(app)
 
+from auth.apple import register as register_apple
+register_apple(app)
+
 # ─── Lightweight IP-keyed rate limit for the public market proxy ─────────────
 # The unauthenticated /api market endpoints proxy upstream providers (Finnhub/
 # Yahoo). A caller rotating symbols can force cache-miss fetches and burn our
@@ -72,7 +82,7 @@ _rl_lock = _threading.Lock()
 _RL_PREFIXES = ("/api/quotes", "/api/history", "/api/fundamentals",
                 "/api/news", "/api/ratings", "/api/crypto", "/api/fng",
                 "/api/search", "/api/earnings", "/api/sentiment", "/api/pulse",
-                "/api/logos")
+                "/api/logos", "/api/stream/quotes")
 
 
 def _client_ip():
@@ -108,7 +118,7 @@ def _rate_limit_market():
 # inflate the cache or hammer providers. Symbols are short alnum (+ . / -),
 # timeframes come from a fixed whitelist, and the per-request symbol count is capped.
 _SYMBOL_RE = re.compile(r"^[A-Z0-9.\-]{1,12}$")
-_VALID_TF = {"1D", "1W", "1M", "3M", "1Y", "5Y"}
+_VALID_TF = {"1D", "5D", "1W", "1M", "3M", "1Y", "5Y", "YTD", "MAX"}
 _MAX_SYMS = 60
 
 
@@ -297,6 +307,76 @@ def pulse_signals_route(sym):
         return envelope({"error": "invalid symbol"}), 400
     data = signal_alerts_svc.evaluate_signal_alerts(sym)
     return envelope(data, source="signal_alerts")
+
+
+# ─── Finnhub WS stream ingestion (opt-in via FINNHUB_STREAM_ENABLED) ─────────
+# Importing services.stream is always safe — no side effects at import time.
+# maybe_start() is a no-op when the env var is absent.
+from services import stream as _stream
+_stream.manager.maybe_start()
+
+
+# ─── Stream delivery: status + SSE quote feed ─────────────────────────────────
+# The SSE route is a gunicorn sync-worker "slow client": each connection holds
+# a worker for SSE_MAX_TICKS × SSE_TICK_INTERVAL seconds (defaults: 30 × 2s =
+# 60s).  Keep SSE_MAX_TICKS small and let clients reconnect.  This must remain
+# behind FINNHUB_STREAM_ENABLED so the default production path (60s REST poll)
+# is unchanged.
+
+@app.route("/api/stream/status")
+def stream_status():
+    """Return whether the SSE stream endpoint is enabled on this deployment."""
+    enabled = bool(os.environ.get("FINNHUB_STREAM_ENABLED"))
+    return jsonify({"enabled": enabled})
+
+
+@app.route("/api/stream/quotes")
+def stream_quotes_route():
+    """SSE endpoint: emit current cached quotes for the requested symbols.
+
+    Guarded by FINNHUB_STREAM_ENABLED; returns 404 JSON when disabled so the
+    frontend falls back cleanly to the existing 60s REST poll.
+
+    Query params:
+        symbols  – comma-separated symbol list (same validation as /api/quotes)
+
+    Events:
+        data: {quotes: {...}, source: "finnhub_ws"|"finnhub"|...}
+        After SSE_MAX_TICKS events, sends ``event: close`` so the client
+        reconnects; this bounds worker occupancy.
+    """
+    if not os.environ.get("FINNHUB_STREAM_ENABLED"):
+        return jsonify({"error": "streaming disabled"}), 404
+
+    raw = request.args.get("symbols", "")
+    syms = [s.strip().upper() for s in raw.split(",") if s.strip()]
+    syms = [s for s in syms if valid_symbol(s)][:_MAX_SYMS]
+    if not syms:
+        return jsonify({"error": "no valid symbols"}), 400
+
+    # Update the WS subscription so the ingestion thread tracks these symbols.
+    _stream.manager.update_symbols(syms)
+
+    max_ticks = int(os.environ.get("SSE_MAX_TICKS", "30"))
+    tick_interval = float(os.environ.get("SSE_TICK_INTERVAL", "2.0"))
+
+    def generate():
+        from services.quotes import get_quotes
+        for _ in range(max_ticks):
+            quotes, source = get_quotes(syms)
+            payload = _json.dumps({"quotes": quotes, "source": source})
+            yield f"data: {payload}\n\n"
+            _time.sleep(tick_interval)
+        yield "event: close\ndata: reconnect\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # disable nginx/Railway buffering
+        },
+    )
 
 
 # ─── Persistence (Postgres/SQLite via DATABASE_URL) ──────────────────────────
@@ -528,6 +608,133 @@ def holdings_delete(sym):
     return envelope({"removed": remove_holding(sym)}, source="db")
 
 
+# ─── Transaction ledger + Portfolio P&L engine ───────────────────────────────
+# These routes are the richer path for recording positions (average-cost method,
+# realized P&L, fee tracking). The legacy POST /api/holdings setter remains for
+# quick manual overrides; transactions are the authoritative source.
+
+from services.portfolio import record_transaction, list_transactions, compute_pnl as _compute_pnl
+
+
+@app.route("/api/transactions", methods=["GET"])
+def transactions_get():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    sym = request.args.get("symbol", "").upper() or None
+    if sym and not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    return envelope(list_transactions(uid, symbol=sym), source="db")
+
+
+@app.route("/api/transactions", methods=["POST"])
+def transactions_post():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    sym = (b.get("symbol") or "").upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    kind = (b.get("kind") or "").lower()
+    if kind not in ("buy", "sell"):
+        return envelope({"error": "kind must be 'buy' or 'sell'"}), 400
+    try:
+        qty = float(b.get("quantity") or b.get("qty") or 0)
+        price = float(b.get("price") or 0)
+        fees = float(b.get("fees") or 0)
+    except (TypeError, ValueError):
+        return envelope({"error": "quantity, price, fees must be numeric"}), 400
+    if qty <= 0 or price <= 0:
+        return envelope({"error": "quantity and price must be positive"}), 400
+    # Parse optional executed_at (ISO 8601)
+    executed_at = None
+    if b.get("executed_at"):
+        try:
+            executed_at = _dt.datetime.fromisoformat(str(b["executed_at"]).replace("Z", "+00:00"))
+        except ValueError:
+            return envelope({"error": "executed_at must be ISO 8601"}), 400
+    note = str(b.get("note") or "")[:500] or None  # sanitize + cap length
+    try:
+        result = record_transaction(uid, sym, kind, qty, price, fees, executed_at, note)
+    except ValueError as e:
+        return envelope({"error": str(e)}), 400
+    return envelope(result, source="db"), 201
+
+
+@app.route("/api/portfolio/pnl", methods=["GET"])
+def portfolio_pnl_get():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    # quote_fn: pull from the cached quote layer (respects 60s TTL).
+    # Import here to avoid circular-import concerns with the module-level imports.
+    from services.quotes import get_quotes as _gq
+
+    def _quote_fn(sym):
+        quotes, _ = _gq([sym])
+        return quotes.get(sym, {})
+
+    result = _compute_pnl(uid, _quote_fn)
+    return envelope(result, source="finnhub")
+
+
+@app.route("/api/portfolio/dividends", methods=["GET"])
+def portfolio_dividends_get():
+    """GET /api/portfolio/dividends — dividend rows + annual income estimate.
+
+    Auth required. Returns:
+        {rows: [{symbol, ex_date, pay_date, per_share, shares, total, status}],
+         annual_income_estimate: <float>}
+
+    ``status`` is "upcoming" when ex_date >= today, else "paid".
+    Rows are sorted ascending by ex_date. Returns empty rows when the user
+    has no holdings or no dividend data is available.
+    """
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    from services.dividends import upcoming_dividends
+    result = upcoming_dividends(uid)
+    return envelope(result, source="yahoo")
+
+
+_BENCHMARK_VALID_TF = {"1M", "3M", "1Y", "5Y"}
+_BENCHMARK_VALID_INDEX = {"SPY", "QQQ"}
+
+
+@app.route("/api/portfolio/benchmark", methods=["GET"])
+def portfolio_benchmark_get():
+    """GET /api/portfolio/benchmark?tf=1Y&index=SPY — normalized %-growth overlay.
+
+    Auth required. Query params (all optional, defaults shown):
+        tf    – timeframe: 1M | 3M | 1Y | 5Y  (default: 1Y)
+        index – benchmark ETF: SPY | QQQ       (default: SPY)
+
+    Returns:
+        {dates: [...], portfolio_pct: [...], benchmark_pct: [...],
+         index: "SPY", disclaimer: "..."}
+
+    HONESTY: this is a current-holdings backtest (today's positions applied
+    retroactively). The disclaimer field and UI label make this explicit.
+    """
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+
+    tf = request.args.get("tf", "1Y").upper()
+    index = request.args.get("index", "SPY").upper()
+
+    if tf not in _BENCHMARK_VALID_TF:
+        return envelope({"error": f"tf must be one of {sorted(_BENCHMARK_VALID_TF)}"}), 400
+    if index not in _BENCHMARK_VALID_INDEX:
+        return envelope({"error": f"index must be one of {sorted(_BENCHMARK_VALID_INDEX)}"}), 400
+
+    from services.benchmark import portfolio_vs_benchmark
+    result = portfolio_vs_benchmark(uid, tf, index)
+    return envelope(result, source="yahoo")
+
+
 # ─── Saved screener filters ──────────────────────────────────────────────────
 
 @app.route("/api/screens", methods=["GET"])
@@ -663,6 +870,59 @@ def stripe_webhook():
     return jsonify({"received": True}), 200
 
 
+# ─── Web Push ────────────────────────────────────────────────────────────────
+# VAPID public key exposure + subscription upsert / removal.
+# Delivery is handled inside check_alerts via providers.webpush.
+
+@app.route("/api/push/vapid-public-key", methods=["GET"])
+def push_vapid_key():
+    key = os.environ.get("VAPID_PUBLIC_KEY") or None
+    return jsonify({"key": key})
+
+
+@app.route("/api/push/subscribe", methods=["POST"])
+def push_subscribe():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    endpoint = (b.get("endpoint") or "").strip()
+    keys = b.get("keys") or {}
+    p256dh = (keys.get("p256dh") or "").strip()
+    auth_key = (keys.get("auth") or "").strip()
+    if not endpoint or not p256dh or not auth_key:
+        return envelope({"error": "endpoint, keys.p256dh, and keys.auth are required"}), 400
+    import db as _db_mod, models as _models
+    with _db_mod.get_session() as s:
+        existing = s.query(_models.PushSubscription).filter_by(endpoint=endpoint).first()
+        if existing:
+            existing.user_id = uid
+            existing.p256dh = p256dh
+            existing.auth = auth_key
+        else:
+            s.add(_models.PushSubscription(
+                user_id=uid, endpoint=endpoint, p256dh=p256dh, auth=auth_key,
+            ))
+        s.commit()
+    return envelope({"subscribed": True}, source="db")
+
+
+@app.route("/api/push/unsubscribe", methods=["POST"])
+def push_unsubscribe():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    endpoint = (b.get("endpoint") or "").strip()
+    if not endpoint:
+        return envelope({"error": "endpoint is required"}), 400
+    import db as _db_mod, models as _models
+    with _db_mod.get_session() as s:
+        s.query(_models.PushSubscription).filter_by(
+            user_id=uid, endpoint=endpoint
+        ).delete()
+        s.commit()
+    return envelope({"unsubscribed": True}, source="db")
 # ─── Per-page SEO meta injection ─────────────────────────────────────────────
 # Flask reads the built index.html and rewrites <title>, <meta>, OG/Twitter tags,
 # canonical, and JSON-LD for specific public routes before serving. This gives

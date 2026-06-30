@@ -7,6 +7,7 @@ import type {
   NewsItem, Ratings, Pulse, PulsePoint, SignalAlerts, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
   SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
   WatchlistWithItems, WatchlistItemFull, BillingState,
+  Transaction, PortfolioPnl, DividendsResponse, BenchmarkResponse, BenchmarkIndex, BenchmarkTf,
 } from './types'
 
 export interface Result<T> {
@@ -124,4 +125,33 @@ export const api = {
   checkout: (interval: 'monthly' | 'annual') =>
     send<{ url: string }>('/api/billing/checkout', 'POST', { interval }),
   portal: () => send<{ url: string }>('/api/billing/portal', 'POST'),
+
+  // Transaction ledger + Portfolio P&L
+  getTransactions: (symbol?: string) =>
+    get<Transaction[]>(`/api/transactions${symbol ? `?symbol=${encodeURIComponent(symbol)}` : ''}`),
+  recordTransaction: (b: {
+    symbol: string
+    kind: 'buy' | 'sell'
+    quantity: number
+    price: number
+    fees?: number
+    executed_at?: string
+    note?: string
+  }) => send<{ holding: Holding & { realized_pnl: number; fees_paid: number }; realized: number }>(
+    '/api/transactions', 'POST', b
+  ),
+  getPortfolioPnl: () => get<PortfolioPnl>('/api/portfolio/pnl'),
+  getDividends: () => get<DividendsResponse>('/api/portfolio/dividends'),
+  getBenchmark: (tf: BenchmarkTf = '1Y', index: BenchmarkIndex = 'SPY') =>
+    get<BenchmarkResponse>(`/api/portfolio/benchmark?tf=${tf}&index=${index}`),
+
+  // Web Push
+  getVapidPublicKey: () => get<{ key: string | null }>('/api/push/vapid-public-key'),
+  pushSubscribe: (endpoint: string, p256dh: string, auth: string) =>
+    send<{ subscribed: boolean }>('/api/push/subscribe', 'POST', {
+      endpoint,
+      keys: { p256dh, auth },
+    }),
+  pushUnsubscribe: (endpoint: string) =>
+    send<{ unsubscribed: boolean }>('/api/push/unsubscribe', 'POST', { endpoint }),
 }

@@ -16,6 +16,7 @@ import { ManageWatchlist } from './views/ManageWatchlist'
 import { FearAndGreed } from './views/FearAndGreed'
 import { Footer } from './components/Footer'
 import { UpgradePrompt } from './components/UpgradePrompt'
+import { Toaster } from './components/Toaster'
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // The active view + selected ticker come from the URL via RouterBridge.
@@ -97,6 +98,7 @@ export default function App() {
     >
       <AuthScreen />
       <UpgradePrompt />
+      <Toaster />
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
       {verifyBanner && (
         <div

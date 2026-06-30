@@ -39,7 +39,9 @@ export function PulseDial({ symbol, size = 56 }: Props) {
     loadPulse(symbol)
   }, [symbol, loadPulse])
 
-  if (!pulse) return null
+  // Render nothing until a COMPLETE pulse has loaded — a partial/bandless object
+  // (e.g. mid-load or a sparse provider response) must not crash on band.toUpperCase().
+  if (!pulse || !pulse.band) return null
 
   const score = Math.max(0, Math.min(100, pulse.score))
   const band = pulse.band as PulseBand

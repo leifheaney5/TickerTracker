@@ -169,7 +169,7 @@ export interface Holding {
   avg_cost: number
 }
 
-export type Timeframe = '1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'
+export type Timeframe = '1D' | '5D' | '1W' | '1M' | '3M' | '1Y' | '5Y' | 'YTD' | 'MAX'
 
 export interface AuthUser { id: number; email: string; name: string; email_verified: boolean; plan: 'free' | 'premium' }
 
@@ -203,6 +203,47 @@ export interface EarningsRow {
   epsEstimate: number | null
 }
 
+export interface Transaction {
+  id: number
+  symbol: string
+  kind: 'buy' | 'sell'
+  quantity: number
+  price: number
+  fees: number
+  executed_at: string | null
+  note: string | null
+}
+
+export interface PositionPnl {
+  symbol: string
+  shares: number
+  avg_cost: number
+  price: number
+  cost_basis: number
+  market_value: number
+  unrealized: number
+  unrealized_pct: number
+  prev_close: number | null
+  daily_pnl: number
+  realized_pnl: number
+  fees_paid: number
+}
+
+export interface PortfolioTotals {
+  market_value: number
+  cost_basis: number
+  unrealized: number
+  unrealized_pct: number
+  daily_pnl: number
+  realized_pnl: number
+  fees_paid: number
+}
+
+export interface PortfolioPnl {
+  positions: PositionPnl[]
+  totals: PortfolioTotals
+}
+
 export interface SavedScreen {
   id: number
   name: string
@@ -215,6 +256,37 @@ export interface WatchlistSentiment {
   neutral: number
   total: number
   mood: string
+}
+
+// ── Dividends ────────────────────────────────────────────────────────────────
+
+export interface DividendRow {
+  symbol: string
+  ex_date: string           // "YYYY-MM-DD"
+  pay_date: string | null   // "YYYY-MM-DD" or null when unknown
+  per_share: number
+  shares: number
+  total: number             // per_share × shares
+  status: 'upcoming' | 'paid'
+}
+
+export interface DividendsResponse {
+  rows: DividendRow[]
+  annual_income_estimate: number  // trailing-12-month income across all held symbols
+}
+
+// ── Benchmark ─────────────────────────────────────────────────────────────────
+
+export type BenchmarkIndex = 'SPY' | 'QQQ'
+export type BenchmarkTf = '1M' | '3M' | '1Y' | '5Y'
+
+export interface BenchmarkResponse {
+  dates: string[]
+  portfolio_pct: number[]
+  benchmark_pct: number[]
+  index: BenchmarkIndex
+  /** Always present: explains the current-holdings backtest assumption. */
+  disclaimer: string
 }
 
 export interface BillingLimits {
