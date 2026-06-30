@@ -187,19 +187,23 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
               )}
               {sorted.map((sym) => {
                 const f = fundOf(sym)
-                // All deep-dive ratios derive from real fundamentals; until they
-                // load, every metric cell is a skeleton (no seed fallbacks).
+                // Only P/E has a real backend source in the Fundamentals payload.
+                // All other ratio columns (P/S, P/B, PEG, EBITDA, FCF Yld, ROIC,
+                // Gr. Margin, Net Debt/EBITDA) have no backend field — render '—'
+                // rather than fabricating values from unrelated fields like beta or
+                // market_cap. Extended ratios will populate when a premium data
+                // feed is integrated.
                 const cells: React.ReactNode[] = f
                   ? [
-                      f.pe ? String(f.pe) : '—',
-                      (f.market_cap / 1e11).toFixed(2),
-                      (f.beta * 4).toFixed(2),
-                      f.pe ? (f.pe / 20).toFixed(2) : '—',
-                      '$' + (f.market_cap / 1e10).toFixed(1) + 'B',
-                      (f.dividend_yield + 1).toFixed(2) + '%',
-                      (f.beta * 12).toFixed(1) + '%',
-                      (40 + f.beta * 10).toFixed(1) + '%',
-                      (f.beta).toFixed(2) + 'x',
+                      f.pe ? String(f.pe) : '—',  // P/E — real backend field
+                      '—',                          // P/S — no backend source
+                      '—',                          // P/B — no backend source
+                      '—',                          // PEG — no backend source
+                      '—',                          // EBITDA — no backend source
+                      '—',                          // FCF Yld — no backend source
+                      '—',                          // ROIC — no backend source
+                      '—',                          // Gr. Margin — no backend source
+                      '—',                          // Net Debt/EBITDA — no backend source
                     ]
                   : Array.from({ length: DEEP_COLS.length - 1 }, (_, i) => <Skeleton key={i} inline width={40} height={12} />)
                 return (
@@ -212,6 +216,9 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                   </div>
                 )
               })}
+              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--line)', fontSize: '11.5px', color: 'var(--tx3)', fontFamily: FONT_SANS, fontStyle: 'italic' }}>
+                Extended ratios require a premium data feed — coming soon.
+              </div>
             </div>
           )}
         </div>
