@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pulseBand, pulseColor, pulseArc, type PulseBand } from './pulse'
+import { pulseBand, pulseColor, pulseCaption, pulseArc, type PulseBand } from './pulse'
 
 describe('pulseBand (quartile bands, matches backend + brand dial)', () => {
   it('maps scores to bands at quartile boundaries', () => {
@@ -27,6 +27,27 @@ describe('pulseColor (brand token ramp, no red — never reads as "sell")', () =
     expect(pulseColor('Building')).toContain('--warn')
     expect(pulseColor('Hot')).toContain('--up')
     for (const b of bands) expect(pulseColor(b)).not.toContain('--down')
+  })
+})
+
+describe('pulseCaption (plain dial caption — names the subject, never reads as "loading")', () => {
+  it('maps every band to a "signals ___" caption', () => {
+    expect(pulseCaption('Cooling')).toBe('signals quiet')
+    expect(pulseCaption('Neutral')).toBe('signals mixed')
+    expect(pulseCaption('Building')).toBe('signals rising')
+    expect(pulseCaption('Hot')).toBe('signals strong')
+  })
+  it('aligns with the score→band boundaries so the dial caption matches the arc', () => {
+    expect(pulseCaption(pulseBand(24.9))).toBe('signals quiet')
+    expect(pulseCaption(pulseBand(25))).toBe('signals mixed')
+    expect(pulseCaption(pulseBand(49.9))).toBe('signals mixed')
+    expect(pulseCaption(pulseBand(50))).toBe('signals rising')
+    expect(pulseCaption(pulseBand(74.9))).toBe('signals rising')
+    expect(pulseCaption(pulseBand(75))).toBe('signals strong')
+  })
+  it('never emits the ambiguous "building" wording', () => {
+    const bands: PulseBand[] = ['Cooling', 'Neutral', 'Building', 'Hot']
+    for (const b of bands) expect(pulseCaption(b).toLowerCase()).not.toContain('building')
   })
 })
 
