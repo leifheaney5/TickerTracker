@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FONT_SANS } from '../theme/tokens'
 
 // Squarified treemap — ported from the prototype's _treemap. Tiles sized by
@@ -68,7 +68,10 @@ interface TreemapProps {
 }
 
 export function Treemap({ items, width, height, onTileClick, highlight, tipFor }: TreemapProps) {
-  const tiles = squarify(items, 1, 1, width - 2, height - 2)
+  // Memoize layout: squarify is O(n log n) over ~96 tiles. Without this, every
+  // hover (setTip) re-runs the full layout. Keys are the only inputs that affect
+  // geometry — live quote updates never touch items/width/height.
+  const tiles = useMemo(() => squarify(items, 1, 1, width - 2, height - 2), [items, width, height])
   const [tip, setTip] = useState<{ sym: string; x: number; y: number } | null>(null)
   return (
     <div style={{ position: 'relative', width, height }}>
