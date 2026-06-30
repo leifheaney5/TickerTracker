@@ -6,6 +6,15 @@ import App from './App.tsx'
 import { RouterBridge } from './RouterBridge'
 import { SharedWatchlist } from './views/SharedWatchlist'
 
+// Register the service worker for Web Push support.
+// Best-effort: if registration fails (insecure context, private browsing), the
+// rest of the app is unaffected.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {
+    /* non-fatal — push will be unavailable but the app still works */
+  })
+}
+
 // Public read-only shared watchlist, /s/:token — bypasses the app shell.
 function SharedRoute() {
   const { token } = useParams()

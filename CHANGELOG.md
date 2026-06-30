@@ -10,6 +10,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
 > engagement, and security. Batch A below; subsequent batches follow.
 
+## [1.20.0] — 2026-06-29
+
+> **Platform expansion — Batch B: alert depth + web push.** Two new server-evaluated
+> alert rules and a browser-push delivery channel alongside the existing email path.
+
+### Added
+
+- **Volume-spike alerts**: opt-in per-watchlist-item rule (`WatchlistItem.vol_spike_pct`)
+  that fires when the latest daily volume exceeds the trailing ~20-session average by the
+  configured percent. Volume sourced from Yahoo daily history (Finnhub `/quote` reports 0).
+  Pure tested helper `volume_spike_triggered()`.
+- **Upcoming-earnings alerts**: opt-in rule (`WatchlistItem.earnings_days`) that fires when
+  a symbol's next earnings date is within X days, de-duplicated per event via `AlertLog`.
+  Pure tested helper `earnings_within()`.
+- **Web push delivery channel**: new `PushSubscription` model + `/api/push/{vapid-public-key,
+  subscribe,unsubscribe}` routes, a guarded `providers/webpush.py` (no-op when `pywebpush`
+  or VAPID env keys are absent), a `frontend/public/sw.js` service worker, a
+  `usePushSubscription` hook, and a Settings toggle. Alert fires now also send a best-effort
+  web push (pruning expired 404/410 subscriptions).
+
+### Changed
+
+- `services/alerts.py` reworked to evaluate price, volume-spike, and earnings rules in one
+  cron pass; alert emails `html.escape` the symbol (injection defense). `AlertLog.alert_kind`
+  records the rule type for per-kind dedup.
+
+### Notes
+
+- Web push is dormant until `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_CLAIMS_EMAIL`
+  are set and `pywebpush` is installed (pinned in `backend/requirements.txt`); the guarded
+  import keeps the app and tests running without it.
+
 ## [1.19.0] — 2026-06-29
 
 > **Platform expansion — Batch A: analytics & engagement quick wins.** Extends existing

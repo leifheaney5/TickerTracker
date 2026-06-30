@@ -124,4 +124,14 @@ export const api = {
   checkout: (interval: 'monthly' | 'annual') =>
     send<{ url: string }>('/api/billing/checkout', 'POST', { interval }),
   portal: () => send<{ url: string }>('/api/billing/portal', 'POST'),
+
+  // Web Push
+  getVapidPublicKey: () => get<{ key: string | null }>('/api/push/vapid-public-key'),
+  pushSubscribe: (endpoint: string, p256dh: string, auth: string) =>
+    send<{ subscribed: boolean }>('/api/push/subscribe', 'POST', {
+      endpoint,
+      keys: { p256dh, auth },
+    }),
+  pushUnsubscribe: (endpoint: string) =>
+    send<{ unsubscribed: boolean }>('/api/push/unsubscribe', 'POST', { endpoint }),
 }

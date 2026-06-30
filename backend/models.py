@@ -1,5 +1,5 @@
 from sqlalchemy import (Column, Integer, String, Float, Boolean, DateTime, Date,
-                        ForeignKey, func, UniqueConstraint)
+                        ForeignKey, func, UniqueConstraint, Text)
 from db import Base
 from flask_login import UserMixin
 
@@ -31,6 +31,12 @@ class WatchlistItem(Base):
     kind = Column(String, default="stock")            # "stock" | "crypto"
     coin_name = Column(String, default="")            # cached display name (crypto)
     created_at = Column(DateTime, server_default=func.now())
+    # Volume-spike alert: fire when today's volume exceeds trailing avg by this %.
+    # Non-null + >0 means active. Uses Yahoo daily history (last 20 sessions as baseline).
+    vol_spike_pct = Column(Float, nullable=True)
+    # Earnings proximity alert: fire when next earnings date is within this many days.
+    # Non-null + >0 means active. De-duped via AlertLog (one email per earnings event).
+    earnings_days = Column(Integer, nullable=True)
 
 
 class Watchlist(Base):
@@ -59,6 +65,8 @@ class AlertLog(Base):
     symbol = Column(String, nullable=False)
     price = Column(Float, default=0.0)
     triggered_at = Column(DateTime, server_default=func.now())
+    # 'price' (default/legacy), 'volume_spike', 'earnings'
+    alert_kind = Column(String, nullable=True, default="price")
 
 
 class Settings(Base):
@@ -160,3 +168,20 @@ class SignalSnapshot(Base):
     price = Column(Float, default=0.0)
     created_at = Column(DateTime, server_default=func.now())
     __table_args__ = (UniqueConstraint("symbol", "date", name="uq_signal_symbol_date"),)
+
+
+class PushSubscription(Base):
+    """Web Push subscription per user device/browser.
+
+    Stores the PushManager subscription object fields so the server can send
+    push notifications. Multiple subscriptions per user are allowed (one per
+    device/browser). Subscriptions that return 404/410 from the push service
+    are pruned on delivery.
+    """
+    __tablename__ = "push_subscriptions"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    endpoint = Column(Text, nullable=False, unique=True)
+    p256dh = Column(Text, nullable=False)   # ECDH public key (base64url)
+    auth = Column(Text, nullable=False)     # auth secret (base64url)
+    created_at = Column(DateTime, server_default=func.now())
