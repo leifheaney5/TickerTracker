@@ -698,12 +698,6 @@ _PAGE_META: dict = {
         " crypto and stock watchlist. Live data from CoinGecko and alternative.me.",
         f"{_BASE_URL}/crypto",
     ),
-    "earnings": (
-        "Earnings Calendar — Upcoming Stock Earnings Dates & Estimates | Ticker Tracker",
-        "Upcoming stock earnings dates and EPS estimates. Know when your companies report"
-        " before the market opens.",
-        f"{_BASE_URL}/earnings",
-    ),
 }
 
 
