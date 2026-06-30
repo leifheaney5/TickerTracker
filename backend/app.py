@@ -598,6 +598,62 @@ def portfolio_pnl_get():
     return envelope(result, source="finnhub")
 
 
+@app.route("/api/portfolio/dividends", methods=["GET"])
+def portfolio_dividends_get():
+    """GET /api/portfolio/dividends — dividend rows + annual income estimate.
+
+    Auth required. Returns:
+        {rows: [{symbol, ex_date, pay_date, per_share, shares, total, status}],
+         annual_income_estimate: <float>}
+
+    ``status`` is "upcoming" when ex_date >= today, else "paid".
+    Rows are sorted ascending by ex_date. Returns empty rows when the user
+    has no holdings or no dividend data is available.
+    """
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    from services.dividends import upcoming_dividends
+    result = upcoming_dividends(uid)
+    return envelope(result, source="yahoo")
+
+
+_BENCHMARK_VALID_TF = {"1M", "3M", "1Y", "5Y"}
+_BENCHMARK_VALID_INDEX = {"SPY", "QQQ"}
+
+
+@app.route("/api/portfolio/benchmark", methods=["GET"])
+def portfolio_benchmark_get():
+    """GET /api/portfolio/benchmark?tf=1Y&index=SPY — normalized %-growth overlay.
+
+    Auth required. Query params (all optional, defaults shown):
+        tf    – timeframe: 1M | 3M | 1Y | 5Y  (default: 1Y)
+        index – benchmark ETF: SPY | QQQ       (default: SPY)
+
+    Returns:
+        {dates: [...], portfolio_pct: [...], benchmark_pct: [...],
+         index: "SPY", disclaimer: "..."}
+
+    HONESTY: this is a current-holdings backtest (today's positions applied
+    retroactively). The disclaimer field and UI label make this explicit.
+    """
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+
+    tf = request.args.get("tf", "1Y").upper()
+    index = request.args.get("index", "SPY").upper()
+
+    if tf not in _BENCHMARK_VALID_TF:
+        return envelope({"error": f"tf must be one of {sorted(_BENCHMARK_VALID_TF)}"}), 400
+    if index not in _BENCHMARK_VALID_INDEX:
+        return envelope({"error": f"index must be one of {sorted(_BENCHMARK_VALID_INDEX)}"}), 400
+
+    from services.benchmark import portfolio_vs_benchmark
+    result = portfolio_vs_benchmark(uid, tf, index)
+    return envelope(result, source="yahoo")
+
+
 # ─── Saved screener filters ──────────────────────────────────────────────────
 
 @app.route("/api/screens", methods=["GET"])

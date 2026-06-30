@@ -7,7 +7,7 @@ import type {
   NewsItem, Ratings, Pulse, PulsePoint, SignalAlerts, WatchlistItem, Settings, Holding, Timeframe, SymbolHit,
   SharedWatchlistResponse, EarningsRow, SavedScreen, WatchlistSentiment,
   WatchlistWithItems, WatchlistItemFull, BillingState,
-  Transaction, PortfolioPnl,
+  Transaction, PortfolioPnl, DividendsResponse, BenchmarkResponse, BenchmarkIndex, BenchmarkTf,
 } from './types'
 
 export interface Result<T> {
@@ -141,6 +141,9 @@ export const api = {
     '/api/transactions', 'POST', b
   ),
   getPortfolioPnl: () => get<PortfolioPnl>('/api/portfolio/pnl'),
+  getDividends: () => get<DividendsResponse>('/api/portfolio/dividends'),
+  getBenchmark: (tf: BenchmarkTf = '1Y', index: BenchmarkIndex = 'SPY') =>
+    get<BenchmarkResponse>(`/api/portfolio/benchmark?tf=${tf}&index=${index}`),
 
   // Web Push
   getVapidPublicKey: () => get<{ key: string | null }>('/api/push/vapid-public-key'),

@@ -10,6 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
 > engagement, and security. Batch A below; subsequent batches follow.
 
+## [1.22.0] — 2026-06-30
+
+> **Platform expansion — Batch C2: dividends + index benchmarking.** Real dividend
+> projections from holdings and a portfolio-vs-benchmark performance overlay.
+
+### Added
+
+- **Dividend tracking** (`services/dividends.py`, route `GET /api/portfolio/dividends`):
+  projects upcoming/recent dividends per held symbol (ex-date, per-share, shares, total,
+  upcoming/paid status) and an annual-income estimate, sourced from Yahoo dividend history
+  (24h cache, non-fatal on failure, deterministic `mock.py` fallback). Pure tested helpers
+  `project_dividends` / `annual_income_estimate`. New **Dividends panel** in the Holdings view.
+- **Index benchmarking** (`services/benchmark.py`, route `GET /api/portfolio/benchmark`):
+  normalized %-growth overlay of the portfolio vs **SPY** or **QQQ** over a timeframe, built
+  from real Yahoo price history. New **Portfolio vs Benchmark** chart (`charts/BenchmarkChart.tsx`)
+  in the Holdings view with index + timeframe toggles. Pure tested helpers `normalize_pct` /
+  `portfolio_value_series`.
+
+### Notes
+
+- The benchmark overlay is a **current-holdings backtest** — it assumes today's holdings were
+  held across the whole window (historical positions aren't stored). This assumption is shown
+  as an always-visible disclaimer in the API response and the chart UI, per the no-fabrication rule.
+
 ## [1.21.0] — 2026-06-29
 
 > **Platform expansion — Batch C1: transaction ledger + P&L engine.** A real

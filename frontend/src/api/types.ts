@@ -254,6 +254,37 @@ export interface WatchlistSentiment {
   mood: string
 }
 
+// ── Dividends ────────────────────────────────────────────────────────────────
+
+export interface DividendRow {
+  symbol: string
+  ex_date: string           // "YYYY-MM-DD"
+  pay_date: string | null   // "YYYY-MM-DD" or null when unknown
+  per_share: number
+  shares: number
+  total: number             // per_share × shares
+  status: 'upcoming' | 'paid'
+}
+
+export interface DividendsResponse {
+  rows: DividendRow[]
+  annual_income_estimate: number  // trailing-12-month income across all held symbols
+}
+
+// ── Benchmark ─────────────────────────────────────────────────────────────────
+
+export type BenchmarkIndex = 'SPY' | 'QQQ'
+export type BenchmarkTf = '1M' | '3M' | '1Y' | '5Y'
+
+export interface BenchmarkResponse {
+  dates: string[]
+  portfolio_pct: number[]
+  benchmark_pct: number[]
+  index: BenchmarkIndex
+  /** Always present: explains the current-holdings backtest assumption. */
+  disclaimer: string
+}
+
 export interface BillingLimits {
   watchlist: number
   alerts: number

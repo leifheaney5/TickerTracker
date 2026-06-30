@@ -5,17 +5,20 @@ import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { Donut } from '../charts/Donut'
 import { Skeleton } from '../components/Skeleton'
+import { BenchmarkChart } from '../charts/BenchmarkChart'
 import { money, pct } from '../lib/format'
 import { aggregateAllocation, type AllocationMode } from '../lib/allocation'
 import { api } from '../api/client'
-import type { PortfolioPnl } from '../api/types'
+import type { PortfolioPnl, DividendsResponse, BenchmarkResponse, BenchmarkIndex, BenchmarkTf } from '../api/types'
 
 // Portfolio / Holdings view — ported from the prototype template (lines
-// 1095-1180). Connected: summary cards, allocation donut, positions table.
-// Disconnected: a "connect in Settings" empty state. Values masked when
-// hide_balances is on.
+// 1095-1180). Connected: summary cards, allocation donut, positions table,
+// dividends panel, and benchmark overlay. Disconnected: a "connect in
+// Settings" empty state. Values masked when hide_balances is on.
 const DONUT_COLORS = ['#3ddc84', ...COMPARE_COLORS, '#ffb347', '#5b9cff', '#e9ebee']
 const ALLOCATION_MODES: AllocationMode[] = ['Position', 'Sector', 'Asset Class']
+const BENCHMARK_TFS: BenchmarkTf[] = ['1M', '3M', '1Y', '5Y']
+const BENCHMARK_INDICES: BenchmarkIndex[] = ['SPY', 'QQQ']
 
 export function Holdings() {
   const [allocMode, setAllocMode] = useState<AllocationMode>('Position')
@@ -24,6 +27,16 @@ export function Holdings() {
   // the live-quote path which uses chg() day-% approximation).
   const [pnlData, setPnlData] = useState<PortfolioPnl | null>(null)
   const [pnlLoaded, setPnlLoaded] = useState(false)
+
+  // Dividends panel
+  const [divData, setDivData] = useState<DividendsResponse | null>(null)
+  const [divLoaded, setDivLoaded] = useState(false)
+
+  // Benchmark overlay
+  const [bmData, setBmData] = useState<BenchmarkResponse | null>(null)
+  const [bmLoaded, setBmLoaded] = useState(false)
+  const [bmTf, setBmTf] = useState<BenchmarkTf>('1Y')
+  const [bmIndex, setBmIndex] = useState<BenchmarkIndex>('SPY')
 
   const settings = useStore((s) => s.settings)
   const holdings = useStore((s) => s.holdings)
@@ -50,6 +63,27 @@ export function Holdings() {
       .catch(() => { if (!cancelled) setPnlLoaded(true) })
     return () => { cancelled = true }
   }, [authed, holdings.length])
+
+  // Dividend data: refresh when holdings change.
+  useEffect(() => {
+    if (!authed) return
+    let cancelled = false
+    api.getDividends()
+      .then((r) => { if (!cancelled) { setDivData(r.data); setDivLoaded(true) } })
+      .catch(() => { if (!cancelled) setDivLoaded(true) })
+    return () => { cancelled = true }
+  }, [authed, holdings.length])
+
+  // Benchmark overlay: refresh when holdings, timeframe, or index changes.
+  useEffect(() => {
+    if (!authed) return
+    let cancelled = false
+    setBmLoaded(false)
+    api.getBenchmark(bmTf, bmIndex)
+      .then((r) => { if (!cancelled) { setBmData(r.data); setBmLoaded(true) } })
+      .catch(() => { if (!cancelled) setBmLoaded(true) })
+    return () => { cancelled = true }
+  }, [authed, holdings.length, bmTf, bmIndex])
 
   const connected = settings?.broker_connected ?? false
   const hide = settings?.hide_balances ?? false
@@ -191,6 +225,116 @@ export function Holdings() {
             </span>
           ))}
         </div>
+
+        {/* ── Benchmark overlay: portfolio vs SPY/QQQ ─────────────────── */}
+        <div data-testid="benchmark-panel" style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Portfolio vs Benchmark</span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {/* Timeframe toggle */}
+              <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--panel)', border: '1px solid var(--line)' }}>
+                {BENCHMARK_TFS.map((tf) => (
+                  <button
+                    key={tf}
+                    data-testid={`benchmark-tf-${tf.toLowerCase()}`}
+                    onClick={() => setBmTf(tf)}
+                    style={{
+                      padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      fontFamily: FONT_SANS, fontSize: '11px', fontWeight: tf === bmTf ? 700 : 500,
+                      background: tf === bmTf ? 'var(--accent)' : 'transparent',
+                      color: tf === bmTf ? 'var(--accentInk)' : 'var(--tx3)',
+                    }}
+                  >{tf}</button>
+                ))}
+              </div>
+              {/* Index toggle */}
+              <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--panel)', border: '1px solid var(--line)' }}>
+                {BENCHMARK_INDICES.map((idx) => (
+                  <button
+                    key={idx}
+                    data-testid={`benchmark-index-${idx.toLowerCase()}`}
+                    onClick={() => setBmIndex(idx)}
+                    style={{
+                      padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      fontFamily: FONT_SANS, fontSize: '11px', fontWeight: idx === bmIndex ? 700 : 500,
+                      background: idx === bmIndex ? 'var(--accent)' : 'transparent',
+                      color: idx === bmIndex ? 'var(--accentInk)' : 'var(--tx3)',
+                    }}
+                  >{idx}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {!bmLoaded ? (
+            <Skeleton width="100%" height={220} />
+          ) : bmData && bmData.dates.length > 0 ? (
+            <BenchmarkChart
+              dates={bmData.dates}
+              portfolioPct={bmData.portfolio_pct}
+              benchmarkPct={bmData.benchmark_pct}
+              index={bmData.index}
+              disclaimer={bmData.disclaimer}
+            />
+          ) : (
+            <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '13px', color: 'var(--tx3)' }}>No benchmark data available for the selected period.</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Dividends panel ─────────────────────────────────────────────── */}
+        {divLoaded && divData && (
+          <div data-testid="dividends-panel" style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Dividends</span>
+              {divData.annual_income_estimate > 0 && (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={{ fontSize: '11px', color: 'var(--tx3)', letterSpacing: '.04em' }}>EST. ANNUAL INCOME</span>
+                  <span data-testid="dividend-annual-estimate" style={{ fontFamily: FONT_MONO, fontSize: '15px', fontWeight: 600, color: 'var(--up)' }}>
+                    {mask(money(divData.annual_income_estimate))}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {divData.rows.length === 0 ? (
+              <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                <span style={{ fontSize: '13px', color: 'var(--tx3)' }}>No dividend history found for your current positions.</span>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <div style={{ minWidth: 560 }}>
+                  {/* Header */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 90px 100px 90px', background: 'var(--panel)', borderBottom: '1px solid var(--line)', borderRadius: '8px 8px 0 0' }}>
+                    {['SYMBOL', 'EX-DATE', 'PAY-DATE', 'PER SHARE', 'TOTAL', 'STATUS'].map((h) => (
+                      <div key={h} style={{ padding: '10px 10px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>
+                    ))}
+                  </div>
+                  {divData.rows.map((row, i) => (
+                    <div
+                      key={`${row.symbol}-${row.ex_date}-${i}`}
+                      style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 90px 100px 90px', alignItems: 'center', borderTop: '1px solid var(--line)' }}
+                    >
+                      <div style={{ padding: '11px 10px', fontWeight: 700, fontSize: '12.5px', color: 'var(--tx)' }}>{row.symbol}</div>
+                      <div style={{ padding: '11px 10px', fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{row.ex_date}</div>
+                      <div style={{ padding: '11px 10px', fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx3)' }}>{row.pay_date ?? '—'}</div>
+                      <div style={{ padding: '11px 10px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{money(row.per_share)}</div>
+                      <div style={{ padding: '11px 10px', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: 'var(--up)' }}>{mask(money(row.total))}</div>
+                      <div style={{ padding: '11px 10px' }}>
+                        <span style={{
+                          padding: '3px 8px', borderRadius: 20, fontSize: '11px', fontWeight: 600,
+                          background: row.status === 'upcoming' ? 'rgba(61,220,132,0.14)' : 'var(--panel)',
+                          color: row.status === 'upcoming' ? 'var(--up)' : 'var(--tx3)',
+                        }}>{row.status === 'upcoming' ? 'Upcoming' : 'Paid'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 270px', minWidth: 260, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>

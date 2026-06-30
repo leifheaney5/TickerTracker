@@ -63,6 +63,75 @@ def domain_from_url(url: str | None) -> str:
     return v.lower()
 
 
+def fetch_dividends(sym: str) -> list:
+    """Fetch dividend events for sym from Yahoo Finance.
+
+    Returns a list of dicts: {ex_date: str, pay_date: str|None, amount: float}.
+    Dividend events from the trailing ~2 years plus the upcoming ex-dividend date
+    from summary metadata (if different from the most-recent historical event).
+    Returns [] for non-dividend payers or on any error — treat failure as non-fatal.
+    """
+    import datetime as _dt2
+    try:
+        t = Ticker(sym)
+        events: list[dict] = []
+
+        # Historical dividends via OHLCV history (2-year trailing window).
+        # yahooquery includes a 'dividends' column with non-zero values on ex-dates.
+        df = t.history(period="2y", interval="1d")
+        if df is not None and not df.empty and "dividends" in df.columns:
+            div_df = df[df["dividends"] > 0]
+            for idx, row in div_df.iterrows():
+                d = idx[1] if isinstance(idx, tuple) else idx
+                events.append({
+                    "ex_date": str(d)[:10],
+                    "pay_date": None,  # historical records don't carry pay_date
+                    "amount": round(float(row["dividends"]), 4),
+                })
+
+        # Upcoming / most-recent ex-dividend from summary metadata.
+        summary = t.summary_detail.get(sym, {})
+        if isinstance(summary, dict):
+            ex_raw = summary.get("exDividendDate")
+            pay_raw = summary.get("dividendDate")
+            div_rate = summary.get("dividendRate") or 0.0
+
+            if ex_raw:
+                # yahooquery can return a Unix timestamp (int/float) or a date-like.
+                if isinstance(ex_raw, (int, float)):
+                    ex_date = _dt2.datetime.fromtimestamp(
+                        float(ex_raw), tz=_dt2.timezone.utc).strftime("%Y-%m-%d")
+                else:
+                    ex_date = str(ex_raw)[:10]
+
+                if pay_raw:
+                    if isinstance(pay_raw, (int, float)):
+                        pay_date = _dt2.datetime.fromtimestamp(
+                            float(pay_raw), tz=_dt2.timezone.utc).strftime("%Y-%m-%d")
+                    else:
+                        pay_date = str(pay_raw)[:10]
+                else:
+                    pay_date = None
+
+                # Derive per-event amount: prefer the most-recent historical quarterly
+                # dividend; fall back to annual rate / 4 (assumes quarterly payer).
+                if events:
+                    amount = events[-1]["amount"]
+                elif div_rate:
+                    amount = round(float(div_rate) / 4, 4)
+                else:
+                    amount = 0.0
+
+                existing_dates = {e["ex_date"] for e in events}
+                if ex_date not in existing_dates and amount > 0:
+                    events.append({"ex_date": ex_date, "pay_date": pay_date, "amount": amount})
+
+        events.sort(key=lambda e: e["ex_date"])
+        return events
+    except Exception:
+        return []
+
+
 def fetch_fundamentals(sym: str) -> dict:
     t = Ticker(sym)
     summary = t.summary_detail.get(sym, {})
