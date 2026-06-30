@@ -37,11 +37,20 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 | `marketing-strategist` | `.claude/agents/marketing-strategist.md` | sonnet | Positioning, messaging, brand voice, copy, SEO content strategy | drafts → `docs/marketing/` |
 | `web-seo-engineer` | `.claude/agents/web-seo-engineer.md` | sonnet | On-page SEO (meta/OG/JSON-LD/sitemap), Core Web Vitals, brand visual assets | code (auto-commit low-risk SEO) |
 | `outreach-coordinator` | `.claude/agents/outreach-coordinator.md` | sonnet | Distribution: Product Hunt/Reddit/HN/X drafts, target lists, launch sequencing | drafts → `docs/outreach/` |
+| `pr-backlink-builder` | `.claude/agents/pr-backlink-builder.md` | sonnet | Earned media + off-page SEO: journalist/newsletter pitches, HARO responses, directory/listicle submissions, guest-post angles, backlink pipeline | drafts → `docs/outreach/pr-backlink/` |
 
-> **Action boundaries:** `marketing-strategist` and `outreach-coordinator` are
-> DRAFT-ONLY — they never publish, post, or send; they write artifacts for Leif to
-> review. `web-seo-engineer` may auto-commit low-risk technical-SEO code (like
-> `site-maintainer`'s tier) but flags visual-identity / CSP / copy changes.
+> **Action boundaries:** `marketing-strategist`, `outreach-coordinator`, and
+> `pr-backlink-builder` are DRAFT-ONLY — they never publish, post, pitch, submit, or
+> send; they write artifacts for Leif to review. `web-seo-engineer` may auto-commit
+> low-risk technical-SEO code (like `site-maintainer`'s tier) but flags
+> visual-identity / CSP / copy changes.
+>
+> **`outreach-coordinator` vs. `pr-backlink-builder`:** outreach-coordinator owns the
+> *launch burst* on community channels (Product Hunt / Reddit / HN / X) and launch-day
+> sequencing; pr-backlink-builder owns *earned media + off-page SEO* that compounds
+> over time (journalist/newsletter pitches, HARO, directories/roundups, guest posts,
+> the backlink pipeline). Won/target backlinks flow from pr-backlink-builder →
+> `web-seo-engineer`.
 >
 > **`database-optimizer` is not installed locally** — it's an external VoltAgent
 > agent (`voltagent-data-ai`). Install before routing to it:
@@ -66,7 +75,8 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 
 "Launch prep / go-to-market"
   → marketing-strategist (positioning + copy + keyword strategy)
-  → then web-seo-engineer (implement SEO) + outreach-coordinator (channel drafts) (parallel)
+  → then web-seo-engineer (implement SEO) + outreach-coordinator (channel drafts)
+    + pr-backlink-builder (earned-media + backlink pipeline) (parallel)
 ```
 
 ### Sequential chains — output of one feeds the next
@@ -92,6 +102,10 @@ marketing-strategist writes positioning + landing copy
   → web-seo-engineer builds the SEO-structured page (+ site-maintainer if app code)
   → outreach-coordinator adapts the message into channel-specific launch drafts
 
+marketing-strategist supplies positioning + proof points
+  → pr-backlink-builder drafts journalist/newsletter pitches + backlink pipeline
+  → web-seo-engineer tracks won links / builds any linkable data-asset page
+
 hf-engineer surfaces a UX value prop
   → marketing-strategist turns it into messaging
 ```
@@ -107,9 +121,10 @@ hf-engineer surfaces a UX value prop
 | "query", "index", "postgres", "slow query", "N+1" | `database-optimizer` |
 | "marketing", "positioning", "messaging", "copy", "tagline", "campaign", "value prop" | `marketing-strategist` |
 | "SEO", "meta tags", "structured data", "schema", "sitemap", "open graph", "page speed", "Core Web Vitals", "favicon", "brand assets" | `web-seo-engineer` |
-| "outreach", "launch", "Product Hunt", "Reddit", "Hacker News", "social post", "distribution", "PR", "backlinks", "community" | `outreach-coordinator` |
+| "outreach", "launch", "Product Hunt", "Reddit", "Hacker News", "social post", "distribution", "community" | `outreach-coordinator` |
+| "PR", "press", "backlinks", "link building", "journalist", "newsletter pitch", "HARO", "directory", "roundup", "guest post", "earned media" | `pr-backlink-builder` |
 | "health check", "full audit", "review everything" | engineering core parallel (security + e2e + performance + hf) |
-| "launch prep", "go-to-market", "growth" | `marketing-strategist` → web-seo-engineer + outreach-coordinator |
+| "launch prep", "go-to-market", "growth" | `marketing-strategist` → web-seo-engineer + outreach-coordinator + pr-backlink-builder |
 
 ### Context passing rules
 - Always pass relevant file paths, module names, and route names when delegating
