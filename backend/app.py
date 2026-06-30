@@ -1,7 +1,8 @@
+import json as _json
 import os
 import re
 import datetime as _dt
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory, stream_with_context
 
 # Serve the built frontend (Vite emits to ../frontend/dist). In production a
 # single Flask service hosts both the SPA and the /api endpoints. We disable
@@ -71,7 +72,7 @@ _rl_lock = _threading.Lock()
 _RL_PREFIXES = ("/api/quotes", "/api/history", "/api/fundamentals",
                 "/api/news", "/api/ratings", "/api/crypto", "/api/fng",
                 "/api/search", "/api/earnings", "/api/sentiment", "/api/pulse",
-                "/api/logos")
+                "/api/logos", "/api/stream/quotes")
 
 
 def _client_ip():
@@ -296,6 +297,76 @@ def pulse_signals_route(sym):
         return envelope({"error": "invalid symbol"}), 400
     data = signal_alerts_svc.evaluate_signal_alerts(sym)
     return envelope(data, source="signal_alerts")
+
+
+# ─── Finnhub WS stream ingestion (opt-in via FINNHUB_STREAM_ENABLED) ─────────
+# Importing services.stream is always safe — no side effects at import time.
+# maybe_start() is a no-op when the env var is absent.
+from services import stream as _stream
+_stream.manager.maybe_start()
+
+
+# ─── Stream delivery: status + SSE quote feed ─────────────────────────────────
+# The SSE route is a gunicorn sync-worker "slow client": each connection holds
+# a worker for SSE_MAX_TICKS × SSE_TICK_INTERVAL seconds (defaults: 30 × 2s =
+# 60s).  Keep SSE_MAX_TICKS small and let clients reconnect.  This must remain
+# behind FINNHUB_STREAM_ENABLED so the default production path (60s REST poll)
+# is unchanged.
+
+@app.route("/api/stream/status")
+def stream_status():
+    """Return whether the SSE stream endpoint is enabled on this deployment."""
+    enabled = bool(os.environ.get("FINNHUB_STREAM_ENABLED"))
+    return jsonify({"enabled": enabled})
+
+
+@app.route("/api/stream/quotes")
+def stream_quotes_route():
+    """SSE endpoint: emit current cached quotes for the requested symbols.
+
+    Guarded by FINNHUB_STREAM_ENABLED; returns 404 JSON when disabled so the
+    frontend falls back cleanly to the existing 60s REST poll.
+
+    Query params:
+        symbols  – comma-separated symbol list (same validation as /api/quotes)
+
+    Events:
+        data: {quotes: {...}, source: "finnhub_ws"|"finnhub"|...}
+        After SSE_MAX_TICKS events, sends ``event: close`` so the client
+        reconnects; this bounds worker occupancy.
+    """
+    if not os.environ.get("FINNHUB_STREAM_ENABLED"):
+        return jsonify({"error": "streaming disabled"}), 404
+
+    raw = request.args.get("symbols", "")
+    syms = [s.strip().upper() for s in raw.split(",") if s.strip()]
+    syms = [s for s in syms if valid_symbol(s)][:_MAX_SYMS]
+    if not syms:
+        return jsonify({"error": "no valid symbols"}), 400
+
+    # Update the WS subscription so the ingestion thread tracks these symbols.
+    _stream.manager.update_symbols(syms)
+
+    max_ticks = int(os.environ.get("SSE_MAX_TICKS", "30"))
+    tick_interval = float(os.environ.get("SSE_TICK_INTERVAL", "2.0"))
+
+    def generate():
+        from services.quotes import get_quotes
+        for _ in range(max_ticks):
+            quotes, source = get_quotes(syms)
+            payload = _json.dumps({"quotes": quotes, "source": source})
+            yield f"data: {payload}\n\n"
+            _time.sleep(tick_interval)
+        yield "event: close\ndata: reconnect\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # disable nginx/Railway buffering
+        },
+    )
 
 
 # ─── Persistence (Postgres/SQLite via DATABASE_URL) ──────────────────────────
