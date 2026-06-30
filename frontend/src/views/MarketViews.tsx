@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO, IDX_COLORS } from '../theme/tokens'
 import { SECTORS, IDX, HM, hmChange, hmExchange, sectorPerf } from '../data/market'
@@ -86,7 +86,10 @@ export function MarketViews({ sub }: { sub: Sub }) {
     return (crypto?.coins || []).map((c) => ({ sym: c.symbol, value: c.market_cap || 1, chg: c.change_pct }))
   }, [universe, sector, exchange, crypto])
 
-  const stockTip = (sym: string) => {
+  // useCallback gives Treemap (memo'd) a stable tipFor reference.
+  // stockTip has no reactive closure deps — price is read lazily via getState().
+  // cryptoTip captures `crypto` from store; update when that changes.
+  const stockTip = useCallback((sym: string) => {
     const name = UNIVERSE[sym]?.name || sym
     // Read price lazily at hover time via getState() so we never subscribe to
     // s.quotes (which would re-render + re-layout every 60s poll). This still
@@ -96,12 +99,12 @@ export function MarketViews({ sub }: { sub: Sub }) {
     const chg = hmChange(sym)
     const priceStr = p != null ? ` · $${p.toFixed(2)}` : ''
     return `${sym} · ${name}${priceStr} · ${(chg >= 0 ? '+' : '') + chg.toFixed(1)}%`
-  }
-  const cryptoTip = (sym: string) => {
+  }, [])
+  const cryptoTip = useCallback((sym: string) => {
     const c = crypto?.coins.find((x) => x.symbol === sym)
     if (!c) return sym
     return `${sym} · ${c.name} · $${c.price.toLocaleString('en-US')} · ${(c.change_pct >= 0 ? '+' : '') + c.change_pct.toFixed(1)}%`
-  }
+  }, [crypto])
 
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 16 }}>
