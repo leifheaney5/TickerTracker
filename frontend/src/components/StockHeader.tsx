@@ -5,7 +5,7 @@ import { UNIVERSE } from '../data/universe'
 import { Logo } from './Logo'
 import { PulseDial } from './PulseDial'
 import { Skeleton } from './Skeleton'
-import { money, pct } from '../lib/format'
+import { money, pct, asOf } from '../lib/format'
 
 // Stock header — ported from the prototype template (lines 241-296): logo,
 // 30px symbol, exchange pill, Track/Tracking toggle, name·sector, big mono
@@ -21,6 +21,8 @@ export function StockHeader() {
   const addWatch = useStore((s) => s.addWatch)
   const removeWatch = useStore((s) => s.removeWatch)
   const updateWatch = useStore((s) => s.updateWatch)
+  const marketStatus = useStore((s) => s.marketStatus)
+  const quotesFetchedAt = useStore((s) => s.quotesFetchedAt)
 
   const [editing, setEditing] = useState(false)
   const [editVal, setEditVal] = useState('')
@@ -40,6 +42,17 @@ export function StockHeader() {
   const dayAbs = p - p / (1 + c / 100)
   const targetHit = target > 0 && p >= target
 
+  // Market-status pill config — derived from the real backend value (set by pollQuotes →
+  // /api/quotes → get_market_status(), a genuine US-ET time computation). Returns null for
+  // 'Unknown' (pre-first-poll) so no pill renders until we have a real value.
+  const STATUS_DISPLAY: Record<string, { label: string; bg: string; color: string }> = {
+    'Market Open':       { label: 'OPEN',        bg: 'rgba(61,220,132,.15)',   color: 'var(--up)' },
+    'Pre-Market':        { label: 'PRE-MARKET',   bg: 'rgba(255,183,72,.12)',   color: '#ffb748' },
+    'After-Hours':       { label: 'AFTER-HOURS',  bg: 'rgba(120,130,200,.14)', color: '#8892d4' },
+    'Closed (Weekend)':  { label: 'CLOSED',       bg: 'rgba(180,180,200,.10)', color: 'var(--tx3)' },
+  }
+  const statusDisplay = marketStatus ? STATUS_DISPLAY[marketStatus] ?? null : null
+
   const trackStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 13px',
     borderRadius: 9, cursor: 'pointer', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px',
@@ -55,7 +68,7 @@ export function StockHeader() {
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', flex: '0 0 auto' }}>
+    <div data-testid="stock-header" style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', flex: '0 0 auto' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
           <Logo symbol={selected} size={42} domain={f?.website} />
@@ -73,7 +86,12 @@ export function StockHeader() {
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
           {live ? (
             <>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '32px', fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1, color: priceColor }}>{money(p)}</span>
+              {/* aria-live="polite" so screen readers hear price updates on each 60s poll (A7). */}
+              {/* aria-atomic="true" announces the full region, not just the changed fragment.  */}
+              <div role="status" aria-live="polite" aria-atomic="true"
+                style={{ fontFamily: FONT_MONO, fontSize: '32px', fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1, color: priceColor }}>
+                {money(p)}
+              </div>
               <span style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 11px', borderRadius: 9, fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 600, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>
                 {up ? '▲' : '▼'} {pct(c)} <span style={{ opacity: 0.8 }}>{(dayAbs >= 0 ? '+' : '') + money(Math.abs(dayAbs)).replace('$', '$')}</span>
               </span>
@@ -84,6 +102,23 @@ export function StockHeader() {
               <Skeleton width={150} height={32} radius={8} />
               <Skeleton width={92} height={26} radius={9} />
             </>
+          )}
+          {/* Market-status pill — text + color (WCAG 1.4.1: not color-only). Source: real  */}
+          {/* backend computation via pollQuotes → /api/quotes → get_market_status() (ET).   */}
+          {/* NOTE: market holidays are not accounted for (no holiday calendar on backend).   */}
+          {statusDisplay && (
+            <span
+              aria-label={`Market status: ${statusDisplay.label}`}
+              style={{ alignSelf: 'center', fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', padding: '3px 8px', borderRadius: 5, background: statusDisplay.bg, color: statusDisplay.color }}
+            >
+              {statusDisplay.label}
+            </span>
+          )}
+          {/* Freshness label — shows when first poll has landed (quotesFetchedAt is set). */}
+          {quotesFetchedAt && (
+            <span data-testid="stock-header-as-of" style={{ alignSelf: 'center', fontSize: '11px', color: 'var(--tx3)' }}>
+              {asOf(quotesFetchedAt)}
+            </span>
           )}
         </div>
       </div>
