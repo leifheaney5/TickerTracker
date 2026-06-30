@@ -31,22 +31,24 @@ export function Strategy() {
     <div style={{ flex: 1, overflow: 'auto', padding: 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ fontSize: '21px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>Strategy</span>
-        <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>Live algo health — P&amp;L, risk and execution at a glance</span>
+        <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>Portfolio overview — positions use live prices; algo metrics require a connected trading backend</span>
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flex: '0 0 auto' }}>
-        {kpi('SHARPE RATIO', '1.87')}
-        {kpi('MAX DRAWDOWN', '-12.4%', 'var(--down)')}
-        {kpi('WIN RATE', '58.3%', 'var(--up)')}
-        {kpi('RISK / REWARD', '1 : 1.9')}
+        {kpi('SHARPE RATIO', '—')}
+        {kpi('MAX DRAWDOWN', '—', 'var(--tx3)')}
+        {kpi('WIN RATE', '—', 'var(--tx3)')}
+        {kpi('RISK / REWARD', '—')}
         <div style={{ flex: '1 1 0', minWidth: 150, padding: '14px 16px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: '10.5px', letterSpacing: '.04em', color: 'var(--tx3)' }}>TREND STRENGTH</span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--up)' }}>72%</span>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--up)' }}>Trending</span>
+            <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx3)' }}>—</span>
           </div>
-          <div style={{ height: 5, borderRadius: 3, background: 'var(--line)' }}><div style={{ height: '100%', width: '72%', borderRadius: 3, background: 'var(--accent)' }} /></div>
+          <div style={{ height: 5, borderRadius: 3, background: 'var(--line)' }}><div style={{ height: '100%', width: '0%', borderRadius: 3, background: 'var(--accent)' }} /></div>
         </div>
+      </div>
+      <div style={{ fontSize: '11.5px', color: 'var(--tx3)', fontStyle: 'italic' }}>
+        Simulated metrics — live Sharpe ratio, drawdown, win rate, and trend strength require a connected algo trading backend.
       </div>
 
       <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap', flex: '0 0 auto' }}>
@@ -61,25 +63,26 @@ export function Strategy() {
           <EquityCurve />
         </div>
         <div style={{ flex: '1 1 300px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 'var(--gap,16px)' }}>
-          <div style={{ ...card, border: '1px solid var(--down)' }}>
+          <div style={{ ...card, border: '1px solid var(--line)' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Circuit Breakers</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}><span style={{ color: 'var(--tx2)' }}>Daily loss</span><span style={{ fontFamily: FONT_MONO, color: 'var(--down)', fontWeight: 600 }}>-$1,840 / -$2,500</span></div>
-              <div style={{ height: 7, borderRadius: 4, background: 'var(--line)', overflow: 'hidden' }}><div style={{ height: '100%', width: '74%', background: 'var(--down)' }} /></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}><span style={{ color: 'var(--tx2)' }}>Daily loss</span><span style={{ fontFamily: FONT_MONO, color: 'var(--tx3)', fontWeight: 600 }}>— / —</span></div>
+              <div style={{ height: 7, borderRadius: 4, background: 'var(--line)', overflow: 'hidden' }}><div style={{ height: '100%', width: '0%', background: 'var(--tx3)' }} /></div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}><span style={{ color: 'var(--tx2)' }}>Consecutive losses</span><span style={{ fontFamily: FONT_MONO, color: 'var(--tx)', fontWeight: 600 }}>3 / 5</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}><span style={{ color: 'var(--tx2)' }}>Consecutive losses</span><span style={{ fontFamily: FONT_MONO, color: 'var(--tx3)', fontWeight: 600 }}>— / —</span></div>
           </div>
           <div style={card}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>System Health</span>
-            {[['Broker API · connected', 'var(--up)'], ['Rate limit · 78% used', 'var(--warn)'], ['Margin · 34% utilized', 'var(--up)']].map(([t, c], i) => (
+            {[['Broker API · not connected', 'var(--tx3)'], ['Rate limit · —', 'var(--tx3)'], ['Margin · —', 'var(--tx3)']].map(([t, c], i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '12px', color: 'var(--tx2)' }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: c as string }} />{t}</div>
             ))}
           </div>
           <div style={card}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Execution Quality</span>
-            {[['Latency', '42 ms', 'var(--tx)'], ['Fill rate', '99.2%', 'var(--up)'], ['Avg slippage', '0.03%', 'var(--tx)']].map(([k, v, c], i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}><span style={{ color: 'var(--tx3)' }}>{k}</span><span style={{ fontFamily: FONT_MONO, color: c as string }}>{v}</span></div>
+            {[['Latency', '—'], ['Fill rate', '—'], ['Avg slippage', '—']].map(([k, v], i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}><span style={{ color: 'var(--tx3)' }}>{k}</span><span style={{ fontFamily: FONT_MONO, color: 'var(--tx3)' }}>{v}</span></div>
             ))}
+            <span style={{ fontSize: '11px', color: 'var(--tx3)', fontStyle: 'italic' }}>Simulated — no live algo backend connected.</span>
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ export const VIEW_TO_PATH: Record<string, string> = {
   map: '/map',
   sectors: '/sectors',
   crypto: '/crypto',
+  feargreed: '/crypto/fear-and-greed',
   screener: '/screener',
   strategy: '/strategy',
   holdings: '/holdings',
@@ -35,7 +36,7 @@ export function viewForPath(pathname: string): string | null {
   return PATH_TO_VIEW[pathname] ?? null
 }
 
-const SYM_RE = /^[A-Z0-9.\-]{1,12}$/
+const SYM_RE = /^[A-Z0-9.-]{1,12}$/
 
 // Parse '/ticker/NVDA' → 'NVDA' (uppercased, validated), else null.
 export function tickerForPath(pathname: string): string | null {

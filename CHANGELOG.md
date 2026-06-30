@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.18.2] — 2026-06-30
+## [1.18.6] — 2026-06-30
 
 > **Mobile nav parity + Alerts empty-state CTA.** Closes two IA findings from the
 > hf-engineer deepscan: mobile hamburger now reaches the same mounted views as
@@ -28,6 +28,143 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Mobile current-view label** now correctly displays "Alerts" and "Portfolio"
   when those views are active (previously fell back to "Ticker Tracker").
+
+## [1.18.5] — 2026-06-30
+
+### Added
+
+- **F4 — Market-status pill + quote-age on StockHeader** (`StockHeader.tsx`): The 32px
+  price now renders inside an `aria-live="polite" aria-atomic="true"` region so screen
+  readers announce price updates on each poll cycle (WCAG A7). A market-status pill
+  (OPEN / PRE-MARKET / AFTER-HOURS / CLOSED) appears inline near the price — sourced
+  from the real backend `get_market_status()` computation (US Eastern time, via
+  `pollQuotes → /api/quotes`), conveyed via text + color to satisfy WCAG 1.4.1. An
+  "as of HH:MM" freshness label also renders whenever `quotesFetchedAt` is set. The
+  pill is hidden (null config) while status is still `'Unknown'` (pre-first-poll).
+  Known limitation: market holidays are not accounted for — the backend has no holiday
+  calendar, so the pill shows OPEN on NYSE holidays.
+
+- **F13 — Per-symbol `fetchedAt` on Quote objects** (`types.ts`, `store.ts`,
+  `KeyStats.tsx`): Each `Quote` entry in the store is stamped with the batch
+  `fetchedAt` timestamp from the poll round that produced it. `KeyStats` now reads
+  `q.fetchedAt` (falling back to the global `quotesFetchedAt`) so the staleness label
+  is accurate per-symbol if polling behavior ever diverges across symbols. All symbols
+  in a single `pollQuotes` batch share the same timestamp (honest — they are fetched
+  together).
+
+### Changed
+
+- **F16 — Holdings broker copy** (`Holdings.tsx`): "synced from {broker}" changed to
+  "via {broker}" — the holdings API returns no sync timestamp, so the previous wording
+  falsely implied a known recency. No time is invented or hardcoded.
+
+## [1.18.4] — 2026-06-30
+
+### Fixed
+
+- **P1 data-integrity: Strategy KPI cards were hardcoded fiction** (`Strategy.tsx`): The KPI
+  banner (Sharpe ratio, Max Drawdown, Win Rate, Risk/Reward, Trend Strength) and the
+  algo-health sidebar (Circuit Breakers, System Health, Execution Quality) displayed static
+  seed numbers alongside a live positions table, giving users the false impression these were
+  real metrics. No algo backend or portfolio-performance endpoint exists in the store or API.
+  All fabricated values replaced with `—`. Page subtitle updated to "Portfolio overview —
+  positions use live prices; algo metrics require a connected trading backend." A "Simulated
+  metrics" disclosure note added below the KPI group and inside the Execution Quality card.
+
+- **P1 data-integrity: Market Overview index cards and sector bars showed seed data as live**
+  (`MarketViews.tsx`): Index cards (SPX, NDX, DJI, RUT, VIX) and sector performance bars
+  in the Overview and Sectors sub-tabs rendered static values from `market.ts` (hardcoded
+  numbers and a `hashStr`-based fake `sectorPerf()`) with no indication they were not live.
+  No real-time index or sector endpoint exists in the API or store. All prices, change
+  percentages, bar fills, and heatmap cells replaced with `—`/empty bars. A "Simulated
+  data — live market index quotes coming soon" disclosure note added after the index card
+  group and within each sector section. Removed unused `sectorPerf` and `heatColor` imports.
+
+## [1.18.3] — 2026-06-29
+
+### Fixed
+
+- **P0 data-integrity: Deep Dive fabricated ratios** (`AtAGlance.tsx`): The Fundamentals
+  sub-tab was computing P/S, P/B, PEG, EBITDA, FCF Yield, ROIC, Gross Margin, and
+  Net Debt/EBITDA by ad-hoc arithmetic on unrelated fields (`beta`, `market_cap`,
+  `dividend_yield`, `pe`), presenting invented numbers as real financial ratios. All eight
+  fabricated columns now render `—` (the project-standard "no data" state). P/E remains,
+  as it is a genuine backend field. A disclosure note — "Extended ratios require a premium
+  data feed — coming soon." — is shown in the table footer.
+
+- **P0 UX: Alert direction had no UI control** (`ManageWatchlist.tsx`): The watchlist
+  alert section had an `alert_price` input and an ON/OFF toggle, but no way to set
+  `alert_dir` (above/below). Users could only create stop-loss/downside alerts by editing
+  the DB directly. Added an accessible "↑ Above / ↓ Below" segmented control using
+  `<button>` elements with `aria-pressed` and `data-testid` attributes. Direction is
+  persisted immediately via the existing `updateListWatch` optimistic update path. The
+  Alerts view already reads `alert_dir` correctly and required no change.
+
+## [1.18.2] — 2026-06-30
+
+> **Market Map drill-down perf.** Three targeted fixes eliminate redundant O(n log n)
+> treemap layout recalculations on hover and on every 60s quote poll.
+
+### Performance
+
+- **Memoize squarify layout** (`Treemap.tsx`): `squarify` is now wrapped in `useMemo`
+  keyed on `[items, width, height]`. Previously the full layout ran on every hover
+  event (`setTip` state change) — now it runs only when tile geometry actually changes.
+- **Stop quote poll from rebuilding the map** (`MarketViews.tsx`): `mapItems` is now
+  `useMemo`'d keyed on `[universe, sector, exchange, crypto]`. The previous
+  `useStore((s) => s.quotes)` subscription caused a full rebuild of the 96-tile array
+  and a cascading re-layout on every 60s poll. `stockTip` now reads the live price
+  lazily via `useStore.getState()` at hover time — satisfying the accurate-numbers rule
+  (price visible once a real quote loads) without triggering re-renders.
+- **React.memo boundary** (`Treemap.tsx`, `MarketViews.tsx`): `Treemap` is wrapped in
+  `React.memo`; `stockTip` and `cryptoTip` are wrapped in `useCallback` with correct
+  dep arrays so the memo'd child isn't defeated by new closure identities on unrelated
+  renders (e.g. `secTf` timeframe toggle, container resize).
+
+## [1.18.1] — 2026-06-30
+
+> **Discoverable on the open web + Pulse in plain language.** Adds real per-page SEO
+> metadata, a public Fear & Greed page search engines and social cards can surface,
+> and a proper share image — so links to Ticker Tracker render and rank — and makes
+> the Pulse dial self-explanatory with a "What is Pulse?" explainer.
+
+### Added
+
+- **Per-page meta injection** (`backend/app.py`): the Flask SPA shell now rewrites
+  `<title>`, meta description, canonical, and Open Graph / Twitter tags per route
+  for `/` (home), `/dashboard`, `/market`, and `/crypto` — no Node SSR introduced.
+- **Public `/crypto/fear-and-greed` page** (`frontend/src/views/FearAndGreed.tsx`,
+  `backend/app.py`): a standalone, indexable page showing the live crypto Fear &
+  Greed reading with `Dataset` JSON-LD and honest alternative.me attribution; the
+  page title carries the live value (e.g. *"72 (Greed)"*).
+- **1200×630 Open Graph share card** (`frontend/public/brand/og-card.png`): a real
+  rasterized share image (was a 512px square icon); `twitter:card` upgraded to
+  `summary_large_image`.
+- Site-wide `WebSite` + `Organization` JSON-LD; `robots.txt` now disallows `/api/`;
+  `sitemap.xml` covers the public routes.
+- **"What is Pulse?" explainer modal** (`frontend/src/components/PulseAbout.tsx`):
+  an ⓘ info chip on the dial opens an accessible dialog (`role="dialog"`,
+  `aria-modal`, Escape/backdrop close, focus returns to the chip) describing the
+  five signals and their weights (momentum 22% · trend 22% · analyst 20% ·
+  52-week positioning 18% · news sentiment 18%), how missing signals are omitted
+  and reweighted, and the not-investment-advice disclaimer.
+
+### Changed
+
+- **Plain-language Pulse dial caption** (`frontend/src/components/PulseDial.tsx`,
+  `frontend/src/lib/pulse.ts`): the compact dial now shows a plain caption —
+  `signals quiet / mixed / rising / strong` — instead of the internal band word
+  (`Cooling / Neutral / Building / Hot`), which read like a loading state and
+  never named *what* was building. The band identity is unchanged: it still
+  drives the arc color, the `Why Pulse` breakdown, and the meter's `aria-label`
+  (which now announces both, e.g. *"Pulse 57 of 100, Building — signals rising"*).
+
+### Removed
+
+- **`/earnings` SEO surface**: removed the `/earnings` entry from per-page meta and
+  the sitemap. The standalone earnings page was intentionally retired (its data now
+  lives in the per-stock Due Diligence card), so advertising a crawlable URL that
+  redirects to `/dashboard` was incorrect.
 
 ## [1.18.0] — 2026-06-29
 
