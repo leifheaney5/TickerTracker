@@ -4,6 +4,11 @@ import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 
 type Mode = 'login' | 'signup' | 'forgot' | 'reset'
 
+interface Providers {
+  google: boolean
+  apple: boolean
+}
+
 function inputStyle(): React.CSSProperties {
   return {
     height: 40, padding: '0 12px', borderRadius: 9,
@@ -42,6 +47,15 @@ export function AuthScreen() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false) // success state for signup/forgot/reset
+  const [providers, setProviders] = useState<Providers>({ google: false, apple: false })
+
+  // Fetch which OAuth providers are configured (once on mount).
+  useEffect(() => {
+    fetch('/api/auth/providers', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: Providers | null) => { if (data) setProviders(data) })
+      .catch(() => { /* network failure — leave defaults (both false) */ })
+  }, [])
 
   // If there's a reset token but modal is not open, open it
   useEffect(() => {
@@ -158,6 +172,8 @@ export function AuthScreen() {
     flex: 1, height: 1, background: 'var(--line2)',
   }
 
+  const hasOAuth = providers.google || providers.apple
+
   function renderLogin() {
     return (
       <form onSubmit={e => { e.preventDefault(); handleLogin() }} style={{ display: 'contents' }}>
@@ -175,10 +191,17 @@ export function AuthScreen() {
         <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Logging in…' : 'Log in'}
         </button>
-        <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>
-        <button type="button" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
-          <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
-        </button>
+        {hasOAuth && <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>}
+        {providers.google && (
+          <button type="button" data-testid="google-login" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
+            <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
+          </button>
+        )}
+        {providers.apple && (
+          <button type="button" data-testid="apple-login" style={{ ...googleBtn, background: 'var(--tx)', color: 'var(--bg)' }} onClick={() => { window.location.href = '/api/auth/apple' }}>
+            <span style={{ fontSize: '16px' }}></span>Continue with Apple
+          </button>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
           <div style={{ fontSize: '12.5px', color: 'var(--tx3)' }}>
             No account?{' '}
@@ -224,10 +247,17 @@ export function AuthScreen() {
         <button type="submit" style={primaryBtn} disabled={loading}>
           {loading ? 'Creating account…' : 'Create account'}
         </button>
-        <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>
-        <button type="button" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
-          <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
-        </button>
+        {hasOAuth && <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>}
+        {providers.google && (
+          <button type="button" data-testid="google-login" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
+            <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
+          </button>
+        )}
+        {providers.apple && (
+          <button type="button" data-testid="apple-login" style={{ ...googleBtn, background: 'var(--tx)', color: 'var(--bg)' }} onClick={() => { window.location.href = '/api/auth/apple' }}>
+            <span style={{ fontSize: '16px' }}></span>Continue with Apple
+          </button>
+        )}
         <div style={{ fontSize: '12.5px', color: 'var(--tx3)', textAlign: 'center' }}>
           Already have an account?{' '}
           <button type="button" style={ghostBtn} onClick={() => switchMode('login')}>Log in</button>

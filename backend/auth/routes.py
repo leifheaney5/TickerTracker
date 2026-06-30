@@ -137,12 +137,27 @@ def reset():
 
 from flask import current_app
 from authlib.integrations.flask_client import OAuthError
-from auth.google import oauth, upsert_google_user, is_enabled
+from auth.google import oauth, upsert_google_user, is_enabled as google_is_enabled
+from auth.apple import (
+    is_enabled as apple_is_enabled,
+    build_client_secret,
+    upsert_apple_user,
+    parse_apple_user_form,
+)
+
+
+@auth_bp.get("/providers")
+def providers():
+    """Return which OAuth providers are configured (for the frontend button gating)."""
+    return jsonify({
+        "google": google_is_enabled(),
+        "apple": apple_is_enabled(),
+    }), 200
 
 
 @auth_bp.get("/google")
 def google_login():
-    if not is_enabled():
+    if not google_is_enabled():
         return jsonify({"error": "google oauth not configured"}), 503
     return oauth.google.authorize_redirect(f"{_base()}/api/auth/google/callback")
 
@@ -160,4 +175,58 @@ def google_callback():
         return redirect(f"{_base()}/?auth=ok")
     except OAuthError as e:
         current_app.logger.warning("google oauth callback failed: %s", e)
+        return redirect(f"{_base()}/?auth=failed")
+
+
+@auth_bp.get("/apple")
+def apple_login():
+    if not apple_is_enabled():
+        return jsonify({"error": "apple sign in not configured"}), 503
+    # Apple requires form_post response_mode; the callback must be POST.
+    return oauth.apple.authorize_redirect(f"{_base()}/api/auth/apple/callback")
+
+
+@auth_bp.route("/apple/callback", methods=["GET", "POST"])
+def apple_callback():
+    """Handle Apple's form_post callback (code + state arrive in POST body)."""
+    if not apple_is_enabled():
+        return redirect(f"{_base()}/?auth=failed")
+    try:
+        # Apple requires the client_secret to be a fresh ES256 JWT per exchange.
+        client_secret = build_client_secret()
+        token = oauth.apple.authorize_access_token(client_secret=client_secret)
+
+        # id_token carries the authoritative sub + email claims.
+        id_token_claims = token.get("userinfo") or {}
+        sub = id_token_claims.get("sub")
+        email = id_token_claims.get("email")
+        email_verified = id_token_claims.get("email_verified", True)
+
+        # Apple sends user name only on the FIRST auth, in the form POST body.
+        form_email, form_name = parse_apple_user_form(request.form)
+        # Prefer id_token email; fall back to form-posted email.
+        email = email or form_email
+
+        if not sub:
+            current_app.logger.warning("apple callback: missing sub in id_token")
+            return redirect(f"{_base()}/?auth=failed")
+
+        # Apple may mark the email as not verified for relay (private) addresses.
+        # We still allow relay addresses — Apple has already authenticated the user.
+        if email and email_verified is False:
+            current_app.logger.info(
+                "apple callback: email_verified=False for sub=%s (relay address)", sub
+            )
+
+        u = upsert_apple_user(sub, email, form_name)
+        if u is None:
+            current_app.logger.warning(
+                "apple callback: could not find or create user for sub=%s", sub
+            )
+            return redirect(f"{_base()}/?auth=failed")
+
+        login_user(u)
+        return redirect(f"{_base()}/?auth=ok")
+    except OAuthError as e:
+        current_app.logger.warning("apple oauth callback failed: %s", e)
         return redirect(f"{_base()}/?auth=failed")
