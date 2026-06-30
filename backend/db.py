@@ -97,6 +97,41 @@ def _ensure_columns(conn) -> None:
             conn.execute(text(
                 "ALTER TABLE watchlist_items ADD COLUMN coin_name VARCHAR DEFAULT ''"
             ))
+        if "vol_spike_pct" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN vol_spike_pct REAL"
+            ))
+        if "earnings_days" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN earnings_days INTEGER"
+            ))
+        # holdings.realized_pnl, holdings.fees_paid — added in hh01_portfolio_ledger.
+        # Guard: only alter if the holdings table exists (bare-engine tests may lack it).
+        tables_early = {r[0] for r in conn.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )).fetchall()}
+        if "holdings" in tables_early:
+            rows_h = conn.execute(text("PRAGMA table_info(holdings)")).fetchall()
+            existing_h = {r[1] for r in rows_h}
+            if "realized_pnl" not in existing_h:
+                conn.execute(text(
+                    "ALTER TABLE holdings ADD COLUMN realized_pnl REAL DEFAULT 0.0"
+                ))
+            if "fees_paid" not in existing_h:
+                conn.execute(text(
+                    "ALTER TABLE holdings ADD COLUMN fees_paid REAL DEFAULT 0.0"
+                ))
+        # alert_log.alert_kind — added in gg01_alert_depth migration.
+        tables = {r[0] for r in conn.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )).fetchall()}
+        if "alert_log" in tables:
+            rows_al = conn.execute(text("PRAGMA table_info(alert_log)")).fetchall()
+            existing_al = {r[1] for r in rows_al}
+            if "alert_kind" not in existing_al:
+                conn.execute(text(
+                    "ALTER TABLE alert_log ADD COLUMN alert_kind VARCHAR DEFAULT 'price'"
+                ))
         # settings.share_token — added in bb01_share_token migration.
         # Guard: only run if the settings table exists (bare-engine tests
         # may only have watchlist_items).
@@ -147,12 +182,52 @@ def _ensure_columns(conn) -> None:
             "ADD COLUMN IF NOT EXISTS coin_name VARCHAR DEFAULT ''"
         ))
         conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS vol_spike_pct REAL"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS earnings_days INTEGER"
+        ))
+        conn.execute(text(
+            "ALTER TABLE alert_log "
+            "ADD COLUMN IF NOT EXISTS alert_kind VARCHAR DEFAULT 'price'"
+        ))
+        conn.execute(text(
             "ALTER TABLE settings "
             "ADD COLUMN IF NOT EXISTS share_token VARCHAR"
         ))
         conn.execute(text(
             "ALTER TABLE settings "
             "ADD COLUMN IF NOT EXISTS unsub_token VARCHAR"
+        ))
+        # hh01_portfolio_ledger: realized P&L and fees accumulator on Holding.
+        conn.execute(text(
+            "ALTER TABLE holdings "
+            "ADD COLUMN IF NOT EXISTS realized_pnl REAL DEFAULT 0"
+        ))
+        conn.execute(text(
+            "ALTER TABLE holdings "
+            "ADD COLUMN IF NOT EXISTS fees_paid REAL DEFAULT 0"
+        ))
+
+    # ── TOTP 2FA: add totp_secret / totp_enabled to users ────────────────────
+    if _is_sqlite:
+        tables_u = {r[0] for r in conn.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )).fetchall()}
+        if "users" in tables_u:
+            ucols_2fa = {r[1] for r in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
+            if "totp_secret" not in ucols_2fa:
+                conn.execute(text("ALTER TABLE users ADD COLUMN totp_secret VARCHAR"))
+            if "totp_enabled" not in ucols_2fa:
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN totp_enabled BOOLEAN NOT NULL DEFAULT 0"
+                ))
+    else:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR"))
+        conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE"
         ))
 
     # ── Multiple watchlists: add watchlist_items.watchlist_id, backfill a

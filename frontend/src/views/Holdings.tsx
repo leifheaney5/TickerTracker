@@ -1,19 +1,43 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore, isAuthed } from '../state/store'
 import { FONT_SANS, FONT_MONO, COMPARE_COLORS } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { Donut } from '../charts/Donut'
 import { Skeleton } from '../components/Skeleton'
+import { BenchmarkChart } from '../charts/BenchmarkChart'
 import { money, pct } from '../lib/format'
+import { aggregateAllocation, type AllocationMode } from '../lib/allocation'
+import { api } from '../api/client'
+import type { PortfolioPnl, DividendsResponse, BenchmarkResponse, BenchmarkIndex, BenchmarkTf } from '../api/types'
 
 // Portfolio / Holdings view — ported from the prototype template (lines
-// 1095-1180). Connected: summary cards, allocation donut, positions table.
-// Disconnected: a "connect in Settings" empty state. Values masked when
-// hide_balances is on.
+// 1095-1180). Connected: summary cards, allocation donut, positions table,
+// dividends panel, and benchmark overlay. Disconnected: a "connect in
+// Settings" empty state. Values masked when hide_balances is on.
 const DONUT_COLORS = ['#3ddc84', ...COMPARE_COLORS, '#ffb347', '#5b9cff', '#e9ebee']
+const ALLOCATION_MODES: AllocationMode[] = ['Position', 'Sector', 'Asset Class']
+const BENCHMARK_TFS: BenchmarkTf[] = ['1M', '3M', '1Y', '5Y']
+const BENCHMARK_INDICES: BenchmarkIndex[] = ['SPY', 'QQQ']
 
 export function Holdings() {
+  const [allocMode, setAllocMode] = useState<AllocationMode>('Position')
+  // Engine P&L data: fetched from /api/portfolio/pnl when authed.
+  // null = not yet loaded; undefined = loaded but empty/failed (fall back to
+  // the live-quote path which uses chg() day-% approximation).
+  const [pnlData, setPnlData] = useState<PortfolioPnl | null>(null)
+  const [pnlLoaded, setPnlLoaded] = useState(false)
+
+  // Dividends panel
+  const [divData, setDivData] = useState<DividendsResponse | null>(null)
+  const [divLoaded, setDivLoaded] = useState(false)
+
+  // Benchmark overlay
+  const [bmData, setBmData] = useState<BenchmarkResponse | null>(null)
+  const [bmLoaded, setBmLoaded] = useState(false)
+  const [bmTf, setBmTf] = useState<BenchmarkTf>('1Y')
+  const [bmIndex, setBmIndex] = useState<BenchmarkIndex>('SPY')
+
   const settings = useStore((s) => s.settings)
   const holdings = useStore((s) => s.holdings)
   const loadHoldings = useStore((s) => s.loadHoldings)
@@ -28,6 +52,38 @@ export function Holdings() {
   const openAuth = useStore((s) => s.openAuth)
 
   useEffect(() => { if (authed) loadHoldings() }, [authed, loadHoldings])
+
+  // Fetch backend P&L engine data (prev_close-accurate daily P&L, realized, fees).
+  // Refresh whenever holdings change (new transactions recorded).
+  useEffect(() => {
+    if (!authed) return
+    let cancelled = false
+    api.getPortfolioPnl()
+      .then((r) => { if (!cancelled) { setPnlData(r.data); setPnlLoaded(true) } })
+      .catch(() => { if (!cancelled) setPnlLoaded(true) })
+    return () => { cancelled = true }
+  }, [authed, holdings.length])
+
+  // Dividend data: refresh when holdings change.
+  useEffect(() => {
+    if (!authed) return
+    let cancelled = false
+    api.getDividends()
+      .then((r) => { if (!cancelled) { setDivData(r.data); setDivLoaded(true) } })
+      .catch(() => { if (!cancelled) setDivLoaded(true) })
+    return () => { cancelled = true }
+  }, [authed, holdings.length])
+
+  // Benchmark overlay: refresh when holdings, timeframe, or index changes.
+  useEffect(() => {
+    if (!authed) return
+    let cancelled = false
+    setBmLoaded(false)
+    api.getBenchmark(bmTf, bmIndex)
+      .then((r) => { if (!cancelled) { setBmData(r.data); setBmLoaded(true) } })
+      .catch(() => { if (!cancelled) setBmLoaded(true) })
+    return () => { cancelled = true }
+  }, [authed, holdings.length, bmTf, bmIndex])
 
   const connected = settings?.broker_connected ?? false
   const hide = settings?.hide_balances ?? false
@@ -54,11 +110,28 @@ export function Holdings() {
   // Portfolio-level figures only mean something once EVERY position has a live
   // quote — a partial sum would understate value. Until then, show skeletons.
   const allLive = rows.length > 0 && rows.every((r) => r.live)
-  const totalValue = rows.reduce((a, r) => a + r.value, 0)
-  const totalCost = rows.reduce((a, r) => a + r.cost, 0)
+
+  // Use engine totals when available (prev_close-accurate); fall back to
+  // live-quote arithmetic when the engine hasn't loaded yet or has no data.
+  const engineTotals = pnlData?.totals ?? null
+  const totalValue = engineTotals?.market_value ?? rows.reduce((a, r) => a + r.value, 0)
+  const totalCost = engineTotals?.cost_basis ?? rows.reduce((a, r) => a + r.cost, 0)
   const totalGain = totalValue - totalCost
   const totalGainPct = totalCost ? (totalGain / totalCost) * 100 : 0
-  const todayVal = rows.reduce((a, r) => a + (r.value * r.day) / 100, 0)
+  // today: use engine daily_pnl (prev_close-based) when loaded; else day-% approx.
+  const todayVal = pnlLoaded && engineTotals
+    ? engineTotals.daily_pnl
+    : rows.reduce((a, r) => a + (r.value * r.day) / 100, 0)
+  const realizedPnl = engineTotals?.realized_pnl ?? 0
+  const feesPaid = engineTotals?.fees_paid ?? 0
+
+  // Allocation grouping helpers
+  // Build sector lookup from UNIVERSE
+  const sectorLookup: Record<string, string> = {}
+  for (const [sym, u] of Object.entries(UNIVERSE)) sectorLookup[sym] = u.sector
+  // Crypto symbols: those with group === 'Crypto' in UNIVERSE
+  const cryptoSyms = new Set(Object.entries(UNIVERSE).filter(([, u]) => u.group === 'Crypto').map(([s]) => s))
+  const allocSlices = aggregateAllocation(rows, allocMode, sectorLookup, cryptoSyms)
 
   if (!authed) {
     return (
@@ -131,38 +204,177 @@ export function Holdings() {
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {summaryCard('TOTAL VALUE', allLive
-            ? <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(totalValue))}</span>
+            ? <span data-testid="holding-total-value" style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(totalValue))}</span>
             : <Skeleton width={120} height={22} />)}
           {summaryCard('COST BASIS', <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx2)' }}>{mask(money(totalCost))}</span>)}
           {summaryCard('TOTAL RETURN', allLive ? (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((totalGain >= 0 ? '+' : '') + money(totalGain))}</span>
+              <span data-testid="holding-total-return" style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((totalGain >= 0 ? '+' : '') + money(totalGain))}</span>
               <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(totalGainPct)}</span>
             </div>
           ) : <Skeleton width={140} height={22} />)}
           {summaryCard('TODAY', allLive
-            ? <span style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: todayVal >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((todayVal >= 0 ? '+' : '') + money(todayVal))}</span>
+            ? <span data-testid="holding-today-pnl" style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: todayVal >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((todayVal >= 0 ? '+' : '') + money(todayVal))}</span>
             : <Skeleton width={100} height={16} />)}
+          {pnlLoaded && realizedPnl !== 0 && summaryCard('REALIZED', (
+            <span data-testid="holding-realized-pnl" style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: realizedPnl >= 0 ? 'var(--up)' : 'var(--down)' }}>
+              {mask((realizedPnl >= 0 ? '+' : '') + money(realizedPnl))}
+            </span>
+          ))}
+          {pnlLoaded && feesPaid > 0 && summaryCard('FEES PAID', (
+            <span data-testid="holding-fees-paid" style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: 'var(--tx2)' }}>
+              {mask(money(feesPaid))}
+            </span>
+          ))}
         </div>
+
+        {/* ── Benchmark overlay: portfolio vs SPY/QQQ ─────────────────── */}
+        <div data-testid="benchmark-panel" style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Portfolio vs Benchmark</span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {/* Timeframe toggle */}
+              <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--panel)', border: '1px solid var(--line)' }}>
+                {BENCHMARK_TFS.map((tf) => (
+                  <button
+                    key={tf}
+                    data-testid={`benchmark-tf-${tf.toLowerCase()}`}
+                    onClick={() => setBmTf(tf)}
+                    style={{
+                      padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      fontFamily: FONT_SANS, fontSize: '11px', fontWeight: tf === bmTf ? 700 : 500,
+                      background: tf === bmTf ? 'var(--accent)' : 'transparent',
+                      color: tf === bmTf ? 'var(--accentInk)' : 'var(--tx3)',
+                    }}
+                  >{tf}</button>
+                ))}
+              </div>
+              {/* Index toggle */}
+              <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--panel)', border: '1px solid var(--line)' }}>
+                {BENCHMARK_INDICES.map((idx) => (
+                  <button
+                    key={idx}
+                    data-testid={`benchmark-index-${idx.toLowerCase()}`}
+                    onClick={() => setBmIndex(idx)}
+                    style={{
+                      padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      fontFamily: FONT_SANS, fontSize: '11px', fontWeight: idx === bmIndex ? 700 : 500,
+                      background: idx === bmIndex ? 'var(--accent)' : 'transparent',
+                      color: idx === bmIndex ? 'var(--accentInk)' : 'var(--tx3)',
+                    }}
+                  >{idx}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {!bmLoaded ? (
+            <Skeleton width="100%" height={220} />
+          ) : bmData && bmData.dates.length > 0 ? (
+            <BenchmarkChart
+              dates={bmData.dates}
+              portfolioPct={bmData.portfolio_pct}
+              benchmarkPct={bmData.benchmark_pct}
+              index={bmData.index}
+              disclaimer={bmData.disclaimer}
+            />
+          ) : (
+            <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '13px', color: 'var(--tx3)' }}>No benchmark data available for the selected period.</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Dividends panel ─────────────────────────────────────────────── */}
+        {divLoaded && divData && (
+          <div data-testid="dividends-panel" style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Dividends</span>
+              {divData.annual_income_estimate > 0 && (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={{ fontSize: '11px', color: 'var(--tx3)', letterSpacing: '.04em' }}>EST. ANNUAL INCOME</span>
+                  <span data-testid="dividend-annual-estimate" style={{ fontFamily: FONT_MONO, fontSize: '15px', fontWeight: 600, color: 'var(--up)' }}>
+                    {mask(money(divData.annual_income_estimate))}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {divData.rows.length === 0 ? (
+              <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                <span style={{ fontSize: '13px', color: 'var(--tx3)' }}>No dividend history found for your current positions.</span>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <div style={{ minWidth: 560 }}>
+                  {/* Header */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 90px 100px 90px', background: 'var(--panel)', borderBottom: '1px solid var(--line)', borderRadius: '8px 8px 0 0' }}>
+                    {['SYMBOL', 'EX-DATE', 'PAY-DATE', 'PER SHARE', 'TOTAL', 'STATUS'].map((h) => (
+                      <div key={h} style={{ padding: '10px 10px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>
+                    ))}
+                  </div>
+                  {divData.rows.map((row, i) => (
+                    <div
+                      key={`${row.symbol}-${row.ex_date}-${i}`}
+                      style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 90px 100px 90px', alignItems: 'center', borderTop: '1px solid var(--line)' }}
+                    >
+                      <div style={{ padding: '11px 10px', fontWeight: 700, fontSize: '12.5px', color: 'var(--tx)' }}>{row.symbol}</div>
+                      <div style={{ padding: '11px 10px', fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{row.ex_date}</div>
+                      <div style={{ padding: '11px 10px', fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx3)' }}>{row.pay_date ?? '—'}</div>
+                      <div style={{ padding: '11px 10px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{money(row.per_share)}</div>
+                      <div style={{ padding: '11px 10px', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: 'var(--up)' }}>{mask(money(row.total))}</div>
+                      <div style={{ padding: '11px 10px' }}>
+                        <span style={{
+                          padding: '3px 8px', borderRadius: 20, fontSize: '11px', fontWeight: 600,
+                          background: row.status === 'upcoming' ? 'rgba(61,220,132,0.14)' : 'var(--panel)',
+                          color: row.status === 'upcoming' ? 'var(--up)' : 'var(--tx3)',
+                        }}>{row.status === 'upcoming' ? 'Upcoming' : 'Paid'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 270px', minWidth: 260, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Allocation</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Allocation</span>
+              <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--panel)', border: '1px solid var(--line)' }}>
+                {ALLOCATION_MODES.map((mode) => (
+                  <button
+                    key={mode}
+                    data-testid={`alloc-mode-${mode.toLowerCase().replace(' ', '-')}`}
+                    onClick={() => setAllocMode(mode)}
+                    style={{
+                      padding: '4px 9px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      fontFamily: FONT_SANS, fontSize: '11px', fontWeight: mode === allocMode ? 700 : 500,
+                      background: mode === allocMode ? 'var(--accent)' : 'transparent',
+                      color: mode === allocMode ? 'var(--accentInk)' : 'var(--tx3)',
+                    }}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: '0 0 auto' }}>
-                <Donut positions={rows.map((r) => ({ sym: r.symbol, val: r.value }))} total={totalValue} colors={DONUT_COLORS} />
+                <Donut positions={allocSlices.map((s) => ({ sym: s.label, val: s.value }))} total={totalValue} colors={DONUT_COLORS} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                  <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{rows.length}</span>
-                  <span style={{ fontSize: '10.5px', color: 'var(--tx3)' }}>positions</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{allocSlices.length}</span>
+                  <span data-testid="alloc-center-label" style={{ fontSize: '10.5px', color: 'var(--tx3)' }}>{allocMode === 'Position' ? 'positions' : 'groups'}</span>
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {rows.slice().sort((a, b) => b.value - a.value).slice(0, 6).map((r, i) => (
-                  <div key={r.symbol} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                {allocSlices.slice(0, 6).map((slice, i) => (
+                  <div key={slice.label} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span style={{ width: 9, height: 9, borderRadius: 3, background: DONUT_COLORS[i % DONUT_COLORS.length], flex: '0 0 auto' }} />
-                    <span style={{ flex: 1, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{r.symbol}</span>
+                    <span style={{ flex: 1, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{slice.label}</span>
                     {allLive
-                      ? <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{totalValue ? ((r.value / totalValue) * 100).toFixed(1) + '%' : '—'}</span>
+                      ? <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{totalValue ? ((slice.value / totalValue) * 100).toFixed(1) + '%' : '—'}</span>
                       : <Skeleton inline width={38} height={11} />}
                   </div>
                 ))}

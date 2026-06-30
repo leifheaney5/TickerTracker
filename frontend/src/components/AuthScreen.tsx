@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useStore } from '../state/store'
+import type { AuthUser } from '../api/types'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 
-type Mode = 'login' | 'signup' | 'forgot' | 'reset'
+type Mode = 'login' | 'signup' | 'forgot' | 'reset' | 'totp'
+
+interface Providers {
+  google: boolean
+  apple: boolean
+}
 
 function inputStyle(): React.CSSProperties {
   return {
@@ -46,6 +52,20 @@ export function AuthScreen() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false) // success state for signup/forgot/reset
+  const [providers, setProviders] = useState<Providers>({ google: false, apple: false })
+
+  // TOTP challenge state (populated when login returns two_factor_required)
+  const [totpPendingToken, setTotpPendingToken] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [totpUseRecovery, setTotpUseRecovery] = useState(false)
+
+  // Fetch which OAuth providers are configured (once on mount).
+  useEffect(() => {
+    fetch('/api/auth/providers', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: Providers | null) => { if (data) setProviders(data) })
+      .catch(() => { /* network failure — leave defaults (both false) */ })
+  }, [])
 
   // If there's a reset token but modal is not open, open it
   useEffect(() => {
@@ -73,6 +93,7 @@ export function AuthScreen() {
   function clearState() {
     setEmail(''); setPassword(''); setName(''); setNewPassword('')
     setError(''); setDone(false); setLoading(false)
+    setTotpPendingToken(''); setTotpCode(''); setTotpUseRecovery(false)
   }
 
   function switchMode(m: Mode) {
@@ -85,8 +106,42 @@ export function AuthScreen() {
     setLoading(true); setError('')
     const res = await login(email, password)
     setLoading(false)
-    if (res.ok) { closeAuth() }
-    else setError(res.error ?? 'Login failed.')
+    if (res.ok) { closeAuth(); return }
+    if (res.twoFactor && res.token) {
+      setTotpPendingToken(res.token)
+      setMode('totp')
+      return
+    }
+    setError(res.error ?? 'Login failed.')
+  }
+
+  async function handleTotpSubmit() {
+    if (!totpCode) { setError('Please enter your code.'); return }
+    setLoading(true); setError('')
+    try {
+      const r = await fetch('/api/auth/2fa', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: totpPendingToken, code: totpCode }),
+      })
+      const j = await r.json().catch(() => ({}))
+      setLoading(false)
+      if (!r.ok) { setError((j as { error?: string }).error ?? 'Invalid code.'); return }
+      const user = (j as { user?: unknown }).user
+      if (user) {
+        // Sync user into store + reload personal data
+        useStore.setState({ currentUser: user as AuthUser })
+        const s = useStore.getState()
+        await Promise.all([s.loadWatchlist(), s.loadWatchlists(), s.loadSettings(), s.loadHoldings(), s.loadBilling()])
+        closeAuth()
+      } else {
+        setError('Login failed.')
+      }
+    } catch {
+      setLoading(false)
+      setError('Network error.')
+    }
   }
 
   async function handleSignup() {
@@ -162,6 +217,8 @@ export function AuthScreen() {
     flex: 1, height: 1, background: 'var(--line2)',
   }
 
+  const hasOAuth = providers.google || providers.apple
+
   function renderLogin() {
     return (
       <form onSubmit={e => { e.preventDefault(); handleLogin() }} style={{ display: 'contents' }}>
@@ -183,10 +240,17 @@ export function AuthScreen() {
         <button type="submit" aria-describedby={error ? 'auth-form-error' : undefined} style={primaryBtn} disabled={loading}>
           {loading ? 'Logging in…' : 'Log in'}
         </button>
-        <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>
-        <button type="button" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
-          <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
-        </button>
+        {hasOAuth && <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>}
+        {providers.google && (
+          <button type="button" data-testid="google-login" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
+            <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
+          </button>
+        )}
+        {providers.apple && (
+          <button type="button" data-testid="apple-login" style={{ ...googleBtn, background: 'var(--tx)', color: 'var(--bg)' }} onClick={() => { window.location.href = '/api/auth/apple' }}>
+            <span style={{ fontSize: '16px' }}></span>Continue with Apple
+          </button>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
           <div style={{ fontSize: '12.5px', color: 'var(--tx3)' }}>
             No account?{' '}
@@ -236,10 +300,17 @@ export function AuthScreen() {
         <button type="submit" aria-describedby={error ? 'auth-form-error' : undefined} style={primaryBtn} disabled={loading}>
           {loading ? 'Creating account…' : 'Create account'}
         </button>
-        <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>
-        <button type="button" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
-          <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
-        </button>
+        {hasOAuth && <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>}
+        {providers.google && (
+          <button type="button" data-testid="google-login" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
+            <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
+          </button>
+        )}
+        {providers.apple && (
+          <button type="button" data-testid="apple-login" style={{ ...googleBtn, background: 'var(--tx)', color: 'var(--bg)' }} onClick={() => { window.location.href = '/api/auth/apple' }}>
+            <span style={{ fontSize: '16px' }}></span>Continue with Apple
+          </button>
+        )}
         <div style={{ fontSize: '12.5px', color: 'var(--tx3)', textAlign: 'center' }}>
           Already have an account?{' '}
           <button type="button" style={ghostBtn} onClick={() => switchMode('login')}>Log in</button>
@@ -313,11 +384,60 @@ export function AuthScreen() {
     )
   }
 
+  function renderTotp() {
+    return (
+      <div data-testid="totp-challenge" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <span style={labelStyle()}>{totpUseRecovery ? 'RECOVERY CODE' : 'AUTHENTICATOR CODE'}</span>
+          <input
+            data-testid="totp-code-input"
+            style={{
+              ...inputStyle(),
+              letterSpacing: totpUseRecovery ? '.05em' : '.2em',
+              textAlign: 'center',
+              fontSize: '16px',
+            }}
+            type="text"
+            inputMode={totpUseRecovery ? 'text' : 'numeric'}
+            maxLength={totpUseRecovery ? 14 : 6}
+            autoComplete="one-time-code"
+            placeholder={totpUseRecovery ? 'XXXX-XXXX-XXXX' : '000000'}
+            value={totpCode}
+            onChange={e => setTotpCode(e.target.value.toUpperCase())}
+            autoFocus
+          />
+        </div>
+        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
+        <button
+          data-testid="totp-submit"
+          style={primaryBtn}
+          disabled={loading}
+          onClick={handleTotpSubmit}
+        >
+          {loading ? 'Verifying…' : 'Continue'}
+        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+          <button
+            type="button"
+            style={ghostBtn}
+            onClick={() => { setTotpUseRecovery(!totpUseRecovery); setTotpCode(''); setError('') }}
+          >
+            {totpUseRecovery ? 'Use authenticator app instead' : 'Use a recovery code instead'}
+          </button>
+          <button type="button" style={{ ...ghostBtn, color: 'var(--tx3)' }} onClick={() => switchMode('login')}>
+            Back to log in
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const titles: Record<Mode, string> = {
     login: 'Welcome back',
     signup: 'Create your account',
     forgot: 'Reset password',
     reset: 'Set new password',
+    totp: 'Two-factor authentication',
   }
 
   const subtitles: Record<Mode, string> = {
@@ -325,6 +445,7 @@ export function AuthScreen() {
     signup: 'Start tracking your portfolio',
     forgot: 'Enter your email and we\'ll send a reset link',
     reset: 'Choose a strong new password',
+    totp: 'Enter the code from your authenticator app',
   }
 
   return (
@@ -368,6 +489,7 @@ export function AuthScreen() {
         {mode === 'signup' && renderSignup()}
         {mode === 'forgot' && renderForgot()}
         {mode === 'reset' && renderReset()}
+        {mode === 'totp' && renderTotp()}
       </div>
     </div>
   )

@@ -12,6 +12,9 @@ import type {
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 import { reorderLists, moveItem, reorderWithinList, flattenActive } from './watchlistReducers'
 import { pathForView } from '../routes'
+import { detectAlertCrossings } from '../lib/alertDetect'
+import { useToastStore } from './toastStore'
+import { money } from '../lib/format'
 
 function errStatus(e: unknown): number | null {
   const m = String((e as Error)?.message || '').match(/→\s*(\d+)/)
@@ -43,6 +46,10 @@ export type SortBy = 'manual' | 'change' | 'price' | 'az'
 // Module-level guard so the first-run watchlist seed runs at most once even if
 // loadWatchlist is invoked twice (React StrictMode double-invokes effects).
 let seedInFlight = false
+
+// Tracks which alert-symbol keys were in "hit" state on the previous poll
+// cycle, so we only fire a toast on the first transition (not every poll).
+let _alertHitSet = new Set<string>()
 
 // Symbols whose brand logo we've already requested this session (success or a
 // confirmed "no logo"), so repeated polls don't re-hit /api/logos for them.
@@ -151,7 +158,13 @@ interface StoreState {
   currentUser: AuthUser | null
   authChecked: boolean
   loadMe: () => Promise<void>
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  login: (email: string, password: string) => Promise<{
+    ok: boolean
+    error?: string
+    /** When true, the user has 2FA enabled. Use `token` + a TOTP code to complete login. */
+    twoFactor?: boolean
+    token?: string
+  }>
   signup: (email: string, password: string, name?: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => Promise<void>
   forgot: (email: string) => Promise<{ ok: boolean; error?: string }>
@@ -229,7 +242,12 @@ export const useStore = create<StoreState>((set, get) => ({
   login: async (email, password) => {
     const r = await fetch('/api/auth/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { ok: false, error: j.error || 'Login failed' } }
-    const j = await r.json(); set({ currentUser: j.user ?? null })
+    const j = await r.json()
+    // 2FA interstitial: backend requires a TOTP code before establishing session.
+    if (j.two_factor_required === true) {
+      return { ok: false, twoFactor: true, token: j.token as string }
+    }
+    set({ currentUser: j.user ?? null })
     // Re-fetch personalized data so the newly-logged-in user sees their own
     // watchlist/settings/holdings without a page reload.
     await get().loadWatchlist(); await get().loadWatchlists(); await get().loadSettings(); await get().loadHoldings(); await get().loadBilling()
@@ -495,6 +513,22 @@ export const useStore = create<StoreState>((set, get) => ({
       set({ quotes: { ...prev, ...stamped }, marketStatus: data.market_status, flash, quotesFetchedAt: fetchedAt })
       // clear flash after the prototype's ~650ms window
       setTimeout(() => set({ flash: {} }), 650)
+
+      // Detect alert crossings and push in-app toasts on first transition.
+      const { watchlist: wl } = get()
+      if (wl.length > 0) {
+        const mergedQuotes = { ...prev, ...data.quotes }
+        const { newHits, nextHitSet } = detectAlertCrossings(_alertHitSet, wl, mergedQuotes)
+        _alertHitSet = nextHitSet
+        const { pushToast } = useToastStore.getState()
+        for (const hit of newHits) {
+          const dir = hit.dir === 'above' ? 'above' : 'below'
+          pushToast(
+            `${hit.symbol} ${dir} ${money(hit.alertPrice)} — now ${money(hit.price)}`,
+            { kind: 'alert' },
+          )
+        }
+      }
     } catch {
       // keep last-known quotes; symbols without one render a skeleton (hasQuote=false)
     }
