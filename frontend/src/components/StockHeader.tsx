@@ -68,7 +68,7 @@ export function StockHeader() {
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', flex: '0 0 auto' }}>
+    <div data-testid="stock-header" style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start', flex: '0 0 auto' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
           <Logo symbol={selected} size={42} domain={f?.website} />
@@ -116,7 +116,7 @@ export function StockHeader() {
           )}
           {/* Freshness label — shows when first poll has landed (quotesFetchedAt is set). */}
           {quotesFetchedAt && (
-            <span style={{ alignSelf: 'center', fontSize: '11px', color: 'var(--tx3)' }}>
+            <span data-testid="stock-header-as-of" style={{ alignSelf: 'center', fontSize: '11px', color: 'var(--tx3)' }}>
               {asOf(quotesFetchedAt)}
             </span>
           )}
