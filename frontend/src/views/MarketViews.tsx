@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO, IDX_COLORS } from '../theme/tokens'
 import { SECTORS, IDX, HM, hmChange, hmExchange, sectorPerf } from '../data/market'
@@ -27,9 +27,11 @@ export function MarketViews({ sub }: { sub: Sub }) {
   const setSelected = useStore((s) => s.setSelected)
   const crypto = useStore((s) => s.crypto)
   const loadCrypto = useStore((s) => s.loadCrypto)
-  // Subscribe to quotes directly (not the stable s.price fn ref) so tooltips
-  // re-render when a live quote arrives. Seed/UNIVERSE prices are never shown.
-  const quotes = useStore((s) => s.quotes)
+  // Do NOT subscribe to s.quotes here. Tile geometry (market cap) and tile color
+  // (hmChange — a static deterministic hash) don't depend on live quotes.
+  // Subscribing would cause a full mapItems rebuild + Treemap re-layout on every
+  // 60s poll. Instead, stockTip reads the price lazily via getState() at hover
+  // time, satisfying the accurate-numbers rule without triggering re-renders.
   const [secTf, setSecTf] = useState('1M')
   const [mapW, setMapW] = useState(800)
   const mapRef = useRef<HTMLDivElement | null>(null)
@@ -72,19 +74,25 @@ export function MarketViews({ sub }: { sub: Sub }) {
 
   // Map items derive from the chosen universe + sector. Stocks come from the
   // synthetic HM set (filterable by sector); crypto from the live CoinGecko feed.
-  const stockItems = (sec: string, exch: 'All' | 'NASDAQ' | 'NYSE'): TreemapItem[] => {
-    const rows = sec === 'All' ? Object.values(HM).flat() : (HM[sec] || [])
-    return rows
-      .filter(([sym]) => exch === 'All' || hmExchange(sym) === exch)
-      .map(([sym, cap]) => ({ sym, value: cap, chg: hmChange(sym) }))
-  }
-  const cryptoItems: TreemapItem[] = (crypto?.coins || []).map((c) => ({ sym: c.symbol, value: c.market_cap || 1, chg: c.change_pct }))
-  const mapItems: TreemapItem[] = universe === 'stocks' ? stockItems(sector, exchange) : cryptoItems
+  // Memoized so a quote poll (which only updates s.quotes, not these inputs)
+  // does NOT rebuild the array or cascade into Treemap's squarify layout.
+  const mapItems = useMemo<TreemapItem[]>(() => {
+    if (universe === 'stocks') {
+      const rows = sector === 'All' ? Object.values(HM).flat() : (HM[sector] || [])
+      return rows
+        .filter(([sym]) => exchange === 'All' || hmExchange(sym) === exchange)
+        .map(([sym, cap]) => ({ sym, value: cap, chg: hmChange(sym) }))
+    }
+    return (crypto?.coins || []).map((c) => ({ sym: c.symbol, value: c.market_cap || 1, chg: c.change_pct }))
+  }, [universe, sector, exchange, crypto])
 
   const stockTip = (sym: string) => {
     const name = UNIVERSE[sym]?.name || sym
-    // Only surface a price once a real quote has loaded — never the seed value.
-    const p = quotes[sym]?.price
+    // Read price lazily at hover time via getState() so we never subscribe to
+    // s.quotes (which would re-render + re-layout every 60s poll). This still
+    // satisfies the accurate-numbers rule: getState() returns the latest quote,
+    // and we omit the price until a real quote has loaded (never the seed value).
+    const p = useStore.getState().quotes[sym]?.price
     const chg = hmChange(sym)
     const priceStr = p != null ? ` · $${p.toFixed(2)}` : ''
     return `${sym} · ${name}${priceStr} · ${(chg >= 0 ? '+' : '') + chg.toFixed(1)}%`
