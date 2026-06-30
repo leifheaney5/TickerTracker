@@ -7,6 +7,8 @@ import { Donut } from '../charts/Donut'
 import { Skeleton } from '../components/Skeleton'
 import { money, pct } from '../lib/format'
 import { aggregateAllocation, type AllocationMode } from '../lib/allocation'
+import { api } from '../api/client'
+import type { PortfolioPnl } from '../api/types'
 
 // Portfolio / Holdings view — ported from the prototype template (lines
 // 1095-1180). Connected: summary cards, allocation donut, positions table.
@@ -17,6 +19,12 @@ const ALLOCATION_MODES: AllocationMode[] = ['Position', 'Sector', 'Asset Class']
 
 export function Holdings() {
   const [allocMode, setAllocMode] = useState<AllocationMode>('Position')
+  // Engine P&L data: fetched from /api/portfolio/pnl when authed.
+  // null = not yet loaded; undefined = loaded but empty/failed (fall back to
+  // the live-quote path which uses chg() day-% approximation).
+  const [pnlData, setPnlData] = useState<PortfolioPnl | null>(null)
+  const [pnlLoaded, setPnlLoaded] = useState(false)
+
   const settings = useStore((s) => s.settings)
   const holdings = useStore((s) => s.holdings)
   const loadHoldings = useStore((s) => s.loadHoldings)
@@ -31,6 +39,17 @@ export function Holdings() {
   const openAuth = useStore((s) => s.openAuth)
 
   useEffect(() => { if (authed) loadHoldings() }, [authed, loadHoldings])
+
+  // Fetch backend P&L engine data (prev_close-accurate daily P&L, realized, fees).
+  // Refresh whenever holdings change (new transactions recorded).
+  useEffect(() => {
+    if (!authed) return
+    let cancelled = false
+    api.getPortfolioPnl()
+      .then((r) => { if (!cancelled) { setPnlData(r.data); setPnlLoaded(true) } })
+      .catch(() => { if (!cancelled) setPnlLoaded(true) })
+    return () => { cancelled = true }
+  }, [authed, holdings.length])
 
   const connected = settings?.broker_connected ?? false
   const hide = settings?.hide_balances ?? false
@@ -57,11 +76,20 @@ export function Holdings() {
   // Portfolio-level figures only mean something once EVERY position has a live
   // quote — a partial sum would understate value. Until then, show skeletons.
   const allLive = rows.length > 0 && rows.every((r) => r.live)
-  const totalValue = rows.reduce((a, r) => a + r.value, 0)
-  const totalCost = rows.reduce((a, r) => a + r.cost, 0)
+
+  // Use engine totals when available (prev_close-accurate); fall back to
+  // live-quote arithmetic when the engine hasn't loaded yet or has no data.
+  const engineTotals = pnlData?.totals ?? null
+  const totalValue = engineTotals?.market_value ?? rows.reduce((a, r) => a + r.value, 0)
+  const totalCost = engineTotals?.cost_basis ?? rows.reduce((a, r) => a + r.cost, 0)
   const totalGain = totalValue - totalCost
   const totalGainPct = totalCost ? (totalGain / totalCost) * 100 : 0
-  const todayVal = rows.reduce((a, r) => a + (r.value * r.day) / 100, 0)
+  // today: use engine daily_pnl (prev_close-based) when loaded; else day-% approx.
+  const todayVal = pnlLoaded && engineTotals
+    ? engineTotals.daily_pnl
+    : rows.reduce((a, r) => a + (r.value * r.day) / 100, 0)
+  const realizedPnl = engineTotals?.realized_pnl ?? 0
+  const feesPaid = engineTotals?.fees_paid ?? 0
 
   // Allocation grouping helpers
   // Build sector lookup from UNIVERSE
@@ -140,18 +168,28 @@ export function Holdings() {
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {summaryCard('TOTAL VALUE', allLive
-            ? <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(totalValue))}</span>
+            ? <span data-testid="holding-total-value" style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{mask(money(totalValue))}</span>
             : <Skeleton width={120} height={22} />)}
           {summaryCard('COST BASIS', <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx2)' }}>{mask(money(totalCost))}</span>)}
           {summaryCard('TOTAL RETURN', allLive ? (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((totalGain >= 0 ? '+' : '') + money(totalGain))}</span>
+              <span data-testid="holding-total-return" style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((totalGain >= 0 ? '+' : '') + money(totalGain))}</span>
               <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: totalGain >= 0 ? 'var(--up)' : 'var(--down)' }}>{pct(totalGainPct)}</span>
             </div>
           ) : <Skeleton width={140} height={22} />)}
           {summaryCard('TODAY', allLive
-            ? <span style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: todayVal >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((todayVal >= 0 ? '+' : '') + money(todayVal))}</span>
+            ? <span data-testid="holding-today-pnl" style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: todayVal >= 0 ? 'var(--up)' : 'var(--down)' }}>{mask((todayVal >= 0 ? '+' : '') + money(todayVal))}</span>
             : <Skeleton width={100} height={16} />)}
+          {pnlLoaded && realizedPnl !== 0 && summaryCard('REALIZED', (
+            <span data-testid="holding-realized-pnl" style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: realizedPnl >= 0 ? 'var(--up)' : 'var(--down)' }}>
+              {mask((realizedPnl >= 0 ? '+' : '') + money(realizedPnl))}
+            </span>
+          ))}
+          {pnlLoaded && feesPaid > 0 && summaryCard('FEES PAID', (
+            <span data-testid="holding-fees-paid" style={{ fontFamily: FONT_MONO, fontSize: '16px', fontWeight: 600, color: 'var(--tx2)' }}>
+              {mask(money(feesPaid))}
+            </span>
+          ))}
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap' }}>
