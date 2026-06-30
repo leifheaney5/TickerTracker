@@ -483,12 +483,16 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data, fetchedAt } = await api.quotes(all)
       const prev = get().quotes
       const flash: Record<string, 'up' | 'down' | null> = {}
+      // Stamp each quote with the batch fetchedAt so KeyStats can show per-symbol
+      // staleness. All symbols in one poll round share the same value.
+      const stamped: typeof data.quotes = {}
       for (const sym of Object.keys(data.quotes)) {
         const old = prev[sym]?.price
         const now = data.quotes[sym].price
         flash[sym] = old === undefined ? null : now > old ? 'up' : now < old ? 'down' : null
+        stamped[sym] = { ...data.quotes[sym], fetchedAt }
       }
-      set({ quotes: { ...prev, ...data.quotes }, marketStatus: data.market_status, flash, quotesFetchedAt: fetchedAt })
+      set({ quotes: { ...prev, ...stamped }, marketStatus: data.market_status, flash, quotesFetchedAt: fetchedAt })
       // clear flash after the prototype's ~650ms window
       setTimeout(() => set({ flash: {} }), 650)
     } catch {
