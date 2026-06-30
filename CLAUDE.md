@@ -24,9 +24,9 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 | Agent | File | Model | Role | Writes |
 |---|---|---|---|---|
 | `site-maintainer` | `.claude/agents/site-maintainer.md` | sonnet | Bug fixes, features, migrations, cron jobs | code |
-| `security-auditor` | `.claude/agents/security-auditor.md` | sonnet | OWASP, auth, API key hygiene, rate limiting | read-only |
+| `security-auditor` | `.claude/agents/security-auditor.md` | **opus** | OWASP, auth, API key hygiene, rate limiting | read-only |
 | `e2e-engineer` | `.claude/agents/e2e-engineer.md` | sonnet | Playwright authoring, execution, triage | tests |
-| `hf-engineer` | `.claude/agents/hf-engineer.md` | sonnet | UX research, feature specs, accessibility | read-only |
+| `hf-engineer` | `.claude/agents/hf-engineer.md` | **opus** | UX research, feature specs, accessibility | read-only |
 | `performance-engineer` | `.claude/agents/performance-engineer.md` | sonnet | Query perf, Finnhub/YF caching, bundle size | read-only |
 | `database-optimizer` _(optional, not installed)_ | external — VoltAgent `voltagent-data-ai` (see note below) | sonnet | Slow query analysis, indexing, psycopg v3 | code |
 | `code-reviewer` | plugin — `feature-dev:code-reviewer` | sonnet | Logic/correctness/quality review of a diff before e2e | read-only |
@@ -35,7 +35,7 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 
 | Agent | File | Model | Role | Writes |
 |---|---|---|---|---|
-| `marketing-strategist` | `.claude/agents/marketing-strategist.md` | sonnet | Positioning, messaging, brand voice, copy, SEO content strategy | drafts → `docs/marketing/` |
+| `marketing-strategist` | `.claude/agents/marketing-strategist.md` | **opus** | Positioning, messaging, brand voice, copy, SEO content strategy | drafts → `docs/marketing/` |
 | `web-seo-engineer` | `.claude/agents/web-seo-engineer.md` | sonnet | On-page SEO (meta/OG/JSON-LD/sitemap), Core Web Vitals, brand visual assets | code (auto-commit low-risk SEO) |
 | `outreach-coordinator` | `.claude/agents/outreach-coordinator.md` | sonnet | Distribution: Product Hunt/Reddit/HN/X drafts, target lists, launch sequencing | drafts → `docs/outreach/` |
 | `pr-backlink-builder` | `.claude/agents/pr-backlink-builder.md` | sonnet | Earned media + off-page SEO: journalist/newsletter pitches, HARO responses, directory/listicle submissions, guest-post angles, backlink pipeline | drafts → `docs/outreach/pr-backlink/` |
@@ -57,6 +57,14 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 > agent (`voltagent-data-ai`). Install before routing to it:
 > `claude plugin marketplace add VoltAgent/awesome-claude-code-subagents`
 > `claude plugin install voltagent-data-ai`
+>
+> **Model tiering:** `opus` for the judgment-heavy, lower-frequency, high-cost-of-error
+> agents (`security-auditor` threat-modeling, `hf-engineer` UX/WCAG analysis,
+> `marketing-strategist` positioning). `sonnet` for the high-frequency execution tier
+> (`site-maintainer`, `e2e-engineer`, `performance-engineer`, `web-seo-engineer`,
+> `outreach-coordinator`, `pr-backlink-builder`). `site-maintainer` stays `sonnet`
+> deliberately — it's the most-invoked agent and the `code-reviewer` gate now backs
+> it. Dial individual agents up/down in their frontmatter `model:` field.
 
 ---
 
@@ -264,5 +272,12 @@ Each is a dependency-free Node script using shell-free `execFileSync`. To disabl
 **Files changed**: [list or "none"]
 **Findings / Actions**: [bulleted]
 **Follow-up needed**: yes/no + description
-**Recommended next agent**: [name or "none"]
+**Recommended next agent**: [name or "none"]  ← ADVISORY hint only
 ```
+
+> **Routing authority:** the **Orchestration Rules** table above is the single
+> source of truth for who-hands-to-whom. The `Recommended next agent` line each
+> subagent emits is an *advisory hint*, not binding — the orchestrator decides
+> the actual handoff from the Orchestration Rules. When the roster changes, update
+> the Orchestration Rules table; do **not** chase every agent's hint line (they go
+> stale by design and are treated as suggestions).

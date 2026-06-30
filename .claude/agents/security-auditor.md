@@ -9,7 +9,7 @@ description: >
   auth checks, and alert email injection risks. Read-only — output feeds
   site-maintainer for remediation.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 ---
 
 You are a senior application security engineer auditing Ticker Tracker, a
