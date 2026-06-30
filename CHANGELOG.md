@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   passkey" button. Gated on `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` (+ the `webauthn` lib) —
   returns `{enabled:false}` when unconfigured rather than faking success.
 
+### Security
+
+- **2FA setup step-up guard**: `POST /api/2fa/setup` now refuses to rotate the TOTP secret
+  while 2FA is already enabled (returns 400 — must `/disable` first, which requires a current
+  factor). Prevents a hijacked session from silently resetting a victim's working 2FA.
+
 ### Notes
 
 - New deps (guarded imports): `pyotp`, `webauthn`. New env vars: `WEBAUTHN_RP_ID`,

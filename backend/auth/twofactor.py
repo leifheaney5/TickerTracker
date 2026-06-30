@@ -150,6 +150,12 @@ def setup():
         u = s.get(models.User, uid)
         if not u:
             return jsonify({"error": "user not found"}), 404
+        # Step-up guard: do NOT let an already-enrolled user (or a hijacked
+        # session) silently rotate the secret and reset totp_enabled, which would
+        # knock out the victim's working 2FA without proving a current factor.
+        # Re-enrolling requires disabling first (which demands a TOTP/recovery code).
+        if u.totp_enabled:
+            return jsonify({"error": "2FA already enabled — disable it first to re-enroll"}), 400
         secret = generate_totp_secret()
         u.totp_secret = secret   # EncryptedString transparently encrypts at rest
         u.totp_enabled = False   # not yet confirmed; setup call alone does not enable
