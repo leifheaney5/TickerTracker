@@ -207,12 +207,12 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                     ]
                   : Array.from({ length: DEEP_COLS.length - 1 }, (_, i) => <Skeleton key={i} inline width={40} height={12} />)
                 return (
-                  <div key={sym} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, alignItems: 'center', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
+                  <div key={sym} data-testid={`deep-dive-row-${sym}`} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, alignItems: 'center', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 12px', minWidth: 0 }}>
                       <Logo symbol={sym} size={26} />
                       <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--tx)' }}>{sym}</span>
                     </div>
-                    {cells.map((cell, i) => <div key={i} style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{cell}</div>)}
+                    {cells.map((cell, i) => <div key={i} data-testid={i === 0 ? `deep-dive-cell-pe-${sym}` : undefined} style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{cell}</div>)}
                   </div>
                 )
               })}
