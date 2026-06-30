@@ -22,6 +22,7 @@ import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { StarterPicker } from '../components/StarterPicker'
+import { Skeleton } from '../components/Skeleton'
 import { money, pct } from '../lib/format'
 import { api } from '../api/client'
 import type { WatchlistWithItems, WatchlistItemFull } from '../api/types'
@@ -101,6 +102,7 @@ function TickerRow({
   }
 
   const u = UNIVERSE[item.symbol] || ({ name: item.symbol } as typeof UNIVERSE[string])
+  const live = useStore((s) => s.hasQuote(item.symbol))
   const c = chg(item.symbol)
   const up = c >= 0
 
@@ -155,12 +157,12 @@ function TickerRow({
 
       {/* price */}
       <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '13px', color: 'var(--tx)' }}>
-        {money(price(item.symbol))}
+        {live ? money(price(item.symbol)) : <Skeleton inline width={56} height={12} />}
       </div>
 
       {/* 24h % */}
-      <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: up ? 'var(--up)' : 'var(--down)' }}>
-        {pct(c)}
+      <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: live ? (up ? 'var(--up)' : 'var(--down)') : undefined }}>
+        {live ? pct(c) : <Skeleton inline width={40} height={11} />}
       </div>
 
       {/* target */}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO, IDX_COLORS } from '../theme/tokens'
-import { SECTORS, IDX, HM, hmChange, sectorPerf } from '../data/market'
+import { SECTORS, IDX, HM, hmChange, hmExchange, sectorPerf } from '../data/market'
 import { Treemap, heatColor, type TreemapItem } from '../charts/Treemap'
 import { UNIVERSE } from '../data/universe'
 import { api } from '../api/client'
@@ -27,13 +27,16 @@ export function MarketViews({ sub }: { sub: Sub }) {
   const setSelected = useStore((s) => s.setSelected)
   const crypto = useStore((s) => s.crypto)
   const loadCrypto = useStore((s) => s.loadCrypto)
-  const price = useStore((s) => s.price)
+  // Subscribe to quotes directly (not the stable s.price fn ref) so tooltips
+  // re-render when a live quote arrives. Seed/UNIVERSE prices are never shown.
+  const quotes = useStore((s) => s.quotes)
   const [secTf, setSecTf] = useState('1M')
   const [mapW, setMapW] = useState(800)
   const mapRef = useRef<HTMLDivElement | null>(null)
   const [fngFetchedAt, setFngFetchedAt] = useState('')
   const [universe, setUniverse] = useState<Universe>('stocks')
   const [sector, setSector] = useState<string>('All')
+  const [exchange, setExchange] = useState<'All' | 'NASDAQ' | 'NYSE'>('All')
 
   // Load crypto lazily the first time the crypto universe is chosen.
   useEffect(() => { if (universe === 'crypto' && crypto == null) loadCrypto() }, [universe, crypto, loadCrypto])
@@ -69,18 +72,21 @@ export function MarketViews({ sub }: { sub: Sub }) {
 
   // Map items derive from the chosen universe + sector. Stocks come from the
   // synthetic HM set (filterable by sector); crypto from the live CoinGecko feed.
-  const stockItems = (sec: string): TreemapItem[] => {
+  const stockItems = (sec: string, exch: 'All' | 'NASDAQ' | 'NYSE'): TreemapItem[] => {
     const rows = sec === 'All' ? Object.values(HM).flat() : (HM[sec] || [])
-    return rows.map(([sym, cap]) => ({ sym, value: cap, chg: hmChange(sym) }))
+    return rows
+      .filter(([sym]) => exch === 'All' || hmExchange(sym) === exch)
+      .map(([sym, cap]) => ({ sym, value: cap, chg: hmChange(sym) }))
   }
   const cryptoItems: TreemapItem[] = (crypto?.coins || []).map((c) => ({ sym: c.symbol, value: c.market_cap || 1, chg: c.change_pct }))
-  const mapItems: TreemapItem[] = universe === 'stocks' ? stockItems(sector) : cryptoItems
+  const mapItems: TreemapItem[] = universe === 'stocks' ? stockItems(sector, exchange) : cryptoItems
 
   const stockTip = (sym: string) => {
     const name = UNIVERSE[sym]?.name || sym
-    const p = price(sym)
+    // Only surface a price once a real quote has loaded — never the seed value.
+    const p = quotes[sym]?.price
     const chg = hmChange(sym)
-    const priceStr = p ? ` · $${p.toFixed(2)}` : ''
+    const priceStr = p != null ? ` · $${p.toFixed(2)}` : ''
     return `${sym} · ${name}${priceStr} · ${(chg >= 0 ? '+' : '') + chg.toFixed(1)}%`
   }
   const cryptoTip = (sym: string) => {
@@ -127,8 +133,8 @@ export function MarketViews({ sub }: { sub: Sub }) {
           <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12, flex: '0 0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 10, background: 'var(--bg)' }}>
-                <button onClick={() => setUniverse('stocks')} style={subStyle(universe === 'stocks')}>Stocks</button>
-                <button onClick={() => setUniverse('crypto')} style={subStyle(universe === 'crypto')}>Crypto</button>
+                <button data-testid="map-universe-stocks" onClick={() => setUniverse('stocks')} style={subStyle(universe === 'stocks')}>Stocks</button>
+                <button data-testid="map-universe-crypto" onClick={() => setUniverse('crypto')} style={subStyle(universe === 'crypto')}>Crypto</button>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '10.5px', color: 'var(--tx3)', fontFamily: FONT_MONO }}>−3%</span>
@@ -137,9 +143,17 @@ export function MarketViews({ sub }: { sub: Sub }) {
               </div>
             </div>
             {universe === 'stocks' && (
-              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: 2 }}>
+              <div data-testid="map-sector-chips" style={{ display: 'flex', gap: 6, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: 2 }}>
                 {SECTOR_KEYS.map((s) => (
-                  <button key={s} onClick={() => setSector(s)} style={{ ...subStyle(s === sector), flex: '0 0 auto', whiteSpace: 'nowrap' }}>{s === 'All' ? 'All sectors' : s}</button>
+                  <button key={s} data-testid={`map-sector-chip-${s}`} onClick={() => setSector(s)} style={{ ...subStyle(s === sector), flex: '0 0 auto', whiteSpace: 'nowrap' }}>{s === 'All' ? 'All sectors' : s}</button>
+                ))}
+              </div>
+            )}
+            {universe === 'stocks' && (
+              <div data-testid="map-exchange-filter" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '11px', color: 'var(--tx3)', marginRight: 2 }}>Exchange</span>
+                {(['All', 'NASDAQ', 'NYSE'] as const).map((x) => (
+                  <button key={x} data-testid={`map-exchange-${x}`} onClick={() => setExchange(x)} style={{ ...subStyle(x === exchange), flex: '0 0 auto', whiteSpace: 'nowrap' }}>{x === 'All' ? 'All exchanges' : x}</button>
                 ))}
               </div>
             )}
@@ -149,7 +163,7 @@ export function MarketViews({ sub }: { sub: Sub }) {
                   items={mapItems}
                   width={mapW}
                   height={460}
-                  onTileClick={universe === 'stocks' ? (sym) => setSelected(sym) : undefined}
+                  onTileClick={universe === 'stocks' ? (sym) => setSelected(sym) : () => setView('crypto')}
                   tipFor={universe === 'stocks' ? stockTip : cryptoTip}
                 />
               ) : (
@@ -158,7 +172,7 @@ export function MarketViews({ sub }: { sub: Sub }) {
                 </div>
               )}
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>Tile size = market cap · color = daily change{universe === 'stocks' ? ' · click a tile to open it' : ''}</span>
+            <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>Tile size = market cap · color = daily change{universe === 'stocks' ? ' · click a tile to open it' : ' · click to open the Crypto view'}</span>
           </div>
         </>
       )}

@@ -3,7 +3,7 @@ import { useStore } from '../state/store'
 import { FONT_MONO } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
 import { FACTS } from '../data/facts'
-import { fallbackSpark } from '../data/series'
+import { Skeleton } from './Skeleton'
 import { money } from '../lib/format'
 
 // Due-Diligence row — ported from the prototype template (lines 396-447):
@@ -29,7 +29,14 @@ export function DueDiligence() {
   const sector = f?.sector && f.sector !== '—' ? f.sector : u.sector
   const r = ratings[selected]
   const loaded = !!r
+  // Subscribe to quotes so the price-target band re-renders when the quote
+  // arrives (hasQuote is a stable fn ref and wouldn't trigger a re-render).
+  const quote = useStore((s) => s.quotes[selected])
+  const live = quote?.price != null
   const p = price(selected)
+  // The price-target band needs BOTH real analyst targets and a live price; the
+  // marker position and upside are computed from the current quote.
+  const ptReady = loaded && live
 
   // distribution + consensus (from API or zeros while loading)
   const dist = r?.distribution || { strongBuy: 0, buy: 0, hold: 0, sell: 0, strongSell: 0 }
@@ -61,7 +68,6 @@ export function DueDiligence() {
     if (hour === 'amc') return 'After close'
     return '—'
   }
-  void fallbackSpark
 
   const facts = FACTS[selected] || {
     ceo: '—', hq: '—', founded: '—', emp: '—',
@@ -99,17 +105,28 @@ export function DueDiligence() {
         <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 11 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>12-mo price target</span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: upside >= 0 ? 'var(--up)' : 'var(--down)' }}>{(upside >= 0 ? '+' : '') + upside.toFixed(1) + '%'} upside</span>
+            {ptReady
+              ? <span style={{ fontSize: '13px', fontWeight: 700, color: upside >= 0 ? 'var(--up)' : 'var(--down)' }}>{(upside >= 0 ? '+' : '') + upside.toFixed(1) + '%'} upside</span>
+              : <Skeleton inline width={72} height={13} />}
           </div>
-          <div style={{ position: 'relative', height: 6, borderRadius: 3, background: 'rgba(255,255,255,.1)' }}>
-            <div style={{ position: 'absolute', top: -3, bottom: -3, left: `${avgPos}%`, width: 2, background: 'var(--accent)' }} />
-            <div style={{ position: 'absolute', top: '50%', left: `${curPos}%`, transform: 'translate(-50%,-50%)', width: 11, height: 11, borderRadius: '50%', background: '#fff', border: '2px solid var(--card)', zIndex: 2 }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontSize: '11.5px' }}>
-            <span style={{ color: 'var(--tx2)' }}>{money(ptLow)}</span>
-            <span style={{ color: 'var(--accent)', fontWeight: 600 }}>avg {money(ptAvg)}</span>
-            <span style={{ color: 'var(--tx2)' }}>{money(ptHigh)}</span>
-          </div>
+          {ptReady ? (
+            <>
+              <div style={{ position: 'relative', height: 6, borderRadius: 3, background: 'rgba(255,255,255,.1)' }}>
+                <div style={{ position: 'absolute', top: -3, bottom: -3, left: `${avgPos}%`, width: 2, background: 'var(--accent)' }} />
+                <div style={{ position: 'absolute', top: '50%', left: `${curPos}%`, transform: 'translate(-50%,-50%)', width: 11, height: 11, borderRadius: '50%', background: '#fff', border: '2px solid var(--card)', zIndex: 2 }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontSize: '11.5px' }}>
+                <span style={{ color: 'var(--tx2)' }}>{money(ptLow)}</span>
+                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>avg {money(ptAvg)}</span>
+                <span style={{ color: 'var(--tx2)' }}>{money(ptHigh)}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <Skeleton height={6} radius={3} />
+              <Skeleton height={12} />
+            </>
+          )}
         </div>
       </div>
 
