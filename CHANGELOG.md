@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.17.2] — 2026-06-30
+
+> **Discoverable on the open web.** Adds real per-page SEO metadata, a public
+> Fear & Greed page search engines and social cards can surface, and a proper
+> share image — so links to Ticker Tracker render and rank.
+
+### Added
+
+- **Per-page meta injection** (`backend/app.py`): the Flask SPA shell now rewrites
+  `<title>`, meta description, canonical, and Open Graph / Twitter tags per route
+  for `/` (home), `/dashboard`, `/market`, `/crypto`, and `/earnings` — no Node SSR
+  introduced.
+- **Public `/crypto/fear-and-greed` page** (`frontend/src/views/FearAndGreed.tsx`,
+  `backend/app.py`): a standalone, indexable page showing the live crypto Fear &
+  Greed reading with `Dataset` JSON-LD and honest alternative.me attribution; the
+  page title carries the live value (e.g. *"72 (Greed)"*).
+- **1200×630 Open Graph share card** (`frontend/public/brand/og-card.png`): a real
+  rasterized share image (was a 512px square icon); `twitter:card` upgraded to
+  `summary_large_image`.
+- Site-wide `WebSite` + `Organization` JSON-LD; `robots.txt` now disallows `/api/`;
+  `sitemap.xml` covers the public routes.
+
+### Removed
+
+- **`/earnings` SEO surface**: removed the `/earnings` entry from per-page meta and
+  the sitemap. The standalone earnings page was intentionally retired (its data now
+  lives in the per-stock Due Diligence card), so advertising a crawlable URL that
+  redirects to `/dashboard` was incorrect.
+
 ## [1.17.1] — 2026-06-29
 
 > **Pulse, in plain language.** Makes the Pulse dial self-explanatory at a glance
