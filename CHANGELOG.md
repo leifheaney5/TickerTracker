@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.5] — 2026-06-30
+
+### Added
+
+- **F4 — Market-status pill + quote-age on StockHeader** (`StockHeader.tsx`): The 32px
+  price now renders inside an `aria-live="polite" aria-atomic="true"` region so screen
+  readers announce price updates on each poll cycle (WCAG A7). A market-status pill
+  (OPEN / PRE-MARKET / AFTER-HOURS / CLOSED) appears inline near the price — sourced
+  from the real backend `get_market_status()` computation (US Eastern time, via
+  `pollQuotes → /api/quotes`), conveyed via text + color to satisfy WCAG 1.4.1. An
+  "as of HH:MM" freshness label also renders whenever `quotesFetchedAt` is set. The
+  pill is hidden (null config) while status is still `'Unknown'` (pre-first-poll).
+  Known limitation: market holidays are not accounted for — the backend has no holiday
+  calendar, so the pill shows OPEN on NYSE holidays.
+
+- **F13 — Per-symbol `fetchedAt` on Quote objects** (`types.ts`, `store.ts`,
+  `KeyStats.tsx`): Each `Quote` entry in the store is stamped with the batch
+  `fetchedAt` timestamp from the poll round that produced it. `KeyStats` now reads
+  `q.fetchedAt` (falling back to the global `quotesFetchedAt`) so the staleness label
+  is accurate per-symbol if polling behavior ever diverges across symbols. All symbols
+  in a single `pollQuotes` batch share the same timestamp (honest — they are fetched
+  together).
+
+### Changed
+
+- **F16 — Holdings broker copy** (`Holdings.tsx`): "synced from {broker}" changed to
+  "via {broker}" — the holdings API returns no sync timestamp, so the previous wording
+  falsely implied a known recency. No time is invented or hardcoded.
+
+## [1.18.4] — 2026-06-30
+
+### Fixed
+
+- **P1 data-integrity: Strategy KPI cards were hardcoded fiction** (`Strategy.tsx`): The KPI
+  banner (Sharpe ratio, Max Drawdown, Win Rate, Risk/Reward, Trend Strength) and the
+  algo-health sidebar (Circuit Breakers, System Health, Execution Quality) displayed static
+  seed numbers alongside a live positions table, giving users the false impression these were
+  real metrics. No algo backend or portfolio-performance endpoint exists in the store or API.
+  All fabricated values replaced with `—`. Page subtitle updated to "Portfolio overview —
+  positions use live prices; algo metrics require a connected trading backend." A "Simulated
+  metrics" disclosure note added below the KPI group and inside the Execution Quality card.
+
+- **P1 data-integrity: Market Overview index cards and sector bars showed seed data as live**
+  (`MarketViews.tsx`): Index cards (SPX, NDX, DJI, RUT, VIX) and sector performance bars
+  in the Overview and Sectors sub-tabs rendered static values from `market.ts` (hardcoded
+  numbers and a `hashStr`-based fake `sectorPerf()`) with no indication they were not live.
+  No real-time index or sector endpoint exists in the API or store. All prices, change
+  percentages, bar fills, and heatmap cells replaced with `—`/empty bars. A "Simulated
+  data — live market index quotes coming soon" disclosure note added after the index card
+  group and within each sector section. Removed unused `sectorPerf` and `heatColor` imports.
+
+## [1.18.3] — 2026-06-29
+
+### Fixed
+
+- **P0 data-integrity: Deep Dive fabricated ratios** (`AtAGlance.tsx`): The Fundamentals
+  sub-tab was computing P/S, P/B, PEG, EBITDA, FCF Yield, ROIC, Gross Margin, and
+  Net Debt/EBITDA by ad-hoc arithmetic on unrelated fields (`beta`, `market_cap`,
+  `dividend_yield`, `pe`), presenting invented numbers as real financial ratios. All eight
+  fabricated columns now render `—` (the project-standard "no data" state). P/E remains,
+  as it is a genuine backend field. A disclosure note — "Extended ratios require a premium
+  data feed — coming soon." — is shown in the table footer.
+
+- **P0 UX: Alert direction had no UI control** (`ManageWatchlist.tsx`): The watchlist
+  alert section had an `alert_price` input and an ON/OFF toggle, but no way to set
+  `alert_dir` (above/below). Users could only create stop-loss/downside alerts by editing
+  the DB directly. Added an accessible "↑ Above / ↓ Below" segmented control using
+  `<button>` elements with `aria-pressed` and `data-testid` attributes. Direction is
+  persisted immediately via the existing `updateListWatch` optimistic update path. The
+  Alerts view already reads `alert_dir` correctly and required no change.
+
 ## [1.18.2] — 2026-06-30
 
 > **Market Map drill-down perf.** Three targeted fixes eliminate redundant O(n log n)
