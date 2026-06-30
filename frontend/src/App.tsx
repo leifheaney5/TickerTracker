@@ -13,6 +13,7 @@ import { AtAGlance } from './views/AtAGlance'
 import { Crypto } from './views/Crypto'
 import { MarketViews } from './views/MarketViews'
 import { ManageWatchlist } from './views/ManageWatchlist'
+import { FearAndGreed } from './views/FearAndGreed'
 import { Footer } from './components/Footer'
 import { UpgradePrompt } from './components/UpgradePrompt'
 
@@ -127,6 +128,7 @@ export default function App() {
       {view === 'overview' && <AtAGlance initialSub="overview" />}
       {view === 'deep' && <AtAGlance initialSub="deep" />}
       {view === 'crypto' && <Crypto />}
+      {view === 'feargreed' && <FearAndGreed />}
       {view === 'market' && <MarketViews sub="market" />}
       {view === 'map' && <MarketViews sub="map" />}
       {view === 'sectors' && <MarketViews sub="sectors" />}
