@@ -166,6 +166,34 @@ def test_setup_and_verify_enables_2fa(monkeypatch):
     assert r.get_json()["enabled"] is True
 
 
+def test_setup_refused_when_already_enabled(monkeypatch):
+    """Step-up guard: /setup must not rotate the secret / reset enabled once 2FA
+    is active — that would let a hijacked session knock out working 2FA without
+    proving a current factor. Re-enrolling requires /disable first."""
+    import auth.routes as routes
+    monkeypatch.setattr(routes, "send_verify_email", lambda *a, **kw: True)
+    c = _make_client()
+    c.post("/api/auth/signup", json={"email": "reen2fa@x.com", "password": "password123"})
+    import db, models
+    with db.get_session() as s:
+        u = s.query(models.User).filter_by(email="reen2fa@x.com").first()
+        u.email_verified = True
+        s.commit()
+    c.post("/api/auth/login", json={"email": "reen2fa@x.com", "password": "password123"})
+
+    secret = c.post("/api/2fa/setup").get_json()["secret"]
+    c.post("/api/2fa/verify", json={"code": pyotp.TOTP(secret).now()})
+
+    # Second /setup while enabled must be refused, and state must be untouched.
+    r = c.post("/api/2fa/setup")
+    assert r.status_code == 400
+    with db.get_session() as s:
+        u = s.query(models.User).filter_by(email="reen2fa@x.com").first()
+        assert u.totp_enabled is True
+        assert u.totp_secret == secret  # secret was NOT rotated
+    assert c.get("/api/2fa/status").get_json()["enabled"] is True
+
+
 def test_verify_bad_code_rejected(monkeypatch):
     import auth.routes as routes
     monkeypatch.setattr(routes, "send_verify_email", lambda *a, **kw: True)
