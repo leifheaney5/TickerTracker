@@ -174,4 +174,52 @@ test.describe('Market Map (/map)', () => {
     // Accurate-numbers rule: with quotes mocked empty, no seed price is shown.
     await expect(tooltip).not.toContainText('$')
   })
+
+  // ── Hover tooltip with mocked quote (regression for React.memo + lazy getState) ──
+  // stockTip now reads the price lazily via useStore.getState().quotes[sym]?.price
+  // at hover time instead of subscribing. This verifies that the lazy read still
+  // surfaces the price after the memo boundary was added to Treemap.
+  test('hovering a stock tile shows $-formatted price in tooltip when quote is loaded', async ({ page }) => {
+    // Override the beforeEach empty-quotes mock. Playwright evaluates routes
+    // LIFO so this handler, registered after beforeEach, wins for this test.
+    await page.route('**/api/quotes**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: envelope({
+          quotes: {
+            AAPL: {
+              price: 182.34,
+              change_pct: 0.68,
+              day_open: 181.50,
+              day_high: 184.10,
+              day_low: 181.20,
+              prev_close: 181.11,
+              volume: 52341000,
+            },
+          },
+          market_status: 'Closed',
+        }),
+      })
+    )
+
+    // Capture the quotes network response before navigating so we can await it
+    // after goto — guarantees the store has the quote before we hover.
+    const quotesResponseP = page.waitForResponse('**/api/quotes**')
+
+    const map = new MapPage(page)
+    await map.goto()
+
+    // Ensure pollQuotes has completed and the store has been updated.
+    await quotesResponseP
+
+    await expect(map.tile('AAPL')).toBeVisible()
+    await map.tile('AAPL').hover()
+
+    const tooltip = page.locator('[data-treemap-tip]')
+    await expect(tooltip).toBeVisible()
+    await expect(tooltip).toContainText('AAPL')
+    // stockTip lazy-reads getState().quotes[sym]?.price — assert format, not value.
+    await expect(tooltip).toContainText(/\$\d[\d,]*\.\d{2}/)
+  })
 })
