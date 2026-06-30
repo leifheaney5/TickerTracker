@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.6] — 2026-06-30
+
+> **Mobile nav parity + Alerts empty-state CTA.** Closes two IA findings from the
+> hf-engineer deepscan: mobile hamburger now reaches the same mounted views as
+> desktop, and the Alerts empty state gives authenticated users a direct path to
+> set their first alert.
+
+### Added
+
+- **Alerts in mobile hamburger** (F6): the hamburger menu now includes an "Alerts"
+  entry when the user is signed in, matching the mounted view set available on
+  desktop. `data-testid="mobile-nav-alerts"` added for e2e targeting.
+- **Alerts empty-state CTA** (F7): authenticated users with no alerts now see a
+  "Manage watchlist" button (`data-testid="alerts-empty-cta"`) that navigates
+  directly to the Manage Watchlist view where alert price targets are configured.
+  Previously the empty state was a dead-end text message.
+
+### Changed
+
+- **Mobile current-view label** now correctly displays "Alerts" and "Portfolio"
+  when those views are active (previously fell back to "Ticker Tracker").
+
 ## [1.18.5] — 2026-06-30
 
 ### Added
