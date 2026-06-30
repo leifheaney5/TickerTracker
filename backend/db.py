@@ -97,6 +97,25 @@ def _ensure_columns(conn) -> None:
             conn.execute(text(
                 "ALTER TABLE watchlist_items ADD COLUMN coin_name VARCHAR DEFAULT ''"
             ))
+        if "vol_spike_pct" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN vol_spike_pct REAL"
+            ))
+        if "earnings_days" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN earnings_days INTEGER"
+            ))
+        # alert_log.alert_kind — added in gg01_alert_depth migration.
+        tables = {r[0] for r in conn.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )).fetchall()}
+        if "alert_log" in tables:
+            rows_al = conn.execute(text("PRAGMA table_info(alert_log)")).fetchall()
+            existing_al = {r[1] for r in rows_al}
+            if "alert_kind" not in existing_al:
+                conn.execute(text(
+                    "ALTER TABLE alert_log ADD COLUMN alert_kind VARCHAR DEFAULT 'price'"
+                ))
         # settings.share_token — added in bb01_share_token migration.
         # Guard: only run if the settings table exists (bare-engine tests
         # may only have watchlist_items).
@@ -145,6 +164,18 @@ def _ensure_columns(conn) -> None:
         conn.execute(text(
             "ALTER TABLE watchlist_items "
             "ADD COLUMN IF NOT EXISTS coin_name VARCHAR DEFAULT ''"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS vol_spike_pct REAL"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS earnings_days INTEGER"
+        ))
+        conn.execute(text(
+            "ALTER TABLE alert_log "
+            "ADD COLUMN IF NOT EXISTS alert_kind VARCHAR DEFAULT 'price'"
         ))
         conn.execute(text(
             "ALTER TABLE settings "

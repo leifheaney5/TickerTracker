@@ -2,6 +2,7 @@ import { useStore, isAuthed } from '../state/store'
 import { FONT_SANS } from '../theme/tokens'
 import { Toggle } from '../components/Toggle'
 import { api } from '../api/client'
+import { usePushSubscription } from '../hooks/usePushSubscription'
 
 // Settings view — ported from the prototype template (lines 1184-1272): profile
 // header, account details, connected accounts (brokerage connect/disconnect),
@@ -44,6 +45,9 @@ export function Settings() {
       <Toggle on={!!settings[key]} onClick={() => updateSettings({ [key]: !settings[key] } as Partial<typeof settings>)} />
     </div>
   )
+
+  const { isSubscribed, isSupported, permissionState, toggle: togglePush, busy: pushBusy } =
+    usePushSubscription()
 
   const startCheckout = async (interval: 'monthly' | 'annual') => {
     try {
@@ -163,6 +167,32 @@ export function Settings() {
                 <button onClick={() => openUpgrade('digest', 'The weekly market digest is a Pro feature.')} style={{ height: 32, padding: '0 13px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Upgrade</button>
               </div>
             )}
+
+          {/* Web push notifications */}
+          <div style={row}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--tx)' }}>Browser push notifications</span>
+              <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>
+                {!isSupported
+                  ? 'Not supported in this browser'
+                  : permissionState === 'denied'
+                    ? 'Permission denied — allow notifications in browser settings'
+                    : 'Get instant alerts in your browser when price targets are hit'}
+              </span>
+            </div>
+            {isSupported && permissionState !== 'denied' ? (
+              <div
+                data-testid="push-notif-toggle"
+                style={{ opacity: pushBusy ? 0.5 : 1, pointerEvents: pushBusy ? 'none' : 'auto' }}
+              >
+                <Toggle on={isSubscribed} onClick={togglePush} />
+              </div>
+            ) : (
+              <span style={{ fontSize: '11.5px', color: 'var(--tx3)', fontStyle: 'italic' }}>
+                {!isSupported ? 'Unavailable' : 'Blocked'}
+              </span>
+            )}
+          </div>
         </div>
 
         <div style={{ ...card, padding: '6px 22px 14px' }}>

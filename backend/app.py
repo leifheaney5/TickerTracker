@@ -662,6 +662,61 @@ def stripe_webhook():
     return jsonify({"received": True}), 200
 
 
+# ─── Web Push ────────────────────────────────────────────────────────────────
+# VAPID public key exposure + subscription upsert / removal.
+# Delivery is handled inside check_alerts via providers.webpush.
+
+@app.route("/api/push/vapid-public-key", methods=["GET"])
+def push_vapid_key():
+    key = os.environ.get("VAPID_PUBLIC_KEY") or None
+    return jsonify({"key": key})
+
+
+@app.route("/api/push/subscribe", methods=["POST"])
+def push_subscribe():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    endpoint = (b.get("endpoint") or "").strip()
+    keys = b.get("keys") or {}
+    p256dh = (keys.get("p256dh") or "").strip()
+    auth_key = (keys.get("auth") or "").strip()
+    if not endpoint or not p256dh or not auth_key:
+        return envelope({"error": "endpoint, keys.p256dh, and keys.auth are required"}), 400
+    import db as _db_mod, models as _models
+    with _db_mod.get_session() as s:
+        existing = s.query(_models.PushSubscription).filter_by(endpoint=endpoint).first()
+        if existing:
+            existing.user_id = uid
+            existing.p256dh = p256dh
+            existing.auth = auth_key
+        else:
+            s.add(_models.PushSubscription(
+                user_id=uid, endpoint=endpoint, p256dh=p256dh, auth=auth_key,
+            ))
+        s.commit()
+    return envelope({"subscribed": True}, source="db")
+
+
+@app.route("/api/push/unsubscribe", methods=["POST"])
+def push_unsubscribe():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    endpoint = (b.get("endpoint") or "").strip()
+    if not endpoint:
+        return envelope({"error": "endpoint is required"}), 400
+    import db as _db_mod, models as _models
+    with _db_mod.get_session() as s:
+        s.query(_models.PushSubscription).filter_by(
+            user_id=uid, endpoint=endpoint
+        ).delete()
+        s.commit()
+    return envelope({"unsubscribed": True}, source="db")
+
+
 # ─── SPA fallback ────────────────────────────────────────────────────────────
 # Serve the built index.html for any non-API path so client-side state-driven
 # navigation works on hard refresh. Unknown /api/* paths still 404 as JSON.
