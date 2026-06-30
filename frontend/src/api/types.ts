@@ -13,6 +13,10 @@ export interface Quote {
   day_low: number
   prev_close: number
   volume: number
+  // Populated client-side in pollQuotes with the batch fetchedAt timestamp so
+  // KeyStats can show per-symbol staleness even if global quotesFetchedAt drifts.
+  // All symbols in one poll batch share the same value (same fetch round-trip).
+  fetchedAt?: string
 }
 
 export interface QuotesResponse {

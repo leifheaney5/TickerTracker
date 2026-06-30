@@ -24,14 +24,22 @@
     <meta property="og:title" content="Ticker Tracker — See what changed. Understand what it means." />
     <meta property="og:description" content="One dark dashboard for the stocks and crypto you care about. Pulse turns momentum, trend, analyst, and news-headline signals into a single transparent score — with the math in plain sight. Not advice." />
     <meta property="og:url" content="https://tickertracker.info/" />
-    <!-- TODO(brand): swap og:image to a rasterized 1200x630 PNG of frontend/public/brand/og-card.svg
-         (Twitter/X won't render SVG OG images). Until then, point at the working square icon. -->
-    <meta property="og:image" content="https://tickertracker.info/icon-512.png" />
+    <meta property="og:image" content="https://tickertracker.info/brand/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Ticker Tracker — Pulse: one honest score for every ticker you watch" />
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Ticker Tracker — one honest score per ticker" />
     <meta name="twitter:description" content="Stocks + crypto in one dark dashboard. Pulse: a transparent 0–100 signal score you can see the math behind. Signal, not noise." />
-    <meta name="twitter:image" content="https://tickertracker.info/icon-512.png" />
+    <meta name="twitter:image" content="https://tickertracker.info/brand/og-card.png" />
+    <!-- Structured data: WebSite + Organization (site-wide) -->
+    <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"WebSite","name":"Ticker Tracker","url":"https://tickertracker.info"}
+    </script>
+    <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"Organization","name":"Ticker Tracker","url":"https://tickertracker.info","logo":{"@type":"ImageObject","url":"https://tickertracker.info/icon-512.png"}}
+    </script>
   </head>
   <body>
     <div id="root"></div>
