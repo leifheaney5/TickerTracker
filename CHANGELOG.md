@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.3] — 2026-06-30
+
+### Added
+
+- **F4 — Market-status pill + quote-age on StockHeader** (`StockHeader.tsx`): The 32px
+  price now renders inside an `aria-live="polite" aria-atomic="true"` region so screen
+  readers announce price updates on each poll cycle (WCAG A7). A market-status pill
+  (OPEN / PRE-MARKET / AFTER-HOURS / CLOSED) appears inline near the price — sourced
+  from the real backend `get_market_status()` computation (US Eastern time, via
+  `pollQuotes → /api/quotes`), conveyed via text + color to satisfy WCAG 1.4.1. An
+  "as of HH:MM" freshness label also renders whenever `quotesFetchedAt` is set. The
+  pill is hidden (null config) while status is still `'Unknown'` (pre-first-poll).
+  Known limitation: market holidays are not accounted for — the backend has no holiday
+  calendar, so the pill shows OPEN on NYSE holidays.
+
+- **F13 — Per-symbol `fetchedAt` on Quote objects** (`types.ts`, `store.ts`,
+  `KeyStats.tsx`): Each `Quote` entry in the store is stamped with the batch
+  `fetchedAt` timestamp from the poll round that produced it. `KeyStats` now reads
+  `q.fetchedAt` (falling back to the global `quotesFetchedAt`) so the staleness label
+  is accurate per-symbol if polling behavior ever diverges across symbols. All symbols
+  in a single `pollQuotes` batch share the same timestamp (honest — they are fetched
+  together).
+
+### Changed
+
+- **F16 — Holdings broker copy** (`Holdings.tsx`): "synced from {broker}" changed to
+  "via {broker}" — the holdings API returns no sync timestamp, so the previous wording
+  falsely implied a known recency. No time is invented or hardcoded.
+
 ## [1.18.2] — 2026-06-30
 
 ### Fixed
