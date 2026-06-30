@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useStore } from '../state/store'
 import type { AuthUser } from '../api/types'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 type Mode = 'login' | 'signup' | 'forgot' | 'reset' | 'totp'
 
@@ -39,6 +40,9 @@ export function AuthScreen() {
   // Detect reset_token in URL to force open modal in reset mode
   const params = new URLSearchParams(window.location.search)
   const resetToken = params.get('reset_token') ?? ''
+
+  const isOpen = !!authModal || !!resetToken
+  const modalRef = useFocusTrap(isOpen, closeAuth)
 
   const [mode, setMode] = useState<Mode>(resetToken ? 'reset' : 'login')
   const [email, setEmail] = useState('')
@@ -228,8 +232,12 @@ export function AuthScreen() {
             <input style={inputStyle()} type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
         </div>
-        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
-        <button type="submit" style={primaryBtn} disabled={loading}>
+        {error && (
+          <span id="auth-form-error" role="alert" aria-live="assertive" style={{ fontSize: '12.5px', color: 'var(--down)' }}>
+            {error}
+          </span>
+        )}
+        <button type="submit" aria-describedby={error ? 'auth-form-error' : undefined} style={primaryBtn} disabled={loading}>
           {loading ? 'Logging in…' : 'Log in'}
         </button>
         {hasOAuth && <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>}
@@ -284,8 +292,12 @@ export function AuthScreen() {
             <input style={inputStyle()} type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
         </div>
-        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
-        <button type="submit" style={primaryBtn} disabled={loading}>
+        {error && (
+          <span id="auth-form-error" role="alert" aria-live="assertive" style={{ fontSize: '12.5px', color: 'var(--down)' }}>
+            {error}
+          </span>
+        )}
+        <button type="submit" aria-describedby={error ? 'auth-form-error' : undefined} style={primaryBtn} disabled={loading}>
           {loading ? 'Creating account…' : 'Create account'}
         </button>
         {hasOAuth && <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>}
@@ -326,8 +338,12 @@ export function AuthScreen() {
           <span style={labelStyle()}>EMAIL</span>
           <input style={inputStyle()} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoFocus />
         </div>
-        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
-        <button type="submit" style={primaryBtn} disabled={loading}>
+        {error && (
+          <span id="auth-form-error" role="alert" aria-live="assertive" style={{ fontSize: '12.5px', color: 'var(--down)' }}>
+            {error}
+          </span>
+        )}
+        <button type="submit" aria-describedby={error ? 'auth-form-error' : undefined} style={primaryBtn} disabled={loading}>
           {loading ? 'Sending…' : 'Send reset link'}
         </button>
         <div style={{ fontSize: '12.5px', color: 'var(--tx3)', textAlign: 'center' }}>
@@ -356,8 +372,12 @@ export function AuthScreen() {
           <span style={labelStyle()}>NEW PASSWORD</span>
           <input style={inputStyle()} type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoFocus />
         </div>
-        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
-        <button type="submit" style={primaryBtn} disabled={loading}>
+        {error && (
+          <span id="auth-form-error" role="alert" aria-live="assertive" style={{ fontSize: '12.5px', color: 'var(--down)' }}>
+            {error}
+          </span>
+        )}
+        <button type="submit" aria-describedby={error ? 'auth-form-error' : undefined} style={primaryBtn} disabled={loading}>
           {loading ? 'Saving…' : 'Set new password'}
         </button>
       </form>
@@ -429,8 +449,15 @@ export function AuthScreen() {
   }
 
   return (
-    <div style={overlay} onClick={e => { if (e.target === e.currentTarget) closeAuth() }}>
-      <div style={modal}>
+    <div style={overlay} onClick={e => { if (e.target === e.currentTarget) closeAuth() }} aria-hidden="false">
+      {/* A2: focus trap ref; A3: dialog semantics */}
+      <div
+        ref={modalRef}
+        style={modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-title"
+      >
         {/* Close button */}
         <button
           onClick={closeAuth}
@@ -447,11 +474,14 @@ export function AuthScreen() {
           ×
         </button>
 
-        {/* Header */}
+        {/* Header — id referenced by aria-labelledby */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}>
+          <h2
+            id="auth-title"
+            style={{ margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-.02em', color: 'var(--tx)' }}
+          >
             {titles[mode]}
-          </span>
+          </h2>
           <span style={{ fontSize: '13px', color: 'var(--tx2)' }}>{subtitles[mode]}</span>
         </div>
 
