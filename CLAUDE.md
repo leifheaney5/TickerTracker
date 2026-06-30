@@ -238,6 +238,7 @@ worktrees). Scripts live in `.claude/hooks/` (Node, no external deps):
 | `frontend-provider-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** adding a Finnhub/Yahoo/CoinGecko host to a `frontend/**` source file (data must flow backend→cache→frontend). Skips test/mock files. |
 | `migration-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** editing an already-committed Flask-Migrate revision in `migrations/versions/`. New (untracked) migrations pass. |
 | `protect-main.js` | `PreToolUse` `Bash` | **Blocks** direct push to `main` (incl. `HEAD:main`, `--force`, bare push on `main`). Feature-branch pushes pass. |
+| `worktree-switch-guard.js` | `PreToolUse` `Bash` | **Blocks** branch switches (`git checkout <branch>`, `git switch`, `checkout -b`) in the **primary** checkout — they yank HEAD from under concurrent sessions. Branch switches inside linked worktrees and file-level `checkout -- <path>` pass. Steers branch work into `git worktree add`. |
 | `dangerous-bash-guard.js` | `PreToolUse` `Bash` | **Blocks** clearly destructive ops: broad `rm -rf`, `flask db downgrade`, SQL `DROP`/`TRUNCATE`, `railway down`/delete. |
 | `commit-confidence.js` | `PreToolUse` `Bash` | **Blocks** `git commit` unless the message has a `Confidence: <0-100>/100` trailer — forces a stated confidence score (and one-line justification to the user) before every commit. |
 | `oxlint-fix.js` | `PostToolUse` `Write`/`Edit` | Best-effort `oxlint --fix` (safe fixes) on edited `frontend/**` JS/TS. Never blocks. |
