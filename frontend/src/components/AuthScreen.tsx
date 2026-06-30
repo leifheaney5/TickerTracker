@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 
-type Mode = 'login' | 'signup' | 'forgot' | 'reset'
+type Mode = 'login' | 'signup' | 'forgot' | 'reset' | 'totp'
 
 interface Providers {
   google: boolean
@@ -49,6 +49,11 @@ export function AuthScreen() {
   const [done, setDone] = useState(false) // success state for signup/forgot/reset
   const [providers, setProviders] = useState<Providers>({ google: false, apple: false })
 
+  // TOTP challenge state (populated when login returns two_factor_required)
+  const [totpPendingToken, setTotpPendingToken] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [totpUseRecovery, setTotpUseRecovery] = useState(false)
+
   // Fetch which OAuth providers are configured (once on mount).
   useEffect(() => {
     fetch('/api/auth/providers', { credentials: 'include' })
@@ -83,6 +88,7 @@ export function AuthScreen() {
   function clearState() {
     setEmail(''); setPassword(''); setName(''); setNewPassword('')
     setError(''); setDone(false); setLoading(false)
+    setTotpPendingToken(''); setTotpCode(''); setTotpUseRecovery(false)
   }
 
   function switchMode(m: Mode) {
@@ -95,8 +101,42 @@ export function AuthScreen() {
     setLoading(true); setError('')
     const res = await login(email, password)
     setLoading(false)
-    if (res.ok) { closeAuth() }
-    else setError(res.error ?? 'Login failed.')
+    if (res.ok) { closeAuth(); return }
+    if (res.twoFactor && res.token) {
+      setTotpPendingToken(res.token)
+      setMode('totp')
+      return
+    }
+    setError(res.error ?? 'Login failed.')
+  }
+
+  async function handleTotpSubmit() {
+    if (!totpCode) { setError('Please enter your code.'); return }
+    setLoading(true); setError('')
+    try {
+      const r = await fetch('/api/auth/2fa', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: totpPendingToken, code: totpCode }),
+      })
+      const j = await r.json().catch(() => ({}))
+      setLoading(false)
+      if (!r.ok) { setError((j as { error?: string }).error ?? 'Invalid code.'); return }
+      const user = (j as { user?: unknown }).user
+      if (user) {
+        // Sync user into store + reload personal data
+        useStore.setState({ currentUser: user as Parameters<typeof useStore.setState>[0]['currentUser'] })
+        const s = useStore.getState()
+        await Promise.all([s.loadWatchlist(), s.loadWatchlists(), s.loadSettings(), s.loadHoldings(), s.loadBilling()])
+        closeAuth()
+      } else {
+        setError('Login failed.')
+      }
+    } catch {
+      setLoading(false)
+      setError('Network error.')
+    }
   }
 
   async function handleSignup() {
@@ -323,11 +363,60 @@ export function AuthScreen() {
     )
   }
 
+  function renderTotp() {
+    return (
+      <div data-testid="totp-challenge" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <span style={labelStyle()}>{totpUseRecovery ? 'RECOVERY CODE' : 'AUTHENTICATOR CODE'}</span>
+          <input
+            data-testid="totp-code-input"
+            style={{
+              ...inputStyle(),
+              letterSpacing: totpUseRecovery ? '.05em' : '.2em',
+              textAlign: 'center',
+              fontSize: '16px',
+            }}
+            type="text"
+            inputMode={totpUseRecovery ? 'text' : 'numeric'}
+            maxLength={totpUseRecovery ? 14 : 6}
+            autoComplete="one-time-code"
+            placeholder={totpUseRecovery ? 'XXXX-XXXX-XXXX' : '000000'}
+            value={totpCode}
+            onChange={e => setTotpCode(e.target.value.toUpperCase())}
+            autoFocus
+          />
+        </div>
+        {error && <span style={{ fontSize: '12.5px', color: 'var(--down)' }}>{error}</span>}
+        <button
+          data-testid="totp-submit"
+          style={primaryBtn}
+          disabled={loading}
+          onClick={handleTotpSubmit}
+        >
+          {loading ? 'Verifying…' : 'Continue'}
+        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+          <button
+            type="button"
+            style={ghostBtn}
+            onClick={() => { setTotpUseRecovery(!totpUseRecovery); setTotpCode(''); setError('') }}
+          >
+            {totpUseRecovery ? 'Use authenticator app instead' : 'Use a recovery code instead'}
+          </button>
+          <button type="button" style={{ ...ghostBtn, color: 'var(--tx3)' }} onClick={() => switchMode('login')}>
+            Back to log in
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const titles: Record<Mode, string> = {
     login: 'Welcome back',
     signup: 'Create your account',
     forgot: 'Reset password',
     reset: 'Set new password',
+    totp: 'Two-factor authentication',
   }
 
   const subtitles: Record<Mode, string> = {
@@ -335,6 +424,7 @@ export function AuthScreen() {
     signup: 'Start tracking your portfolio',
     forgot: 'Enter your email and we\'ll send a reset link',
     reset: 'Choose a strong new password',
+    totp: 'Enter the code from your authenticator app',
   }
 
   return (
@@ -368,6 +458,7 @@ export function AuthScreen() {
         {mode === 'signup' && renderSignup()}
         {mode === 'forgot' && renderForgot()}
         {mode === 'reset' && renderReset()}
+        {mode === 'totp' && renderTotp()}
       </div>
     </div>
   )

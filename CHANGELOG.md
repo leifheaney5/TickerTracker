@@ -10,6 +10,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
 > engagement, and security. Batch A below; subsequent batches follow.
 
+## [1.25.0] — 2026-06-30
+
+> **Platform expansion — Batch E2: TOTP 2FA + passkey entrypoint.** Optional
+> time-based two-factor auth with recovery codes, and a feature-gated WebAuthn scaffold.
+
+### Added
+
+- **TOTP two-factor authentication** (`backend/auth/twofactor.py`): enroll
+  (`POST /api/2fa/setup` → secret + `otpauth://` URI), confirm (`POST /api/2fa/verify` →
+  enables 2FA, returns one-time **recovery codes**), `disable`, and `status` endpoints. The
+  TOTP secret is stored **encrypted at rest** (reuses Batch E1's `EncryptedString`); recovery
+  codes are Argon2-hashed and single-use. Login now returns a `two_factor_required` challenge
+  with a 5-minute `itsdangerous` token, exchanged at `POST /api/auth/2fa` for the session
+  (TOTP code **or** a recovery code). **Users without 2FA are unaffected** — the existing login
+  path is unchanged (covered by `test_login_no_2fa_path_unchanged`).
+- **Frontend 2FA**: a Security section in Settings (QR enrolment via the `qrcode` dep,
+  verify, recovery-code display, disable) and a TOTP challenge step in `AuthScreen`.
+- **WebAuthn / passkey entrypoint** (`backend/auth/webauthn_auth.py`): real but feature-gated
+  register/auth begin+complete endpoints + `WebAuthnCredential` model + a Settings "Add a
+  passkey" button. Gated on `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` (+ the `webauthn` lib) —
+  returns `{enabled:false}` when unconfigured rather than faking success.
+
+### Notes
+
+- New deps (guarded imports): `pyotp`, `webauthn`. New env vars: `WEBAUTHN_RP_ID`,
+  `WEBAUTHN_RP_NAME`, `WEBAUTHN_ORIGIN`. Migration `ii01_2fa_webauthn` (totp columns +
+  `recovery_codes` + `webauthn_credentials`); new columns are nullable/defaulted.
+
 ## [1.24.0] — 2026-06-30
 
 > **Platform expansion — Batch E1: field encryption + Apple Sign In.** AES-256-GCM

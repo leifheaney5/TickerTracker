@@ -8,6 +8,13 @@ from auth.passwords import hash_password, verify_password, valid_password
 from auth.tokens import create_token, consume_token
 from auth.rate_limit import record_attempt, is_locked
 from providers.email import send_verify_email, send_reset_email
+from auth.twofactor import (
+    create_pending_token,
+    consume_pending_token,
+    verify_totp,
+    verify_and_consume_recovery_code,
+    is_available as totp_available,
+)
 
 _DUMMY_HASH = hash_password("x" * 12)
 
@@ -85,6 +92,13 @@ def login():
             return jsonify({"error": "invalid email or password"}), 401
         if not u.email_verified:
             return jsonify({"error": "please verify your email first"}), 403
+        # ── TOTP 2FA gate ────────────────────────────────────────────────────
+        # If the user has 2FA enabled, do NOT log them in yet. Issue a
+        # short-lived signed token that the client must exchange via /api/auth/2fa.
+        if getattr(u, "totp_enabled", False):
+            token = create_pending_token(u.id)
+            return jsonify({"two_factor_required": True, "token": token}), 200
+        # ── Normal login (2FA not enabled) ───────────────────────────────────
         login_user(u)
         return jsonify({"user": _public_user(u)}), 200
 
@@ -133,6 +147,45 @@ def reset():
         u.email_verified = True  # proves email ownership
         s.commit()
     return jsonify({"message": "password updated"}), 200
+
+
+@auth_bp.post("/2fa")
+def two_factor_login():
+    """Exchange a pending-2FA token + TOTP code (or recovery code) for a session.
+
+    Called by the frontend after the login endpoint returns
+    {two_factor_required: true, token: "..."}.
+
+    Body: {token: str, code: str}
+    Success: {user: {...}}  (session cookie set)
+    """
+    b = request.get_json(force=True) or {}
+    token = str(b.get("token") or "").strip()
+    code = str(b.get("code") or "").strip()
+    if not token or not code:
+        return jsonify({"error": "token and code are required"}), 400
+
+    uid = consume_pending_token(token)
+    if uid is None:
+        return jsonify({"error": "invalid or expired token"}), 400
+
+    with db.get_session() as s:
+        u = s.get(models.User, uid)
+        if not u or not u.totp_enabled:
+            return jsonify({"error": "invalid token"}), 400
+
+        # Accept a valid TOTP code OR an unused recovery code.
+        totp_ok = bool(u.totp_secret and verify_totp(u.totp_secret, code))
+        if not totp_ok:
+            recovery_ok = verify_and_consume_recovery_code(uid, code)
+        else:
+            recovery_ok = False
+
+        if not totp_ok and not recovery_ok:
+            return jsonify({"error": "invalid code"}), 400
+
+        login_user(u)
+        return jsonify({"user": _public_user(u)}), 200
 
 
 from flask import current_app

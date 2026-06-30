@@ -25,6 +25,12 @@ def _require_user():
 from auth.routes import auth_bp
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
+from auth.twofactor import twofactor_bp
+app.register_blueprint(twofactor_bp, url_prefix="/api/2fa")
+
+from auth.webauthn_auth import webauthn_bp
+app.register_blueprint(webauthn_bp, url_prefix="/api/webauthn")
+
 
 @app.after_request
 def _security_headers(resp):

@@ -211,6 +211,25 @@ def _ensure_columns(conn) -> None:
             "ADD COLUMN IF NOT EXISTS fees_paid REAL DEFAULT 0"
         ))
 
+    # ── TOTP 2FA: add totp_secret / totp_enabled to users ────────────────────
+    if _is_sqlite:
+        tables_u = {r[0] for r in conn.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )).fetchall()}
+        if "users" in tables_u:
+            ucols_2fa = {r[1] for r in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
+            if "totp_secret" not in ucols_2fa:
+                conn.execute(text("ALTER TABLE users ADD COLUMN totp_secret VARCHAR"))
+            if "totp_enabled" not in ucols_2fa:
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN totp_enabled BOOLEAN NOT NULL DEFAULT 0"
+                ))
+    else:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR"))
+        conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE"
+        ))
+
     # ── Multiple watchlists: add watchlist_items.watchlist_id, backfill a
     # default "My Watchlist" per user, and carry legacy settings.share_token
     # onto it. Idempotent: the backfill only runs for items lacking a list.
