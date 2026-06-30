@@ -6,115 +6,100 @@ import { MapPage } from './pages/MapPage'
 const envelope = (data: unknown) =>
   JSON.stringify({ data, meta: { source: 'test-mock', stale: false, fetched_at: '' } })
 
+const CRYPTO_BODY = envelope({
+  coins: [
+    { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', price: 45000, market_cap: 880_000_000_000, change_pct: 2.1 },
+    { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', price: 3000, market_cap: 360_000_000_000, change_pct: 1.5 },
+  ],
+  watched: [],
+})
+
 // ── Suite ─────────────────────────────────────────────────────────────────────
 test.describe('Market Map (/map)', () => {
   // Mock every boot-time API call so the suite runs without a live backend and
   // produces identical results regardless of market hours.
   test.beforeEach(async ({ page }) => {
-    // Auth — anonymous session
     await page.route('**/api/auth/me', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ user: null }),
-      })
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: null }) })
     )
-
-    // Watchlist (single + multi-list) — empty
     await page.route('**/api/watchlist', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope([]) })
     )
     await page.route('**/api/watchlists', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope([]) })
     )
-
-    // Fear & Greed — used by MarketViews on mount
     await page.route('**/api/fng', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: envelope({ value: 62, label: 'Greed' }),
-      })
+      route.fulfill({ status: 200, contentType: 'application/json', body: envelope({ value: 62, label: 'Greed' }) })
     )
-
-    // Quote poll and logos — return empty so no live prices leak into tests
     await page.route('**/api/quotes**', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: envelope({ quotes: {}, market_status: 'Closed' }),
-      })
+      route.fulfill({ status: 200, contentType: 'application/json', body: envelope({ quotes: {}, market_status: 'Closed' }) })
     )
     await page.route('**/api/logos**', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope({}) })
     )
   })
 
-  // ── Test 1: default state ─────────────────────────────────────────────────
-
+  // ── Default state ─────────────────────────────────────────────────────────
   test('shows Stocks universe by default with tiles from multiple sectors', async ({ page }) => {
     const map = new MapPage(page)
     await map.goto()
 
-    // Universe toggle: "Stocks" should be the active default
     await expect(map.stocksToggle).toBeVisible()
+    await expect(map.sectorChips).toBeVisible()
+    await expect(map.exchangeFilter).toBeVisible()
 
-    // Sector chips row is visible in Stocks mode
-    await expect(map.sectorChip('All')).toBeVisible()
-    await expect(map.sectorChip('Technology')).toBeVisible()
-    await expect(map.sectorChip('Energy')).toBeVisible()
-
-    // "All sectors" default: both Technology (AAPL) and Energy (XOM) tiles visible.
-    // AAPL market cap 3,280 B → tile covers ~9 % of the 800×460 canvas, always
-    // above the 34×22 text-render threshold.
-    await expect(map.tileText('AAPL')).toBeVisible()
-    await expect(map.tileText('XOM')).toBeVisible()
+    // "All sectors" default: both Technology (AAPL) and Energy (XOM) tiles render.
+    await expect(map.tile('AAPL')).toBeVisible()
+    await expect(map.tile('XOM')).toBeVisible()
   })
 
-  // ── Test 2: sector chip filtering ────────────────────────────────────────
-
-  test('Energy chip filters map to energy tickers — AAPL removed, XOM retained', async ({
-    page,
-  }) => {
+  // ── Sector chip filtering ──────────────────────────────────────────────────
+  test('Energy chip filters map to energy tickers — AAPL removed, XOM retained', async ({ page }) => {
     const map = new MapPage(page)
     await map.goto()
 
-    // Confirm default "All sectors" render has both tickers
-    await expect(map.tileText('AAPL')).toBeVisible()
-    await expect(map.tileText('XOM')).toBeVisible()
+    await expect(map.tile('AAPL')).toBeVisible()
+    await expect(map.tile('XOM')).toBeVisible()
 
     await map.sectorChip('Energy').click()
 
-    // XOM (Energy sector) must remain visible
-    await expect(map.tileText('XOM')).toBeVisible()
-
-    // AAPL (Technology) is not in the Energy items list → its <g> is not
-    // rendered at all, so assert it is absent from the DOM entirely.
-    await expect(map.tileText('AAPL')).not.toBeAttached()
+    await expect(map.tile('XOM')).toBeVisible()
+    await expect(map.tile('AAPL')).not.toBeAttached()
   })
 
-  // ── Test 3: sector chip reset ─────────────────────────────────────────────
-
+  // ── Sector chip reset ───────────────────────────────────────────────────────
   test('clicking All sectors after a filter brings back cross-sector tiles', async ({ page }) => {
     const map = new MapPage(page)
     await map.goto()
 
-    // Filter to Energy so AAPL disappears
     await map.sectorChip('Energy').click()
-    await expect(map.tileText('AAPL')).not.toBeAttached()
+    await expect(map.tile('AAPL')).not.toBeAttached()
 
-    // Reset to All — AAPL should return
     await map.sectorChip('All').click()
-    await expect(map.tileText('AAPL')).toBeVisible()
-    await expect(map.tileText('XOM')).toBeVisible()
+    await expect(map.tile('AAPL')).toBeVisible()
+    await expect(map.tile('XOM')).toBeVisible()
   })
 
-  // ── Test 4: tile click navigates to ticker dashboard ─────────────────────
+  // ── Exchange filter (honest listing-venue facts) ───────────────────────────
+  test('NASDAQ exchange filter keeps NASDAQ-listed AAPL, drops NYSE-listed XOM', async ({ page }) => {
+    const map = new MapPage(page)
+    await map.goto()
 
+    await expect(map.tile('AAPL')).toBeVisible()
+    await expect(map.tile('XOM')).toBeVisible()
+
+    await map.exchangeButton('NASDAQ').click()
+    await expect(map.tile('AAPL')).toBeVisible()      // AAPL lists on NASDAQ
+    await expect(map.tile('XOM')).not.toBeAttached()   // XOM lists on NYSE
+
+    // Switch to NYSE — the inverse now holds.
+    await map.exchangeButton('NYSE').click()
+    await expect(map.tile('XOM')).toBeVisible()
+    await expect(map.tile('AAPL')).not.toBeAttached()
+  })
+
+  // ── Stock tile drill-down ───────────────────────────────────────────────────
   test('clicking a stock tile navigates to /ticker/<SYM>', async ({ page }) => {
-    // Stub downstream dashboard calls so post-navigation requests don't throw
-    // unhandled errors in the console (app handles them gracefully, but keeping
-    // the test environment clean is good practice).
     await page.route('**/api/fundamentals/**', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope({}) })
     )
@@ -122,11 +107,7 @@ test.describe('Market Map (/map)', () => {
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope([]) })
     )
     await page.route('**/api/ratings/**', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: envelope({ buy: 0, hold: 0, sell: 0, updatedAt: '' }),
-      })
+      route.fulfill({ status: 200, contentType: 'application/json', body: envelope({ buy: 0, hold: 0, sell: 0, updatedAt: '' }) })
     )
     await page.route('**/api/history/**', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope([]) })
@@ -138,90 +119,59 @@ test.describe('Market Map (/map)', () => {
     const map = new MapPage(page)
     await map.goto()
 
-    // Confirm the tile is present before clicking
-    await expect(map.tileText('AAPL')).toBeVisible()
-
-    // Click events bubble from <text> → <g> → onTileClick → setSelected →
-    // _navigate('/ticker/AAPL') in the store.
-    await map.tileText('AAPL').click()
-
+    await expect(map.tile('AAPL')).toBeVisible()
+    await map.tile('AAPL').click()
     await expect(page).toHaveURL(/\/ticker\/AAPL$/)
   })
 
-  // ── Test 5: Crypto toggle hides sector chips ──────────────────────────────
-
-  test('switching to Crypto universe hides sector chips and shows crypto tiles', async ({
-    page,
-  }) => {
-    // Mock the lazy /api/crypto fetch triggered when the Crypto universe mounts.
+  // ── Crypto universe ─────────────────────────────────────────────────────────
+  test('switching to Crypto universe hides sector chips and shows crypto tiles', async ({ page }) => {
     await page.route('**/api/crypto**', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: envelope({
-          coins: [
-            {
-              id: 'bitcoin',
-              symbol: 'BTC',
-              name: 'Bitcoin',
-              price: 45000,
-              market_cap: 880_000_000_000,
-              change_pct: 2.1,
-            },
-            {
-              id: 'ethereum',
-              symbol: 'ETH',
-              name: 'Ethereum',
-              price: 3000,
-              market_cap: 360_000_000_000,
-              change_pct: 1.5,
-            },
-          ],
-          watched: [],
-        }),
-      })
+      route.fulfill({ status: 200, contentType: 'application/json', body: CRYPTO_BODY })
     )
 
     const map = new MapPage(page)
     await map.goto()
 
-    // Sector chips are visible in Stocks mode
-    await expect(map.sectorChip('Technology')).toBeVisible()
-    await expect(map.sectorChip('Energy')).toBeVisible()
+    await expect(map.sectorChips).toBeVisible()
+    await expect(map.exchangeFilter).toBeVisible()
 
-    // Switch to Crypto universe
     await map.cryptoToggle.click()
 
-    // Sector chips are conditionally rendered only when universe === 'stocks',
-    // so they should be gone from the DOM entirely.
-    await expect(map.sectorChip('Technology')).not.toBeAttached()
-    await expect(map.sectorChip('Energy')).not.toBeAttached()
-    await expect(map.sectorChip('All')).not.toBeAttached()
+    await expect(map.sectorChips).not.toBeAttached()
+    await expect(map.exchangeFilter).not.toBeAttached()
 
-    // Crypto tiles should appear once /api/crypto mock resolves.
-    // BTC: 880 B / (880+360) B = 71 % of canvas → tile ~511×511 px, well above
-    // the 34×22 label threshold.
-    await expect(map.tileText('BTC')).toBeVisible()
-    await expect(map.tileText('ETH')).toBeVisible()
+    await expect(map.tile('BTC')).toBeVisible()
+    await expect(map.tile('ETH')).toBeVisible()
   })
 
-  // ── Test 6: hover tooltip ─────────────────────────────────────────────────
+  // ── Crypto tile drill-down → Crypto view ───────────────────────────────────
+  test('clicking a crypto tile opens the Crypto view', async ({ page }) => {
+    await page.route('**/api/crypto**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: CRYPTO_BODY })
+    )
 
-  test('hovering a stock tile reveals the data-treemap-tip tooltip', async ({ page }) => {
+    const map = new MapPage(page)
+    await map.goto()
+    await map.cryptoToggle.click()
+    await expect(map.tile('BTC')).toBeVisible()
+
+    await map.tile('BTC').click()
+    await expect(page).toHaveURL(/\/crypto$/)
+  })
+
+  // ── Hover tooltip ───────────────────────────────────────────────────────────
+  test('hovering a stock tile reveals the data-treemap-tip tooltip without a seed price', async ({ page }) => {
     const map = new MapPage(page)
     await map.goto()
 
-    await expect(map.tileText('AAPL')).toBeVisible()
-
-    // onMouseEnter on the <g> fires when the cursor enters the tile area.
-    // Playwright moves the mouse from (0,0) into the tile, triggering mouseenter
-    // on the parent <g> which sets the tip state and renders the tooltip div.
-    await map.tileText('AAPL').hover()
+    await expect(map.tile('AAPL')).toBeVisible()
+    await map.tile('AAPL').hover()
 
     const tooltip = page.locator('[data-treemap-tip]')
     await expect(tooltip).toBeVisible()
-    // Tooltip format: "AAPL · Apple Inc · $214.10 · +2.6%" — assert the ticker
-    // appears without hard-coding the live price or change value.
     await expect(tooltip).toContainText('AAPL')
+    // Accurate-numbers rule: with quotes mocked empty, no seed price is shown.
+    await expect(tooltip).not.toContainText('$')
   })
 })

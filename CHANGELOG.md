@@ -9,20 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.18.1] — 2026-06-30
 
-> **Discoverable on the open web.** Adds real per-page SEO metadata, a public
-> Fear & Greed page search engines and social cards can surface, and a proper
-> share image — so links to Ticker Tracker render and rank.
->
-> _Versioning note: this branch (`chore/claude-hooks`) branched before `1.18.0`
-> shipped on main; numbered `1.18.1` to sit atop the released line. The `1.18.0`
-> changelog section folds in when this branch rebases onto main at integration._
+> **Discoverable on the open web + Pulse in plain language.** Adds real per-page SEO
+> metadata, a public Fear & Greed page search engines and social cards can surface,
+> and a proper share image — so links to Ticker Tracker render and rank — and makes
+> the Pulse dial self-explanatory with a "What is Pulse?" explainer.
 
 ### Added
 
 - **Per-page meta injection** (`backend/app.py`): the Flask SPA shell now rewrites
   `<title>`, meta description, canonical, and Open Graph / Twitter tags per route
-  for `/` (home), `/dashboard`, `/market`, `/crypto`, and `/earnings` — no Node SSR
-  introduced.
+  for `/` (home), `/dashboard`, `/market`, and `/crypto` — no Node SSR introduced.
 - **Public `/crypto/fear-and-greed` page** (`frontend/src/views/FearAndGreed.tsx`,
   `backend/app.py`): a standalone, indexable page showing the live crypto Fear &
   Greed reading with `Dataset` JSON-LD and honest alternative.me attribution; the
@@ -32,19 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `summary_large_image`.
 - Site-wide `WebSite` + `Organization` JSON-LD; `robots.txt` now disallows `/api/`;
   `sitemap.xml` covers the public routes.
-
-### Removed
-
-- **`/earnings` SEO surface**: removed the `/earnings` entry from per-page meta and
-  the sitemap. The standalone earnings page was intentionally retired (its data now
-  lives in the per-stock Due Diligence card), so advertising a crawlable URL that
-  redirects to `/dashboard` was incorrect.
-
-## [1.17.1] — 2026-06-29
-
-> **Pulse, in plain language.** Makes the Pulse dial self-explanatory at a glance
-> and adds a "What is Pulse?" explainer, so the score can't be mistaken for a
-> data-quality or stock-quality verdict.
+- **"What is Pulse?" explainer modal** (`frontend/src/components/PulseAbout.tsx`):
+  an ⓘ info chip on the dial opens an accessible dialog (`role="dialog"`,
+  `aria-modal`, Escape/backdrop close, focus returns to the chip) describing the
+  five signals and their weights (momentum 22% · trend 22% · analyst 20% ·
+  52-week positioning 18% · news sentiment 18%), how missing signals are omitted
+  and reweighted, and the not-investment-advice disclaimer.
 
 ### Changed
 
@@ -56,14 +45,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drives the arc color, the `Why Pulse` breakdown, and the meter's `aria-label`
   (which now announces both, e.g. *"Pulse 57 of 100, Building — signals rising"*).
 
+### Removed
+
+- **`/earnings` SEO surface**: removed the `/earnings` entry from per-page meta and
+  the sitemap. The standalone earnings page was intentionally retired (its data now
+  lives in the per-stock Due Diligence card), so advertising a crawlable URL that
+  redirects to `/dashboard` was incorrect.
+
+## [1.18.0] — 2026-06-29
+
+> **Market Map follow-ups.** Sharpens the interactive map from v1.17.0 with an exchange
+> filter, crypto drill-down, and honest tooltips.
+
 ### Added
 
-- **"What is Pulse?" explainer modal** (`frontend/src/components/PulseAbout.tsx`):
-  an ⓘ info chip on the dial opens an accessible dialog (`role="dialog"`,
-  `aria-modal`, Escape/backdrop close, focus returns to the chip) describing the
-  five signals and their weights (momentum 22% · trend 22% · analyst 20% ·
-  52-week positioning 18% · news sentiment 18%), how missing signals are omitted
-  and reweighted, and the not-investment-advice disclaimer.
+- **Exchange filter** on the Market Map (Stocks): filter the map to `NASDAQ` or `NYSE`
+  alongside the sector chips. Listing venue is sourced from a verified, stable per-symbol
+  fact (`hmExchange` in `frontend/src/data/market.ts`) — not fabricated index membership,
+  which churns and is deliberately not modelled.
+- **Crypto-tile drill-down**: clicking a tile in the Crypto universe opens the Crypto view
+  (the honest destination until a per-coin page exists).
+- **`data-testid`s** on the map controls and treemap tiles, so e2e tests use stable
+  locators instead of structural ones. New e2e coverage for the exchange filter and crypto
+  drill-down (full Playwright suite: 18 passing).
+
+### Changed
+
+- **Map tooltip never shows a seed price** (extends the v1.17.1 accurate-numbers rule):
+  the hover tooltip now subscribes to live quotes and omits the price until a real quote
+  has loaded, rather than falling back to the `UNIVERSE` seed value.
+
+## [1.17.1] — 2026-06-29
+
+> **Accurate numbers only — no placeholder data.** The UI no longer renders fabricated
+> seed values while real data loads. Previously, every price/change fell back to a hardcoded
+> `UNIVERSE` seed (e.g. NVDA $131.26), fundamentals fell back to seed cap/PE strings, charts
+> drew fully synthetic candles, and the crypto Fear & Greed gauge flashed a templated
+> `50 / Neutral` before the real reading (e.g. 12) arrived. Now anything still in flight shows
+> a shimmer **skeleton**, so a number on screen is always genuine.
+
+### Changed
+
+- **Live-only store selectors** — `price()`/`chg()` no longer fall back to `UNIVERSE` seed
+  prices; they return `0` for math safety and expose a new `hasQuote(sym)` predicate that
+  display sites gate on.
+- **Skeleton loading states** — new `<Skeleton>` shimmer component replaces placeholder values
+  across Crypto (Fear & Greed, total cap, BTC dominance), Watchlist, At-a-Glance (overview +
+  deep-dive), Screener, Key Statistics, Stock Header, Movers Ribbon, Holdings, Alerts,
+  Manage Watchlists, and Due Diligence (analyst price-target band).
+- **Charts render real history only** — `StockChart` and `Sparkline` show a skeleton until
+  `/api/history` data loads instead of drawing synthetic seed candles; the synthetic series
+  generators in `data/series.ts` were removed.
+
+### Notes
+
+- The **Market/Map/Sectors** views (`data/market.ts`) and the **Strategy** cockpit remain
+  illustrative — they have no real-data backend, so they're a separate product decision (build
+  an endpoint or label as illustrative) rather than a load-window fix.
 
 ## [1.17.0] — 2026-06-29
 

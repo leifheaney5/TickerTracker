@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { useStore } from '../state/store'
-import { fallbackSpark } from '../data/series'
+import { Skeleton } from '../components/Skeleton'
 
 // 30-day sparkline with gradient fill — ported from the prototype's _spark.
-// Uses live 30d closes from loaded history when available, else seeded fallback.
+// Live-only: draws real 30d closes from loaded history; while history is in
+// flight it self-loads a 1M tail and shows a skeleton (no seeded fallback).
 
 interface SparkProps {
   symbol: string
@@ -12,9 +14,20 @@ interface SparkProps {
 
 export function Sparkline({ symbol, width = 80, height = 30 }: SparkProps) {
   const chg = useStore((s) => s.chg(symbol))
-  // Prefer a loaded 1M/3M history tail; fall back to seeded 30d closes.
+  // Prefer a loaded 1M/3M history tail.
   const hist = useStore((s) => s.history[`${symbol}:1M`] || s.history[`${symbol}:3M`])
-  const closes = hist && hist.length ? hist.slice(-30).map((b) => b.c) : fallbackSpark(symbol)
+  const loadHistory = useStore((s) => s.loadHistory)
+
+  // Ensure real history is fetched even on views that don't otherwise load it
+  // (e.g. At-a-Glance). No-op if already cached.
+  useEffect(() => {
+    if (!hist || !hist.length) loadHistory(symbol, '1M')
+  }, [symbol, hist, loadHistory])
+
+  if (!hist || !hist.length) {
+    return <Skeleton width={width} height={height} radius={4} />
+  }
+  const closes = hist.slice(-30).map((b) => b.c)
 
   const W = width
   const H = height
