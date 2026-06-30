@@ -527,6 +527,77 @@ def holdings_delete(sym):
     return envelope({"removed": remove_holding(sym)}, source="db")
 
 
+# ─── Transaction ledger + Portfolio P&L engine ───────────────────────────────
+# These routes are the richer path for recording positions (average-cost method,
+# realized P&L, fee tracking). The legacy POST /api/holdings setter remains for
+# quick manual overrides; transactions are the authoritative source.
+
+from services.portfolio import record_transaction, list_transactions, compute_pnl as _compute_pnl
+
+
+@app.route("/api/transactions", methods=["GET"])
+def transactions_get():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    sym = request.args.get("symbol", "").upper() or None
+    if sym and not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    return envelope(list_transactions(uid, symbol=sym), source="db")
+
+
+@app.route("/api/transactions", methods=["POST"])
+def transactions_post():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    b = request.get_json(force=True) or {}
+    sym = (b.get("symbol") or "").upper()
+    if not valid_symbol(sym):
+        return envelope({"error": "invalid symbol"}), 400
+    kind = (b.get("kind") or "").lower()
+    if kind not in ("buy", "sell"):
+        return envelope({"error": "kind must be 'buy' or 'sell'"}), 400
+    try:
+        qty = float(b.get("quantity") or b.get("qty") or 0)
+        price = float(b.get("price") or 0)
+        fees = float(b.get("fees") or 0)
+    except (TypeError, ValueError):
+        return envelope({"error": "quantity, price, fees must be numeric"}), 400
+    if qty <= 0 or price <= 0:
+        return envelope({"error": "quantity and price must be positive"}), 400
+    # Parse optional executed_at (ISO 8601)
+    executed_at = None
+    if b.get("executed_at"):
+        try:
+            executed_at = _dt.datetime.fromisoformat(str(b["executed_at"]).replace("Z", "+00:00"))
+        except ValueError:
+            return envelope({"error": "executed_at must be ISO 8601"}), 400
+    note = str(b.get("note") or "")[:500] or None  # sanitize + cap length
+    try:
+        result = record_transaction(uid, sym, kind, qty, price, fees, executed_at, note)
+    except ValueError as e:
+        return envelope({"error": str(e)}), 400
+    return envelope(result, source="db"), 201
+
+
+@app.route("/api/portfolio/pnl", methods=["GET"])
+def portfolio_pnl_get():
+    uid = _require_user()
+    if uid is None:
+        return envelope({"error": "authentication required"}), 401
+    # quote_fn: pull from the cached quote layer (respects 60s TTL).
+    # Import here to avoid circular-import concerns with the module-level imports.
+    from services.quotes import get_quotes as _gq
+
+    def _quote_fn(sym):
+        quotes, _ = _gq([sym])
+        return quotes.get(sym, {})
+
+    result = _compute_pnl(uid, _quote_fn)
+    return envelope(result, source="finnhub")
+
+
 # ─── Saved screener filters ──────────────────────────────────────────────────
 
 @app.route("/api/screens", methods=["GET"])

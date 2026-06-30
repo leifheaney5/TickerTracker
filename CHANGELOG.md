@@ -10,6 +10,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
 > engagement, and security. Batch A below; subsequent batches follow.
 
+## [1.21.0] — 2026-06-29
+
+> **Platform expansion — Batch C1: transaction ledger + P&L engine.** A real
+> average-cost transaction ledger feeding a server-side profit/loss engine.
+
+### Added
+
+- **Transaction ledger** (`Transaction` model + `services/portfolio.py`): records buys/sells
+  with **fees**, updating each `Holding` via the **average-cost method** — buy fees raise the
+  cost basis; sells realize `qty*(price−avg_cost)−fees`; overselling is rejected. Accumulated
+  `realized_pnl` and `fees_paid` are stored on the `Holding` row. Pure tested helpers
+  `apply_buy` / `apply_sell`. Routes: `GET`/`POST /api/transactions`.
+- **Backend P&L engine** (`compute_pnl`, route `GET /api/portfolio/pnl`): per-position and
+  portfolio totals for cost basis, market value, unrealized $/%, **daily P&L from the real
+  previous close** (`(price − prev_close) × shares`; 0 when prev_close is unavailable — never
+  fabricated), realized P&L, and fees. Pure tested helper `position_pnl`.
+
+### Changed
+
+- **Holdings/Portfolio view** now consumes `/api/portfolio/pnl` for an accurate, prev_close-based
+  TODAY figure (replacing the day-% approximation) and surfaces realized-P&L and fees-paid cards
+  when non-zero.
+
+### Notes
+
+- Average-cost (not FIFO/specific-ID) accounting is used deliberately — per-lot tax accounting
+  was deferred with the tax-loss-harvesting feature. A transactions-entry UI is a tracked
+  follow-up (API + client methods are already wired).
+
 ## [1.20.0] — 2026-06-29
 
 > **Platform expansion — Batch B: alert depth + web push.** Two new server-evaluated

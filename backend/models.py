@@ -1,5 +1,5 @@
 from sqlalchemy import (Column, Integer, String, Float, Boolean, DateTime, Date,
-                        ForeignKey, func, UniqueConstraint, Text)
+                        ForeignKey, func, UniqueConstraint, Index, Text)
 from db import Base
 from flask_login import UserMixin
 
@@ -56,6 +56,36 @@ class Holding(Base):
     symbol = Column(String, nullable=False)
     shares = Column(Float, default=0.0)
     avg_cost = Column(Float, default=0.0)
+    # Accumulated realized P&L from sells + total fees paid on this position.
+    # Nullable/defaulted so existing rows and the legacy POST /api/holdings setter
+    # continue to work without migration breakage.
+    realized_pnl = Column(Float, default=0.0, nullable=True)
+    fees_paid = Column(Float, default=0.0, nullable=True)
+
+
+class Transaction(Base):
+    """Individual buy/sell ledger entries; source of truth for average-cost
+    accounting. Holdings are derived from replaying these entries, but for
+    performance we also keep a running Holding row that is updated atomically
+    with each transaction.
+
+    Index on (user_id, symbol) covers the common query pattern (all txns for
+    a given user + symbol). executed_at defaults to now() but callers can pass
+    a historical timestamp for back-filled imports.
+    """
+    __tablename__ = "transactions"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    symbol = Column(String, nullable=False)
+    kind = Column(String, nullable=False)          # 'buy' | 'sell'
+    quantity = Column(Float, nullable=False)
+    price = Column(Float, nullable=False)
+    fees = Column(Float, default=0.0)
+    executed_at = Column(DateTime, server_default=func.now(), nullable=False)
+    note = Column(String, nullable=True)
+    __table_args__ = (
+        Index("ix_transactions_user_symbol", "user_id", "symbol"),
+    )
 
 
 class AlertLog(Base):

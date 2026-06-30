@@ -199,6 +199,47 @@ export interface EarningsRow {
   epsEstimate: number | null
 }
 
+export interface Transaction {
+  id: number
+  symbol: string
+  kind: 'buy' | 'sell'
+  quantity: number
+  price: number
+  fees: number
+  executed_at: string | null
+  note: string | null
+}
+
+export interface PositionPnl {
+  symbol: string
+  shares: number
+  avg_cost: number
+  price: number
+  cost_basis: number
+  market_value: number
+  unrealized: number
+  unrealized_pct: number
+  prev_close: number | null
+  daily_pnl: number
+  realized_pnl: number
+  fees_paid: number
+}
+
+export interface PortfolioTotals {
+  market_value: number
+  cost_basis: number
+  unrealized: number
+  unrealized_pct: number
+  daily_pnl: number
+  realized_pnl: number
+  fees_paid: number
+}
+
+export interface PortfolioPnl {
+  positions: PositionPnl[]
+  totals: PortfolioTotals
+}
+
 export interface SavedScreen {
   id: number
   name: string
