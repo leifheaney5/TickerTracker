@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO, IDX_COLORS } from '../theme/tokens'
-import { SECTORS, IDX, HM, hmChange, hmExchange, sectorPerf } from '../data/market'
-import { Treemap, heatColor, type TreemapItem } from '../charts/Treemap'
+import { SECTORS, IDX, HM, hmChange, hmExchange } from '../data/market'
+import { Treemap, type TreemapItem } from '../charts/Treemap'
 import { UNIVERSE } from '../data/universe'
 import { api } from '../api/client'
 import { asOf } from '../lib/format'
@@ -113,27 +113,28 @@ export function MarketViews({ sub }: { sub: Sub }) {
           {header('Market Overview', 'How the broad market is trading right now')}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flex: '0 0 auto' }}>
             {Object.entries(IDX).map(([key, ix]) => (
-              <div key={key} style={{ flex: '1 1 0', minWidth: 170, padding: '15px 17px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <span style={{ fontSize: '11px', color: 'var(--tx3)', letterSpacing: '.04em' }}>{ix.name.toUpperCase()}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '20px', fontWeight: 600, color: 'var(--tx)' }}>{ix.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: ix.chg >= 0 ? 'var(--up)' : 'var(--down)' }}>{(ix.chg >= 0 ? '+' : '') + ix.chg.toFixed(2)}%</span>
-                <div style={{ height: 3, borderRadius: 2, background: IDX_COLORS[key as keyof typeof IDX_COLORS], opacity: 0.5 }} />
+              <div key={key} data-testid={`idx-card-${key}`} style={{ flex: '1 1 0', minWidth: 170, padding: '15px 17px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span data-testid={`idx-name-${key}`} style={{ fontSize: '11px', color: 'var(--tx3)', letterSpacing: '.04em' }}>{ix.name.toUpperCase()}</span>
+                <span data-testid={`idx-value-${key}`} style={{ fontFamily: FONT_MONO, fontSize: '20px', fontWeight: 600, color: 'var(--tx3)' }}>—</span>
+                <span style={{ fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: 'var(--tx3)' }}>—</span>
+                <div style={{ height: 3, borderRadius: 2, background: IDX_COLORS[key as keyof typeof IDX_COLORS], opacity: 0.25 }} />
               </div>
             ))}
           </div>
+          <div style={{ fontSize: '11.5px', color: 'var(--tx3)', fontStyle: 'italic', flex: '0 0 auto' }}>
+            Simulated data — live market index quotes coming soon. Index values are not currently sourced from a real-time feed.
+          </div>
           <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14, flex: '0 0 auto' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Sector performance · today</span>
-            {SECTORS.map((s) => {
-              const w = Math.min(100, Math.abs(s.chg) * 40)
-              return (
-                <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ width: 148, flex: '0 0 auto', fontSize: '12.5px', color: 'var(--tx)', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
-                  <div style={{ flex: 1, height: 15, borderRadius: 4, background: 'var(--line)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${w}%`, background: s.chg >= 0 ? 'var(--up)' : 'var(--down)' }} /></div>
-                  <span style={{ width: 62, flex: '0 0 auto', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: s.chg >= 0 ? 'var(--up)' : 'var(--down)' }}>{(s.chg >= 0 ? '+' : '') + s.chg.toFixed(2)}%</span>
-                </div>
-              )
-            })}
+            {SECTORS.map((s) => (
+              <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ width: 148, flex: '0 0 auto', fontSize: '12.5px', color: 'var(--tx)', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
+                <div style={{ flex: 1, height: 15, borderRadius: 4, background: 'var(--line)', overflow: 'hidden' }}><div style={{ height: '100%', width: '0%' }} /></div>
+                <span style={{ width: 62, flex: '0 0 auto', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx3)' }}>—</span>
+              </div>
+            ))}
             {fng && <span style={{ fontSize: 11.5, color: 'var(--tx3)' }}>Crypto Fear &amp; Greed: {fng.value} · {fng.label}{fngFetchedAt ? ' · ' + asOf(fngFetchedAt) : ''}</span>}
+            <span style={{ fontSize: '11.5px', color: 'var(--tx3)', fontStyle: 'italic' }}>Simulated data — live sector performance coming soon.</span>
           </div>
         </>
       )}
@@ -193,7 +194,7 @@ export function MarketViews({ sub }: { sub: Sub }) {
           {header('Sector Performance', 'How every sector is performing across timeframes — green is up, red is down')}
           <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12, flex: '0 0 auto' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Performance Matrix · % change</span>
-            <div style={{ overflowX: 'auto' }}>
+            <div data-testid="sectors-performance-matrix" style={{ overflowX: 'auto' }}>
               <div style={{ minWidth: 640 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: `minmax(150px,1.4fr) repeat(${SEC_TFS.length}, 1fr)`, gap: 4 }}>
                   <div />
@@ -201,15 +202,15 @@ export function MarketViews({ sub }: { sub: Sub }) {
                   {SECTORS.map((s) => (
                     <div key={s.name} style={{ display: 'contents' }}>
                       <div style={{ fontSize: 12.5, color: 'var(--tx)', padding: '6px 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
-                      {SEC_TFS.map((t) => {
-                        const v = sectorPerf(s.name, t)
-                        return <div key={t} style={{ background: heatColor(v), borderRadius: 5, textAlign: 'center', padding: '8px 0', fontFamily: FONT_MONO, fontSize: 11.5, fontWeight: 600, color: '#fff' }}>{(v >= 0 ? '+' : '') + v.toFixed(1)}</div>
-                      })}
+                      {SEC_TFS.map((t) => (
+                        <div key={t} style={{ background: 'var(--line)', borderRadius: 5, textAlign: 'center', padding: '8px 0', fontFamily: FONT_MONO, fontSize: 11.5, fontWeight: 600, color: 'var(--tx3)' }}>—</div>
+                      ))}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
+            <span style={{ fontSize: '11.5px', color: 'var(--tx3)', fontStyle: 'italic' }}>Simulated data — live sector performance data coming soon.</span>
           </div>
           <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14, flex: '0 0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -219,16 +220,13 @@ export function MarketViews({ sub }: { sub: Sub }) {
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {SECTORS.map((s) => ({ name: s.name, v: sectorPerf(s.name, secTf) })).sort((a, b) => b.v - a.v).map((s) => {
-                const w = Math.min(100, Math.abs(s.v) * 12)
-                return (
-                  <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '5px 0' }}>
-                    <span style={{ width: 148, flex: '0 0 auto', fontSize: '12.5px', color: 'var(--tx)', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
-                    <div style={{ flex: 1, height: 15, borderRadius: 4, background: 'var(--line)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${w}%`, background: s.v >= 0 ? 'var(--up)' : 'var(--down)' }} /></div>
-                    <span style={{ width: 62, flex: '0 0 auto', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: s.v >= 0 ? 'var(--up)' : 'var(--down)' }}>{(s.v >= 0 ? '+' : '') + s.v.toFixed(1)}%</span>
-                  </div>
-                )
-              })}
+              {SECTORS.map((s) => (
+                <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '5px 0' }}>
+                  <span style={{ width: 148, flex: '0 0 auto', fontSize: '12.5px', color: 'var(--tx)', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
+                  <div style={{ flex: 1, height: 15, borderRadius: 4, background: 'var(--line)', overflow: 'hidden' }}><div style={{ height: '100%', width: '0%' }} /></div>
+                  <span style={{ width: 62, flex: '0 0 auto', fontFamily: FONT_MONO, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx3)' }}>—</span>
+                </div>
+              ))}
             </div>
           </div>
         </>
