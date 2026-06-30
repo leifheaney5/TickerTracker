@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.1] — 2026-06-30
+
+> **Pulse, in plain language.** Makes the Pulse dial self-explanatory at a glance
+> and adds a "What is Pulse?" explainer, so the score can't be mistaken for a
+> data-quality or stock-quality verdict.
+
+### Changed
+
+- **Plain-language Pulse dial caption** (`frontend/src/components/PulseDial.tsx`,
+  `frontend/src/lib/pulse.ts`): the compact dial now shows a plain caption —
+  `signals quiet / mixed / rising / strong` — instead of the internal band word
+  (`Cooling / Neutral / Building / Hot`), which read like a loading state and
+  never named *what* was building. The band identity is unchanged: it still
+  drives the arc color, the `Why Pulse` breakdown, and the meter's `aria-label`
+  (which now announces both, e.g. *"Pulse 57 of 100, Building — signals rising"*).
+
+### Added
+
+- **"What is Pulse?" explainer modal** (`frontend/src/components/PulseAbout.tsx`):
+  an ⓘ info chip on the dial opens an accessible dialog (`role="dialog"`,
+  `aria-modal`, Escape/backdrop close, focus returns to the chip) describing the
+  five signals and their weights (momentum 22% · trend 22% · analyst 20% ·
+  52-week positioning 18% · news sentiment 18%), how missing signals are omitted
+  and reweighted, and the not-investment-advice disclaimer.
+
 ## [1.18.0] — 2026-06-29
 
 > **Market Map follow-ups.** Sharpens the interactive map from v1.17.0 with an exchange
