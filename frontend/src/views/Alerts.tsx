@@ -67,7 +67,21 @@ export function Alerts() {
           {active.length === 0 && (
             <div style={{ padding: '24px 8px', textAlign: 'center', color: 'var(--tx3)', fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               {authed ? (
-                <span>No alerts yet — set a price target on a watchlist ticker to get notified.</span>
+                <>
+                  <span>No alerts yet — set a price target on a watchlist ticker to get notified.</span>
+                  <button
+                    data-testid="alerts-empty-cta"
+                    onClick={() => setView('managewatch')}
+                    style={{
+                      height: 32, padding: '0 14px', borderRadius: 8, border: 'none',
+                      background: 'var(--accent)', color: 'var(--accentInk)',
+                      fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Manage watchlist
+                  </button>
+                </>
               ) : (
                 <>
                   <span>Sign in to save alerts across devices.</span>
