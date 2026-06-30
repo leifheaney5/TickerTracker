@@ -3,6 +3,8 @@ import { FONT_SANS } from '../theme/tokens'
 import { Toggle } from '../components/Toggle'
 import { api } from '../api/client'
 import { usePushSubscription } from '../hooks/usePushSubscription'
+import { useTwoFactor } from '../hooks/useTwoFactor'
+import { usePasskey } from '../hooks/usePasskey'
 
 // Settings view — ported from the prototype template (lines 1184-1272): profile
 // header, account details, connected accounts (brokerage connect/disconnect),
@@ -48,6 +50,9 @@ export function Settings() {
 
   const { isSubscribed, isSupported, permissionState, toggle: togglePush, busy: pushBusy } =
     usePushSubscription()
+
+  const twoFactor = useTwoFactor()
+  const passkey = usePasskey()
 
   const startCheckout = async (interval: 'monthly' | 'annual') => {
     try {
@@ -200,6 +205,178 @@ export function Settings() {
           {toggleRow('Hide balances', 'Mask your portfolio value across the app', 'hide_balances')}
         </div>
 
+        {/* ── Security ────────────────────────────────────────────────────── */}
+        <div style={{ ...card, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Security</span>
+
+          {/* 2FA */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--tx)' }}>Two-factor authentication (TOTP)</span>
+                <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>
+                  {twoFactor.status === 'enabled'
+                    ? 'Authenticator app is active'
+                    : twoFactor.status === 'disabled'
+                    ? 'Add an extra layer of login security'
+                    : 'Loading…'}
+                </span>
+              </div>
+              {twoFactor.status === 'disabled' && (
+                <button
+                  data-testid="2fa-enable-btn"
+                  onClick={twoFactor.startSetup}
+                  disabled={twoFactor.busy}
+                  style={{ height: 34, padding: '0 16px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', opacity: twoFactor.busy ? 0.6 : 1 }}
+                >
+                  Enable
+                </button>
+              )}
+              {twoFactor.status === 'enabled' && (
+                <button
+                  data-testid="2fa-disable-btn"
+                  onClick={twoFactor.promptDisable}
+                  disabled={twoFactor.busy}
+                  style={{ height: 34, padding: '0 16px', borderRadius: 9, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', opacity: twoFactor.busy ? 0.6 : 1 }}
+                >
+                  Disable
+                </button>
+              )}
+            </div>
+
+            {/* Setup flow: QR + code input */}
+            {twoFactor.setupData && (
+              <div data-testid="2fa-setup-panel" style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--tx2)', lineHeight: 1.5 }}>
+                  Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code below to confirm.
+                </span>
+                {/* QR code rendered via img from data URI or an inline SVG.
+                    We use the otpauth_uri directly — pass it to a QR generator if the qrcode dep is available. */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <TotpQrCode uri={twoFactor.setupData.otpauth_uri} />
+                  <span style={{ fontSize: '10.5px', color: 'var(--tx3)', wordBreak: 'break-all', textAlign: 'center', maxWidth: 280 }}>
+                    Manual key: <strong style={{ color: 'var(--tx2)' }}>{twoFactor.setupData.secret}</strong>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    data-testid="2fa-confirm-code"
+                    style={{ flex: 1, height: 40, padding: '0 14px', borderRadius: 9, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '16px', textAlign: 'center', letterSpacing: '.2em' }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={twoFactor.confirmCode}
+                    onChange={e => twoFactor.setConfirmCode(e.target.value)}
+                  />
+                  <button
+                    data-testid="2fa-confirm-btn"
+                    onClick={twoFactor.confirmEnable}
+                    disabled={twoFactor.busy || twoFactor.confirmCode.length < 6}
+                    style={{ height: 40, padding: '0 18px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: (twoFactor.busy || twoFactor.confirmCode.length < 6) ? 0.6 : 1 }}
+                  >
+                    Confirm
+                  </button>
+                </div>
+                {twoFactor.error && (
+                  <span style={{ fontSize: '12px', color: 'var(--down)' }}>{twoFactor.error}</span>
+                )}
+              </div>
+            )}
+
+            {/* Recovery codes — shown once after setup */}
+            {twoFactor.recoveryCodes && twoFactor.recoveryCodes.length > 0 && (
+              <div data-testid="recovery-codes-panel" style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Save your recovery codes</span>
+                <span style={{ fontSize: '12px', color: 'var(--tx2)', lineHeight: 1.5 }}>
+                  These codes let you log in if you lose access to your authenticator app. Each code can only be used once. Store them somewhere safe.
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: '12px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--line)' }}>
+                  {twoFactor.recoveryCodes.map(c => (
+                    <span key={c} style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--tx)', letterSpacing: '.05em' }}>{c}</span>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    data-testid="recovery-codes-copy"
+                    onClick={() => navigator.clipboard.writeText(twoFactor.recoveryCodes!.join('\n')).catch(() => undefined)}
+                    style={{ height: 34, padding: '0 14px', borderRadius: 9, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Copy all
+                  </button>
+                  <button
+                    data-testid="recovery-codes-done"
+                    onClick={twoFactor.dismissRecoveryCodes}
+                    style={{ height: 34, padding: '0 16px', borderRadius: 9, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    I've saved them
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Disable flow: confirm code prompt */}
+            {twoFactor.showDisablePrompt && (
+              <div data-testid="2fa-disable-panel" style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--tx2)' }}>Enter your current TOTP code (or a recovery code) to disable 2FA:</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    data-testid="2fa-disable-code"
+                    style={{ flex: 1, height: 40, padding: '0 14px', borderRadius: 9, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '15px', textAlign: 'center', letterSpacing: '.1em' }}
+                    type="text"
+                    placeholder="000000 or XXXX-XXXX-XXXX"
+                    value={twoFactor.confirmCode}
+                    onChange={e => twoFactor.setConfirmCode(e.target.value)}
+                  />
+                  <button
+                    data-testid="2fa-disable-confirm"
+                    onClick={twoFactor.confirmDisable}
+                    disabled={twoFactor.busy || !twoFactor.confirmCode}
+                    style={{ height: 40, padding: '0 18px', borderRadius: 9, border: '1px solid var(--down)', background: 'transparent', color: 'var(--down)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: (twoFactor.busy || !twoFactor.confirmCode) ? 0.6 : 1 }}
+                  >
+                    Disable
+                  </button>
+                </div>
+                {twoFactor.error && (
+                  <span style={{ fontSize: '12px', color: 'var(--down)' }}>{twoFactor.error}</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Passkey / biometric */}
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--tx)' }}>Passkeys / biometric login</span>
+                <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>
+                  {!passkey.serverEnabled
+                    ? 'Not available on this server'
+                    : !passkey.browserSupported
+                    ? 'Not supported in this browser'
+                    : 'Log in with Face ID, Touch ID, or a hardware key'}
+                </span>
+              </div>
+              {passkey.serverEnabled && passkey.browserSupported && (
+                <button
+                  data-testid="passkey-register"
+                  onClick={passkey.register}
+                  disabled={passkey.busy}
+                  style={{ height: 34, padding: '0 16px', borderRadius: 9, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', opacity: passkey.busy ? 0.6 : 1 }}
+                >
+                  {passkey.busy ? 'Adding…' : 'Add a passkey'}
+                </button>
+              )}
+            </div>
+            {passkey.error && (
+              <span style={{ fontSize: '12px', color: 'var(--down)' }}>{passkey.error}</span>
+            )}
+            {passkey.success && (
+              <span style={{ fontSize: '12px', color: 'var(--up)' }}>{passkey.success}</span>
+            )}
+          </div>
+        </div>
+
         {authed && (
           <button
             onClick={() => logout()}
@@ -209,6 +386,46 @@ export function Settings() {
           </button>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Render a QR code for the given otpauth:// URI.
+ *
+ * Uses the `qrcode` package (already a frontend dep) to generate a data-URI
+ * which we display as an <img>. If the package is unavailable for any reason,
+ * falls back to showing the raw URI so the user can still set up manually.
+ */
+function TotpQrCode({ uri }: { uri: string }) {
+  const [src, setSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    import('qrcode').then(QR => {
+      QR.default.toDataURL(uri, { width: 180, margin: 2 }).then((url: string) => {
+        if (!cancelled) setSrc(url)
+      }).catch(() => { /* ignore */ })
+    }).catch(() => { /* package unavailable */ })
+    return () => { cancelled = true }
+  }, [uri])
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt="TOTP QR code"
+        width={180}
+        height={180}
+        style={{ borderRadius: 12, border: '1px solid var(--line2)', background: '#fff' }}
+      />
+    )
+  }
+
+  // Graceful fallback: show the raw URI
+  return (
+    <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--line2)', fontSize: '10px', color: 'var(--tx3)', wordBreak: 'break-all', maxWidth: 280 }}>
+      {uri}
     </div>
   )
 }

@@ -15,6 +15,10 @@ class User(UserMixin, Base):
     password_hash = Column(String, nullable=True)
     email_verified = Column(Boolean, default=False)
     plan = Column(String, default="free")  # 'free' | 'premium'
+    # TOTP 2FA — nullable so existing users are unaffected.
+    # totp_secret stored encrypted at rest via EncryptedString.
+    totp_secret = Column(EncryptedString, nullable=True)
+    totp_enabled = Column(Boolean, nullable=False, default=False)
 
 
 class WatchlistItem(Base):
@@ -215,4 +219,36 @@ class PushSubscription(Base):
     endpoint = Column(Text, nullable=False, unique=True)
     p256dh = Column(Text, nullable=False)   # ECDH public key (base64url)
     auth = Column(Text, nullable=False)     # auth secret (base64url)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class RecoveryCode(Base):
+    """Single-use backup codes for TOTP 2FA recovery.
+
+    Each code is hashed with Argon2 and may only be consumed once
+    (used_at is set on consumption). On 2FA disable all codes are deleted.
+    """
+    __tablename__ = "recovery_codes"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    code_hash = Column(String, nullable=False)   # Argon2 hash of the plaintext code
+    used_at = Column(DateTime, nullable=True)    # NULL = unused
+
+
+class WebAuthnCredential(Base):
+    """Registered WebAuthn / passkey credential per user device.
+
+    credential_id and public_key are stored as base64url strings.
+    Multiple credentials per user are supported (one per device/platform).
+    """
+    __tablename__ = "webauthn_credentials"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    # Unique byte-string identifier returned by the authenticator.
+    credential_id = Column(Text, nullable=False, unique=True, index=True)
+    # COSE-encoded public key, base64url.
+    public_key = Column(Text, nullable=False)
+    sign_count = Column(Integer, nullable=False, default=0)
+    # Human-readable label set by the user (optional).
+    label = Column(String, nullable=True, default="")
     created_at = Column(DateTime, server_default=func.now())

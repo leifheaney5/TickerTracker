@@ -158,7 +158,13 @@ interface StoreState {
   currentUser: AuthUser | null
   authChecked: boolean
   loadMe: () => Promise<void>
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  login: (email: string, password: string) => Promise<{
+    ok: boolean
+    error?: string
+    /** When true, the user has 2FA enabled. Use `token` + a TOTP code to complete login. */
+    twoFactor?: boolean
+    token?: string
+  }>
   signup: (email: string, password: string, name?: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => Promise<void>
   forgot: (email: string) => Promise<{ ok: boolean; error?: string }>
@@ -236,7 +242,12 @@ export const useStore = create<StoreState>((set, get) => ({
   login: async (email, password) => {
     const r = await fetch('/api/auth/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { ok: false, error: j.error || 'Login failed' } }
-    const j = await r.json(); set({ currentUser: j.user ?? null })
+    const j = await r.json()
+    // 2FA interstitial: backend requires a TOTP code before establishing session.
+    if (j.two_factor_required === true) {
+      return { ok: false, twoFactor: true, token: j.token as string }
+    }
+    set({ currentUser: j.user ?? null })
     // Re-fetch personalized data so the newly-logged-in user sees their own
     // watchlist/settings/holdings without a page reload.
     await get().loadWatchlist(); await get().loadWatchlists(); await get().loadSettings(); await get().loadHoldings(); await get().loadBilling()
