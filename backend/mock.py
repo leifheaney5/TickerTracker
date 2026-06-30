@@ -142,6 +142,47 @@ def mock_news(sym=None) -> list:
     return out
 
 
+def mock_dividends(sym: str) -> list:
+    """Deterministic mock dividend events for offline/test mode.
+
+    Only a handful of well-known dividend payers have realistic entries; all
+    others get an empty list so the "no dividends" path is also covered.
+    NOTE: these are clearly mock values for testing — not real historical data.
+    """
+    _KNOWN = {
+        # symbol: [(ex_date, pay_date, amount), ...]
+        "AAPL": [
+            ("2024-02-09", "2024-02-15", 0.24),
+            ("2024-05-10", "2024-05-16", 0.25),
+            ("2024-08-12", "2024-08-15", 0.25),
+            ("2024-11-08", "2024-11-14", 0.25),
+            ("2025-02-07", "2025-02-13", 0.25),
+            ("2025-05-09", "2025-05-15", 0.26),
+        ],
+        "JNJ": [
+            ("2024-02-20", "2024-03-05", 1.19),
+            ("2024-05-21", "2024-06-04", 1.19),
+            ("2024-08-20", "2024-09-03", 1.24),
+            ("2024-11-19", "2024-12-03", 1.24),
+            ("2025-02-18", "2025-03-04", 1.30),
+            ("2025-05-20", "2025-06-03", 1.30),
+        ],
+        "KO": [
+            ("2024-03-14", "2024-04-01", 0.485),
+            ("2024-06-13", "2024-07-01", 0.485),
+            ("2024-09-13", "2024-10-01", 0.485),
+            ("2024-12-13", "2024-12-31", 0.485),
+            ("2025-03-14", "2025-04-01", 0.51),
+            ("2025-06-13", "2025-07-01", 0.51),
+        ],
+    }
+    raw = _KNOWN.get(sym.upper(), [])
+    return [
+        {"ex_date": ex, "pay_date": pay, "amount": amt}
+        for ex, pay, amt in raw
+    ]
+
+
 def mock_ratings(sym: str) -> dict:
     r = rng(fnv1a("RATE_" + sym) + 17)
     dist = {"strongBuy": int(2 + r() * 18), "buy": int(2 + r() * 16),
