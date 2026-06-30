@@ -64,7 +64,7 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 ### Parallel dispatch — independent tasks, no shared write targets
 ```
 "Full health check"
-  → security-auditor + e2e-engineer + performance-engineer (parallel)
+  → security-auditor + e2e-engineer + performance-engineer + hf-engineer (parallel)
   → synthesize into prioritized action list
 
 "Review the auth layer and run tests"
@@ -89,7 +89,7 @@ hf-engineer produces feature spec
   → site-maintainer implements it
   → e2e-engineer writes e2e tests for the new flow
 
-database-optimizer identifies slow queries
+performance-engineer (or database-optimizer, if installed) identifies slow queries
   → site-maintainer applies index migrations
 
 performance-engineer flags Finnhub over-fetching
@@ -116,13 +116,13 @@ hf-engineer surfaces a UX value prop
 | "fix", "refactor", "implement", "add", "update" | `site-maintainer` |
 | "audit", "security", "CVE", "OWASP", "vuln", "key leak" | `security-auditor` |
 | "test", "e2e", "playwright", "flaky", "coverage" | `e2e-engineer` |
-| "UX", "feature idea", "improve", "usability", "user flow" | `hf-engineer` |
+| "UX", "feature idea", "improve UX/usability", "user flow" | `hf-engineer` |
 | "slow", "latency", "perf", "bottleneck", "bundle" | `performance-engineer` |
-| "query", "index", "postgres", "slow query", "N+1" | `database-optimizer` |
+| "query", "index", "postgres", "slow query", "N+1" | `performance-engineer` (diagnose) → `site-maintainer` (apply index migration); escalate to `database-optimizer` only if installed |
 | "marketing", "positioning", "messaging", "copy", "tagline", "campaign", "value prop" | `marketing-strategist` |
 | "SEO", "meta tags", "structured data", "schema", "sitemap", "open graph", "page speed", "Core Web Vitals", "favicon", "brand assets" | `web-seo-engineer` |
 | "outreach", "launch", "Product Hunt", "Reddit", "Hacker News", "social post", "distribution", "community" | `outreach-coordinator` |
-| "PR", "press", "backlinks", "link building", "journalist", "newsletter pitch", "HARO", "directory", "roundup", "guest post", "earned media" | `pr-backlink-builder` |
+| "press", "press release", "PR (media/outreach — not a pull request)", "backlinks", "link building", "journalist", "newsletter pitch", "HARO", "directory", "roundup", "guest post", "earned media" | `pr-backlink-builder` |
 | "health check", "full audit", "review everything" | engineering core parallel (security + e2e + performance + hf) |
 | "launch prep", "go-to-market", "growth" | `marketing-strategist` → web-seo-engineer + outreach-coordinator + pr-backlink-builder |
 

@@ -15,11 +15,24 @@ const logDir = path.join(cwd, '.claude', 'logs');
 const logFile = path.join(logDir, 'subagents.log');
 
 const ts = new Date().toISOString();
+
+// SubagentStop payloads have used several field names for the agent identity
+// across harness versions. Probe the known candidates; if none are present,
+// record agent=unknown plus the payload's top-level keys so the real field
+// name is self-documenting in the log instead of silently dropping out.
+const agent =
+  data.agent_type ||
+  data.subagent_type ||
+  data.agent_name ||
+  data.subagentType ||
+  data.agent ||
+  (data.tool_input && data.tool_input.subagent_type) ||
+  '';
+
 const fields = [
   ts,
   data.session_id ? `session=${data.session_id}` : '',
-  data.agent_type || data.subagent_type ? `agent=${data.agent_type || data.subagent_type}` : '',
-  data.agent_name ? `name=${data.agent_name}` : '',
+  agent ? `agent=${agent}` : `agent=unknown keys=[${Object.keys(data).join(',') || 'none'}]`,
 ].filter(Boolean).join(' | ');
 
 try {
