@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useStore, isAuthed } from '../state/store'
 import { FONT_SANS } from '../theme/tokens'
 import { Toggle } from '../components/Toggle'
@@ -19,6 +20,14 @@ export function Settings() {
   const openAuth = useStore((s) => s.openAuth)
   const billing = useStore((s) => s.billing)
   const openUpgrade = useStore((s) => s.openUpgrade)
+
+  // Hooks must run unconditionally (Rules of Hooks). Call them BEFORE any early
+  // return so the hook count stays stable across the unauth→auth transition —
+  // otherwise React throws #310 ("rendered more hooks than previous render").
+  const { isSubscribed, isSupported, permissionState, toggle: togglePush, busy: pushBusy } =
+    usePushSubscription()
+  const twoFactor = useTwoFactor()
+  const passkey = usePasskey()
 
   // Anonymous users have no settings — prompt sign-in instead of a stuck spinner.
   if (!authed) {
@@ -47,12 +56,6 @@ export function Settings() {
       <Toggle on={!!settings[key]} onClick={() => updateSettings({ [key]: !settings[key] } as Partial<typeof settings>)} />
     </div>
   )
-
-  const { isSubscribed, isSupported, permissionState, toggle: togglePush, busy: pushBusy } =
-    usePushSubscription()
-
-  const twoFactor = useTwoFactor()
-  const passkey = usePasskey()
 
   const startCheckout = async (interval: 'monthly' | 'annual') => {
     try {

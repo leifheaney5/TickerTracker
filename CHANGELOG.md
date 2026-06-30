@@ -10,6 +10,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
 > engagement, and security. Batch A below; subsequent batches follow.
 
+## [1.25.1] — 2026-06-30
+
+> **Platform expansion — e2e hardening + two crash fixes.** Browser-level Playwright
+> coverage for the new surfaces surfaced two real crashes that unit tests (single-state
+> jsdom renders) could not.
+
+### Fixed
+
+- **Settings page crash (React #310)** for authenticated users: `usePushSubscription`,
+  `useTwoFactor`, and `usePasskey` were called *after* the unauthenticated early-return, so
+  the hook count changed across the unauth→auth transition. Hoisted all three above the guard.
+- **Home-page crash on incomplete Pulse data**: `PulseDial` / `PulseWhy` called
+  `band.toUpperCase()` / `components.map()` on a pulse object that was present but missing
+  fields, crashing the whole view. Both now require a complete pulse before rendering.
+
+### Added
+
+- **Playwright e2e coverage** for the expansion surfaces (`auth`, `holdings`, `settings`,
+  `watchlist` specs): OAuth-provider button gating, TOTP challenge step, allocation-mode
+  toggle, dividends + benchmark panels, the new watchlist grid columns, and the Security
+  card. Full suite green (52 tests).
+
+### Changed
+
+- Minor `vite build` strict-type fixes (`AuthScreen`, `usePushSubscription`, `streamHelpers`)
+  that `tsc --noEmit` did not flag; `data-testid="alloc-center-label"` added to the Holdings
+  allocation donut for a stable e2e locator.
+
 ## [1.25.0] — 2026-06-30
 
 > **Platform expansion — Batch E2: TOTP 2FA + passkey entrypoint.** Optional

@@ -363,7 +363,7 @@ export function Holdings() {
                 <Donut positions={allocSlices.map((s) => ({ sym: s.label, val: s.value }))} total={totalValue} colors={DONUT_COLORS} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                   <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{allocSlices.length}</span>
-                  <span style={{ fontSize: '10.5px', color: 'var(--tx3)' }}>{allocMode === 'Position' ? 'positions' : 'groups'}</span>
+                  <span data-testid="alloc-center-label" style={{ fontSize: '10.5px', color: 'var(--tx3)' }}>{allocMode === 'Position' ? 'positions' : 'groups'}</span>
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column', gap: 9 }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStore } from '../state/store'
+import type { AuthUser } from '../api/types'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 
 type Mode = 'login' | 'signup' | 'forgot' | 'reset' | 'totp'
@@ -126,7 +127,7 @@ export function AuthScreen() {
       const user = (j as { user?: unknown }).user
       if (user) {
         // Sync user into store + reload personal data
-        useStore.setState({ currentUser: user as Parameters<typeof useStore.setState>[0]['currentUser'] })
+        useStore.setState({ currentUser: user as AuthUser })
         const s = useStore.getState()
         await Promise.all([s.loadWatchlist(), s.loadWatchlists(), s.loadSettings(), s.loadHoldings(), s.loadBilling()])
         closeAuth()
