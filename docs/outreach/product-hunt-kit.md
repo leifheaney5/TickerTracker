@@ -2,9 +2,20 @@
 
 > DRAFT ONLY. Leif reviews and submits himself. Nothing in this file is live.
 >
-> Honesty rule: Pulse, the "Why" panel, smart/divergence alerts, and Pulse history
-> are NOT shipped. All copy that depends on them is clearly marked HOLD. The primary
-> launch path leads with shipped features only.
+> Gate status updated 2026-06-30: Pulse (F1 + F2 — core score + Why panel) is
+> confirmed live in production. Pulse-forward copy is now the primary launch path.
+>
+> Still gated (do not use until confirmed live and useful to users):
+>   - F3: Pulse signal-history sparkline and "shifted N days ago" annotation.
+>     The PulseTrend component shows an "accruing" fallback until at least two
+>     days of snapshot data exist for a symbol — it is not a meaningful claim for
+>     new users on launch day.
+>   - F4: Smart/divergence alerts (signal_alerts service).
+>   - F5: "What changed since you last visited" digest strip.
+>
+> Honesty rule (standing): Pulse is a transparent summary of public signals, not a
+> prediction or advice. News-headline sentiment is keyword-based from Finnhub's
+> news feed; it is always labeled as such.
 >
 > Sources consulted: positioning-and-copy.md §4, brand-guide.md §1 and §7, README.md.
 > PH guidelines: https://news.ycombinator.com/showhn.html (cross-reference launch norms),
@@ -14,34 +25,74 @@
 
 ## 1. Tagline (60-character limit)
 
-**Primary (ships-today, no Pulse dependency):**
+**Primary (Pulse-forward — now active):**
+
+> One honest, transparent score for every ticker you watch.
+
+Character count: 57. Within limit.
+
+**Alternate A (unified-dashboard — good fallback if Pulse angle tests poorly):**
 
 > Stocks and crypto, one dark dashboard. Free to browse.
 
 Character count: 54. Within limit.
 
-**Alternate A (ships-today):**
+**Alternate B:**
 
 > One dark dashboard for stocks, crypto, and market signals.
 
 Character count: 58. Within limit.
 
-**HOLD — Pulse-forward alternate (use only after Pulse merges and is live in prod):**
-
-> One honest, transparent score for every ticker you watch.
-
-Character count: 57. Within limit. (Adapted from §4 of positioning-and-copy.md; do not
-use until Pulse is in production.)
-
 ---
 
 ## 2. Maker first comment
 
-> HOLD NOTE: The maker comment in positioning-and-copy.md §4 leads with Pulse and
-> the "Why" panel. Do not post that version until Pulse is merged and live. Use the
-> ships-today version below instead.
+### Pulse-forward version — RECOMMENDED (Pulse is live as of 2026-06-30)
 
-### Ships-today version
+---
+
+Hi Product Hunt — Leif here.
+
+I built Ticker Tracker because every signal in retail trackers is either buried or a
+black box. You get a "Strong Buy" badge with no explanation, or a sentiment dial with no
+stated source. I wanted to see the actual inputs, with the math visible.
+
+The centerpiece is Pulse: a single 0–100 score per ticker that reads four public
+signals — momentum (RSI and MACD state), trend (price vs. moving averages), analyst
+consensus (buy/hold/sell distribution and distance to the mean target from Finnhub),
+and news-headline sentiment — and shows you every component and its raw value in a
+"Why" panel. Not a prediction. Not advice. The sentiment piece is based on headline
+keywords from Finnhub's news feed and is labeled exactly as that. The weights are
+published constants in the source, not a model you cannot inspect.
+
+That transparency is the core idea. The score tells you what to look at next; the Why
+panel makes sure you know what the score actually means.
+
+Pulse sits on top of the rest of the app: a curated watchlist with per-ticker price
+targets and email alerts (you get an email the moment a target is crossed, plus a
+weekly digest of your full list). A Finviz-style market treemap alongside a crypto
+world view and live Fear and Greed index. Analyst ratings and price targets per stock.
+News sentiment mood chips per watchlist. Stocks and crypto in one dark dashboard, no
+brokerage required, free to browse.
+
+The data layer runs on real sources (Finnhub, Yahoo Finance, CoinGecko, alternative.me)
+with graceful per-field fallbacks, so the app never shows a broken page.
+
+Honest caveats, because they matter: this is an indie project, not a professional
+terminal. Pulse reflects public data available to anyone — it does not incorporate
+order flow, institutional positioning, or proprietary signals. It will not out-chart
+TradingView or out-screen Finviz. It is the calm, transparent tracker I built for
+myself, and I am genuinely curious whether the honesty framing is useful to anyone
+else or whether it just adds noise.
+
+Happy to answer questions about how the Pulse components are weighted, the watchlist
+alert engine, or the data sources.
+
+— Leif
+
+---
+
+### Simpler alternate (use if shorter story is preferred or Pulse is not leading)
 
 ---
 
@@ -53,38 +104,22 @@ map, a separate crypto app for Fear and Greed, and something else for analyst ra
 None of them talked to each other, and none of them tracked both stocks and crypto in
 the same place.
 
-So Ticker Tracker does one thing first: it unifies everything on one calm, dark
-surface. A curated watchlist with per-ticker price targets and email alerts (you get
-an email the moment a target is hit, plus a weekly digest of your whole list). A
-Finviz-style market treemap alongside a crypto world view and a live Fear and Greed
-index. News sentiment mood chips per watchlist. Analyst ratings and price targets from
-Finnhub. Free to browse, no brokerage required — you just need an account to save your
-watchlist and set alerts.
+Ticker Tracker unifies everything on one calm, dark surface. A curated watchlist with
+per-ticker price targets and email alerts. A Finviz-style market treemap alongside a
+crypto world view and live Fear and Greed index. News sentiment mood chips per
+watchlist (headline-based, labeled as that). Analyst ratings and price targets from
+Finnhub. And now Pulse — a single transparent 0–100 score per ticker that shows you
+every signal behind it in a "Why" panel. Not a prediction, not advice, just the public
+signals summarized honestly.
 
-The data layer runs on real sources (Finnhub, Yahoo Finance, CoinGecko, alternative.me)
-with graceful per-field fallbacks, so the app never shows a broken page. It is tested,
-deployed to Railway, and live at tickertracker.info.
-
-Honest caveats, because I think they matter: this is an indie project, not a pro
-terminal. It will not out-chart TradingView or out-screen Finviz. It does not sync with
-your brokerage or do options. It is the calm, no-noise tracker I built for myself, and
-I am genuinely curious whether it is useful to anyone else.
+Free to browse, no brokerage required. Account needed to save your watchlist and set
+alerts.
 
 Happy to answer questions about the watchlist flow, the alert engine, or the data
-sources. Would especially value feedback on what you reach for daily vs. what you
-ignore.
+sources. Would especially value feedback on whether the Pulse transparency approach
+feels trustworthy or hand-wavy.
 
 — Leif
-
----
-
-### HOLD — Pulse extension paragraph (add only after Pulse is live)
-
-There is a second layer in progress: Pulse, a single 0–100 score per ticker that reads
-momentum, trend, analyst consensus, and news-headline sentiment and shows you every
-component and its raw value in a "Why" panel. It is not a prediction and not advice —
-it is the public signals, summarized honestly, with the math visible. That ships when
-the indicator service completes. I will update this thread when it does.
 
 ---
 
@@ -99,40 +134,58 @@ the indicator service completes. I will update this thread when it does.
 The market treemap alongside the crypto world view panel. Fear and Greed index visible.
 Shows the core unified-asset-class proposition immediately.
 
-### Shot 2 — Watchlist + alerts
+### Shot 2 — Pulse (now active — previously held)
+**"One score. Fully shown."**
+The Pulse dial on a stock card with the Why component table open beneath it. Band label
+in the active band color. All four components visible with their raw values and labels.
+Caption must say: "Pulse is a transparent summary of public signals, not a prediction."
+This is the lead differentiator shot — place it second so it follows the
+market-overview hook.
+
+### Shot 3 — Watchlist + alerts
 **"Your watchlist, your alerts."**
 The curated watchlist at full height with a few tickers, per-row price-target cells
 visible, and the alert armed icon active on at least one row.
 
-### Shot 3 — News sentiment + mood
+### Shot 4 — News sentiment + mood
 **"Read the mood, not the feed."**
 Per-watchlist sentiment mood chips and the news panel for a selected ticker. Shows the
-headline-keyword sentiment feature (label it "headline-based" in the caption — honesty
-rule).
+headline-keyword sentiment feature (label it "headline-based" in the caption —
+honesty rule).
 
-### Shot 4 — Analyst ratings + price target
+### Shot 5 — Analyst ratings + price target
 **"Analyst consensus in context."**
 A stock detail panel showing analyst buy/hold/sell distribution and mean price target
-from Finnhub. Shows the ratings feature that ships today.
+from Finnhub. Shows the ratings feature alongside the Pulse analyst-consensus component.
 
-### Shot 5 — Alert email (optional but strong)
+### Shot 6 — Alert email (optional but strong)
 **"It emails you when it matters."**
-Screenshot of an actual price-hit alert email and/or the weekly digest email. This
-shows the automation layer concretely.
+Screenshot of an actual price-hit alert email and/or the weekly digest email. Shows the
+automation layer concretely.
 
-### Shot 6 — Light/dark toggle (optional)
+### Shot 7 — Light/dark toggle (optional)
 **"Dark by default. Light if you prefer."**
 Side-by-side or transition shot of theme toggle. Shows polish.
 
-### HOLD — Shot for Pulse (add when Pulse is live)
-**"One score. Fully shown."**
-The Pulse dial on a stock card with the "Why" component table open. Band label in the
-active band color. Caption must say "Pulse is a transparent summary of public signals,
-not a prediction."
+### HOLD — Pulse history shot (F3 — do not use until accrued history is meaningful)
+**"The trend, day by day."**
+The Pulse sparkline inside the Why panel with a "shifted N days ago" annotation.
+Do not use this shot on launch day: the sparkline shows an "accruing" fallback
+message until at least two days of snapshot data exist per symbol. Use once real
+users have accumulated a week or more of Pulse history.
 
 ---
 
 ## 4. FAQ (for the PH listing description section)
+
+**What is Pulse?**
+Pulse is Ticker Tracker's transparency score — a single 0–100 number per ticker that
+reads four public signals (momentum from RSI and MACD, price trend vs. moving averages,
+analyst consensus and distance to the mean target, and news-headline sentiment) and
+shows you every component and its raw value in a "Why" panel. It is not a prediction
+and not investment advice. The sentiment input is based on headline keywords from
+Finnhub's news feed, and the app labels it exactly as that. The weights are published
+constants, not a hidden model.
 
 **Is it free?**
 Yes, free to browse the demo watchlist with no account. A free account lets you save
@@ -150,13 +203,13 @@ US-listed stocks and ETFs (via Finnhub and Yahoo Finance) plus major cryptocurre
 market cap and 24-hour change for major coins.
 
 **Is the sentiment data from social media?**
-No. The news sentiment "mood" chips are based on headline keywords from Finnhub's news
-feed, not from X, Reddit, or StockTwits. The app labels this as headline-based and
-does not claim to model social sentiment.
+No. The news sentiment "mood" chips and the Pulse sentiment component are based on
+headline keywords from Finnhub's news feed, not from X, Reddit, or StockTwits. The
+app labels this as headline-based and does not claim to model social sentiment.
 
 **Is it a trading tool?**
-No. It does not execute trades, give advice, or make predictions. It shows public market
-data and lets you set price-hit alert thresholds.
+No. It does not execute trades, give advice, or make predictions. Pulse is explicitly a
+summary of public signals with full transparency on every input — not a buy/sell signal.
 
 **What are the email alerts?**
 You arm a price target on any watchlist ticker. When the live price crosses that target
@@ -184,10 +237,10 @@ I noticed you have hunted [relevant product or category — fill this in specifi
 and have an audience that overlaps with retail investors or indie-built finance tools.
 
 I am launching Ticker Tracker (tickertracker.info) on Product Hunt — a dark-mode
-stock and crypto dashboard that unifies a curated watchlist, Finviz-style market map,
-news sentiment, and analyst ratings in one surface, with email price alerts and a
-weekly digest. Free to browse, no brokerage required. Indie project, fully tested, live
-on Railway.
+stock and crypto dashboard with Pulse, a transparent 0–100 score per ticker that shows
+every signal behind it in a "Why" panel. On top of that: a curated watchlist with
+email price alerts, a Finviz-style market map, news sentiment, and analyst ratings.
+Free to browse, no brokerage required. Indie project, tested, live on Railway.
 
 If you find it genuinely useful after trying it, I would be grateful if you would
 consider hunting it. If it is not your thing, no worries at all — I am happy to
@@ -228,13 +281,13 @@ Leif
 
 | Time | Action |
 |---|---|
-| D-30 | Schedule the PH listing (up to 30 days ahead allowed). Upload assets, tagline, description, gallery shots. Set URL to tickertracker.info. |
+| D-30 | Schedule the PH listing (up to 30 days ahead allowed). Upload assets, Pulse-forward tagline (§1 primary), description, gallery shots. Set URL to tickertracker.info. |
 | D-7 | Post once on X/Twitter teasing the launch date. Do not mention PH until D-1. |
 | D-3 | Send hunter DM if going with a hunter (Template A). Confirm they are willing. |
 | D-1 | Send supporter heads-up to anyone who has already used the app and expressed interest (Template B). Post X teaser referencing "launching tomorrow." |
-| D-0 00:01 PST | Listing goes live. Post the maker first comment (ships-today version above) immediately. |
+| D-0 00:01 PST | Listing goes live. Post the Pulse-forward maker first comment (§2 primary version) immediately. |
 | D-0 00:01–04:00 | Monitor the thread. Respond to every comment within 30 minutes. Answer questions; do not pitch. This 4-hour window is the ranking window — engagement quality counts. |
-| D-0 04:00–08:00 | Post the X launch thread (see channel-drafts.md). Share the PH link. |
+| D-0 04:00–08:00 | Post the X Pulse launch thread (see channel-drafts.md §X primary thread). Share the PH link. |
 | D-0 08:00–12:00 | Post to r/SideProject (see channel-drafts.md). Do not post other Reddit subs on launch day — spread Reddit over days 2-5. |
 | D-0 12:00–18:00 | Post Show HN (see channel-drafts.md). |
 | D-0 18:00–23:00 | Final check on PH thread. Thank commenters. Update maker comment with any live-feedback notes. |
