@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.2] — 2026-06-30
+
+### Fixed
+
+- **P1 data-integrity: Strategy KPI cards were hardcoded fiction** (`Strategy.tsx`): The KPI
+  banner (Sharpe ratio, Max Drawdown, Win Rate, Risk/Reward, Trend Strength) and the
+  algo-health sidebar (Circuit Breakers, System Health, Execution Quality) displayed static
+  seed numbers alongside a live positions table, giving users the false impression these were
+  real metrics. No algo backend or portfolio-performance endpoint exists in the store or API.
+  All fabricated values replaced with `—`. Page subtitle updated to "Portfolio overview —
+  positions use live prices; algo metrics require a connected trading backend." A "Simulated
+  metrics" disclosure note added below the KPI group and inside the Execution Quality card.
+
+- **P1 data-integrity: Market Overview index cards and sector bars showed seed data as live**
+  (`MarketViews.tsx`): Index cards (SPX, NDX, DJI, RUT, VIX) and sector performance bars
+  in the Overview and Sectors sub-tabs rendered static values from `market.ts` (hardcoded
+  numbers and a `hashStr`-based fake `sectorPerf()`) with no indication they were not live.
+  No real-time index or sector endpoint exists in the API or store. All prices, change
+  percentages, bar fills, and heatmap cells replaced with `—`/empty bars. A "Simulated
+  data — live market index quotes coming soon" disclosure note added after the index card
+  group and within each sector section. Removed unused `sectorPerf` and `heatColor` imports.
+
 ## [1.18.1] — 2026-06-29
 
 ### Fixed
