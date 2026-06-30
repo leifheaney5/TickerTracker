@@ -10,6 +10,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
 > engagement, and security. Batch A below; subsequent batches follow.
 
+## [1.23.0] — 2026-06-30
+
+> **Platform expansion — Batch D: real-time streaming + optional Redis.** A backend
+> Finnhub WebSocket ingestion pipeline with reconnect/backoff + circuit breaker, an
+> opt-in SSE bridge to the browser, and a shared Redis cache backend. **All opt-in and
+> env-gated — with no env set, runtime behavior is unchanged (60s poll + in-process cache).**
+
+### Added
+
+- **Backend Finnhub WebSocket ingestion** (`providers/finnhub_ws.py`, `services/stream.py`):
+  a daemon-thread WS client (guarded `websocket-client` import) that feeds the latest trade
+  prices into the cache. Resilience: tested **exponential backoff** (`backoff_delay`) and a
+  tested **circuit breaker** (closed/open/half-open with injected clock). Gated on
+  `FINNHUB_STREAM_ENABLED` — a no-op otherwise. Provider stays backend-side (never the browser).
+- **SSE browser bridge**: `GET /api/stream/quotes` (env-gated `text/event-stream`) +
+  `GET /api/stream/status`. Frontend `hooks/useQuoteStream.ts` checks status, opens an
+  `EventSource`, merges quotes via the existing flash path, and reconnects with backoff +
+  a circuit breaker — **falling back to the always-on 60s poll** on failure or when disabled.
+  Pure tested helpers `streamBackoff` + `StreamCircuitBreaker`.
+- **Optional Redis cache backend** (`cache.py`): when `REDIS_URL` is set, `cached()` uses Redis
+  (JSON-serialized, shared across instances) with the same stale-while-error semantics;
+  otherwise the in-process LRU is used unchanged. Guarded `redis` import with transparent fallback.
+
+### Notes
+
+- Each SSE connection occupies one gunicorn sync worker for its lifetime; before enabling in
+  production, raise worker count or switch to gevent/eventlet, and tune `SSE_MAX_TICKS` /
+  `SSE_TICK_INTERVAL`. WS price injection preserves `prev_close`/OHLC baselines (no partial quotes).
+
 ## [1.22.0] — 2026-06-30
 
 > **Platform expansion — Batch C2: dividends + index benchmarking.** Real dividend
