@@ -216,6 +216,7 @@ worktrees). Scripts live in `.claude/hooks/` (Node, no external deps):
 | `migration-guard.js` | `PreToolUse` `Write`/`Edit` | **Blocks** editing an already-committed Flask-Migrate revision in `migrations/versions/`. New (untracked) migrations pass. |
 | `protect-main.js` | `PreToolUse` `Bash` | **Blocks** direct push to `main` (incl. `HEAD:main`, `--force`, bare push on `main`). Feature-branch pushes pass. |
 | `dangerous-bash-guard.js` | `PreToolUse` `Bash` | **Blocks** clearly destructive ops: broad `rm -rf`, `flask db downgrade`, SQL `DROP`/`TRUNCATE`, `railway down`/delete. |
+| `commit-confidence.js` | `PreToolUse` `Bash` | **Blocks** `git commit` unless the message has a `Confidence: <0-100>/100` trailer — forces a stated confidence score (and one-line justification to the user) before every commit. |
 | `oxlint-fix.js` | `PostToolUse` `Write`/`Edit` | Best-effort `oxlint --fix` (safe fixes) on edited `frontend/**` JS/TS. Never blocks. |
 | `py-syntax-check.js` | `PostToolUse` `Write`/`Edit` | `py_compile` on edited `.py`; feeds any `SyntaxError` back as context. Never blocks. |
 | `related-test-runner.js` | `PostToolUse` `Write`/`Edit` | If an edited `frontend/src` file has a related test, runs `vitest related --run` and feeds failures back. Self-gating, never blocks. |

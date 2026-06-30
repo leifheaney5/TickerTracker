@@ -33,6 +33,11 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/dangerous-bash-guard.js\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/commit-confidence.js\"",
+            "timeout": 10
           }
         ]
       }
