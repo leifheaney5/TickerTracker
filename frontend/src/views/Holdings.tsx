@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore, isAuthed } from '../state/store'
 import { FONT_SANS, FONT_MONO, COMPARE_COLORS } from '../theme/tokens'
 import { UNIVERSE } from '../data/universe'
@@ -6,14 +6,17 @@ import { Logo } from '../components/Logo'
 import { Donut } from '../charts/Donut'
 import { Skeleton } from '../components/Skeleton'
 import { money, pct } from '../lib/format'
+import { aggregateAllocation, type AllocationMode } from '../lib/allocation'
 
 // Portfolio / Holdings view — ported from the prototype template (lines
 // 1095-1180). Connected: summary cards, allocation donut, positions table.
 // Disconnected: a "connect in Settings" empty state. Values masked when
 // hide_balances is on.
 const DONUT_COLORS = ['#3ddc84', ...COMPARE_COLORS, '#ffb347', '#5b9cff', '#e9ebee']
+const ALLOCATION_MODES: AllocationMode[] = ['Position', 'Sector', 'Asset Class']
 
 export function Holdings() {
+  const [allocMode, setAllocMode] = useState<AllocationMode>('Position')
   const settings = useStore((s) => s.settings)
   const holdings = useStore((s) => s.holdings)
   const loadHoldings = useStore((s) => s.loadHoldings)
@@ -59,6 +62,14 @@ export function Holdings() {
   const totalGain = totalValue - totalCost
   const totalGainPct = totalCost ? (totalGain / totalCost) * 100 : 0
   const todayVal = rows.reduce((a, r) => a + (r.value * r.day) / 100, 0)
+
+  // Allocation grouping helpers
+  // Build sector lookup from UNIVERSE
+  const sectorLookup: Record<string, string> = {}
+  for (const [sym, u] of Object.entries(UNIVERSE)) sectorLookup[sym] = u.sector
+  // Crypto symbols: those with group === 'Crypto' in UNIVERSE
+  const cryptoSyms = new Set(Object.entries(UNIVERSE).filter(([, u]) => u.group === 'Crypto').map(([s]) => s))
+  const allocSlices = aggregateAllocation(rows, allocMode, sectorLookup, cryptoSyms)
 
   if (!authed) {
     return (
@@ -145,22 +156,41 @@ export function Holdings() {
 
         <div style={{ display: 'flex', gap: 'var(--gap,16px)', alignItems: 'stretch', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 270px', minWidth: 260, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Allocation</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)' }}>Allocation</span>
+              <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--panel)', border: '1px solid var(--line)' }}>
+                {ALLOCATION_MODES.map((mode) => (
+                  <button
+                    key={mode}
+                    data-testid={`alloc-mode-${mode.toLowerCase().replace(' ', '-')}`}
+                    onClick={() => setAllocMode(mode)}
+                    style={{
+                      padding: '4px 9px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      fontFamily: FONT_SANS, fontSize: '11px', fontWeight: mode === allocMode ? 700 : 500,
+                      background: mode === allocMode ? 'var(--accent)' : 'transparent',
+                      color: mode === allocMode ? 'var(--accentInk)' : 'var(--tx3)',
+                    }}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: '0 0 auto' }}>
-                <Donut positions={rows.map((r) => ({ sym: r.symbol, val: r.value }))} total={totalValue} colors={DONUT_COLORS} />
+                <Donut positions={allocSlices.map((s) => ({ sym: s.label, val: s.value }))} total={totalValue} colors={DONUT_COLORS} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                  <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{rows.length}</span>
-                  <span style={{ fontSize: '10.5px', color: 'var(--tx3)' }}>positions</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: '22px', fontWeight: 600, color: 'var(--tx)' }}>{allocSlices.length}</span>
+                  <span style={{ fontSize: '10.5px', color: 'var(--tx3)' }}>{allocMode === 'Position' ? 'positions' : 'groups'}</span>
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {rows.slice().sort((a, b) => b.value - a.value).slice(0, 6).map((r, i) => (
-                  <div key={r.symbol} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                {allocSlices.slice(0, 6).map((slice, i) => (
+                  <div key={slice.label} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span style={{ width: 9, height: 9, borderRadius: 3, background: DONUT_COLORS[i % DONUT_COLORS.length], flex: '0 0 auto' }} />
-                    <span style={{ flex: 1, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{r.symbol}</span>
+                    <span style={{ flex: 1, fontSize: '12.5px', fontWeight: 600, color: 'var(--tx)' }}>{slice.label}</span>
                     {allLive
-                      ? <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{totalValue ? ((r.value / totalValue) * 100).toFixed(1) + '%' : '—'}</span>
+                      ? <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--tx2)' }}>{totalValue ? ((slice.value / totalValue) * 100).toFixed(1) + '%' : '—'}</span>
                       : <Skeleton inline width={38} height={11} />}
                   </div>
                 ))}
