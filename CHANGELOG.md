@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.1] — 2026-06-30
+
+> **WCAG 2.1 AA accessibility batch.** Six items from the hf-engineer deepscan:
+> focus trap + dialog semantics on auth and upgrade modals, screen-reader
+> announcements for auth errors, improved dark-theme contrast, and keyboard/touch
+> accessible signal chips.
+
+### Added
+
+- **`useFocusTrap` hook** (`frontend/src/hooks/useFocusTrap.ts`): reusable, dependency-free
+  focus-trap that constrains Tab/Shift-Tab within a modal, moves focus to the first
+  focusable element on open, returns focus to the trigger element on close, and fires
+  an optional `onEscape` callback (WCAG 2.1.2).
+
+### Changed
+
+- **Auth modal — focus trap** (A2): `AuthScreen.tsx` now uses `useFocusTrap`; Tab/Shift-Tab
+  cycle within the modal only; Escape closes the modal; focus returns to the opener.
+- **Auth modal — dialog semantics** (A3): modal container has `role="dialog"`,
+  `aria-modal="true"`, and `aria-labelledby="auth-title"`; title changed from `<span>`
+  to `<h2 id="auth-title">` (WCAG 4.1.2).
+- **Auth errors — live region** (A4): all four error spans gain `role="alert"` and
+  `aria-live="assertive"` so screen readers announce errors on appearance; submit buttons
+  reference the error via `aria-describedby` when one is present (WCAG 4.1.3).
+- **Upgrade modal — dialog semantics + focus trap** (A10): `UpgradePrompt.tsx` gains
+  `role="dialog"`, `aria-modal="true"`, `aria-labelledby="upgrade-title"`, `<h2>`
+  title, and the same `useFocusTrap` hook (WCAG 4.1.2).
+- **Dark-theme `--tx3` contrast** (A8): `tokens.ts` dark-palette `tx3` changed from
+  `#5b626c` (~3.0:1 on `--card` `#14171c`) to `#7a8290` (~4.57:1 on `#14171c`,
+  ~4.88:1 on `--bg` `#0a0b0d`) — both clear the 4.5:1 AA threshold. Light-theme
+  `tx3` (`#8b93a0`) unchanged (WCAG 1.4.3).
+- **Signal chips — keyboard/touch accessible detail** (A9): `SignalChips.tsx` converts
+  each chip from a `<span title="…">` to a `<button>` with `aria-describedby` pointing
+  to a `role="tooltip"` span; tooltip is visible on hover and keyboard focus; chips gain
+  `data-testid="signal-chip-{key}"` (WCAG 1.3.1 / 2.5.3).
+
 ## [1.18.0] — 2026-06-29
 
 > **Market Map follow-ups.** Sharpens the interactive map from v1.17.0 with an exchange
