@@ -33,11 +33,13 @@ export class StreamCircuitBreaker {
   private _state: CircuitState = 'closed'
   private _failures = 0
   private _openedAt: number | null = null
+  private readonly failThreshold: number
+  private readonly resetTimeout: number // ms
 
-  constructor(
-    private readonly failThreshold: number,
-    private readonly resetTimeout: number, // ms
-  ) {}
+  constructor(failThreshold: number, resetTimeout: number) {
+    this.failThreshold = failThreshold
+    this.resetTimeout = resetTimeout
+  }
 
   get state(): CircuitState {
     return this._state

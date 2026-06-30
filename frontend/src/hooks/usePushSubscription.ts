@@ -83,18 +83,18 @@ export function usePushSubscription(): PushSubscriptionHook {
       }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: base64UrlToUint8Array(vapidKey),
+        applicationServerKey: base64UrlToUint8Array(vapidKey).buffer as ArrayBuffer,
       })
       const json = sub.toJSON()
       const endpoint = sub.endpoint
       const p256dh = arrayBufferToBase64Url(
         json.keys?.p256dh
-          ? base64UrlToUint8Array(json.keys.p256dh).buffer
+          ? base64UrlToUint8Array(json.keys.p256dh).buffer as ArrayBuffer
           : new ArrayBuffer(0)
       )
       const auth = arrayBufferToBase64Url(
         json.keys?.auth
-          ? base64UrlToUint8Array(json.keys.auth).buffer
+          ? base64UrlToUint8Array(json.keys.auth).buffer as ArrayBuffer
           : new ArrayBuffer(0)
       )
       await api.pushSubscribe(endpoint, p256dh, auth)
