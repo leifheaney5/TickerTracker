@@ -29,6 +29,7 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 | `hf-engineer` | `.claude/agents/hf-engineer.md` | sonnet | UX research, feature specs, accessibility | read-only |
 | `performance-engineer` | `.claude/agents/performance-engineer.md` | sonnet | Query perf, Finnhub/YF caching, bundle size | read-only |
 | `database-optimizer` _(optional, not installed)_ | external — VoltAgent `voltagent-data-ai` (see note below) | sonnet | Slow query analysis, indexing, psycopg v3 | code |
+| `code-reviewer` | plugin — `feature-dev:code-reviewer` | sonnet | Logic/correctness/quality review of a diff before e2e | read-only |
 
 **Growth & Web**
 
@@ -83,10 +84,12 @@ social volume). Live price data from Finnhub (WebSocket + REST) and Yahoo Financ
 ```
 security-auditor finds vuln
   → site-maintainer patches it
+  → code-reviewer reviews the diff (logic/correctness)
   → e2e-engineer verifies fix
 
 hf-engineer produces feature spec
   → site-maintainer implements it
+  → code-reviewer reviews the diff (logic/correctness)
   → e2e-engineer writes e2e tests for the new flow
 
 performance-engineer (or database-optimizer, if installed) identifies slow queries
@@ -114,6 +117,7 @@ hf-engineer surfaces a UX value prop
 | User says | Dispatch to |
 |---|---|
 | "fix", "refactor", "implement", "add", "update" | `site-maintainer` |
+| "code review", "review the diff", "review this change", "correctness check" | `code-reviewer` (`feature-dev:code-reviewer`) |
 | "audit", "security", "CVE", "OWASP", "vuln", "key leak" | `security-auditor` |
 | "test", "e2e", "playwright", "flaky", "coverage" | `e2e-engineer` |
 | "UX", "feature idea", "improve UX/usability", "user flow" | `hf-engineer` |
@@ -132,6 +136,10 @@ hf-engineer surfaces a UX value prop
   REST or WebSocket, plus the relevant rate limit tier
 - When chaining: pass full output summary from upstream agent, never just a reference
 - Never ask a subagent to re-read files the parent already summarized
+- **Review gate:** route `site-maintainer`'s output through `code-reviewer` before
+  `e2e-engineer` for non-trivial diffs (logic, auth, market-data, migrations, money
+  paths). Skip the gate for trivial mechanical edits (copy, config, one-line fixes)
+  to avoid round-trip overhead — and state that it was skipped.
 
 ---
 

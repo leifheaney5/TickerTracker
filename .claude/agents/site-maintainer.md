@@ -100,5 +100,5 @@ git commit -m "type(scope): description"
 **Migration generated**: yes/no — [filename if yes]
 **Cache changes**: [any TTL or caching layer changes]
 **Follow-up needed**: yes/no — [description]
-**Recommended next agent**: e2e-engineer (if user-facing flow changed) | none
+**Recommended next agent**: code-reviewer (for non-trivial diffs) → e2e-engineer (if user-facing flow changed) | none
 ```
