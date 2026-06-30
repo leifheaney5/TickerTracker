@@ -34,7 +34,7 @@ export function applyFromUrl(fn: () => void) {
 
 export type View =
   | 'dashboard' | 'overview' | 'deep' | 'market' | 'map' | 'sectors'
-  | 'crypto' | 'screener' | 'strategy' | 'holdings' | 'alerts' | 'settings'
+  | 'crypto' | 'feargreed' | 'screener' | 'strategy' | 'holdings' | 'alerts' | 'settings'
   | 'managewatch'
 
 export type ChartType = 'candles' | 'line' | 'area'
