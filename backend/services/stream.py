@@ -1,8 +1,8 @@
 """Stream ingestion manager: Finnhub WS → in-process cache.
 
-Enabled only when ``FINNHUB_STREAM_ENABLED`` is explicitly truthy in the
-environment. Importing this module has no side effects: no threads are started,
-no connections are opened.
+Enabled only when ``FINNHUB_STREAM_ENABLED`` is explicitly truthy and a
+``FINNHUB_API_KEY`` is present. Importing this module has no side effects: no
+threads are started, no connections are opened.
 
 Usage:
     from services import stream as _stream
@@ -19,40 +19,13 @@ import cache
 logger = logging.getLogger(__name__)
 
 
-# ── Pure tested helpers ───────────────────────────────────────────────────────
-
-
 def backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
-    """Deterministic exponential backoff: ``base * 2^attempt``, capped at ``cap``.
-
-    No randomness — deterministic for predictable unit tests. Callers may
-    add jitter around the returned value if desired.
-
-    >>> backoff_delay(0)
-    1.0
-    >>> backoff_delay(3)
-    8.0
-    >>> backoff_delay(100)
-    30.0
-    """
+    """Deterministic exponential backoff: ``base * 2^attempt``, capped at ``cap``."""
     return min(base * (2 ** attempt), cap)
 
 
 class CircuitBreaker:
-    """Three-state circuit breaker: closed → open → half_open → closed.
-
-    States
-    ------
-    closed:    Normal; failures are counted.
-    open:      Tripped; ``allow()`` returns False until ``reset_timeout``
-               seconds have elapsed since the trip.
-    half_open: One trial connection is allowed; success closes it; failure
-               re-opens it.
-
-    The caller must pass a monotonic/wall ``now`` float to ``allow()`` and
-    ``record_failure()`` so tests can inject a fake clock without patching
-    ``time.time``.
-    """
+    """Three-state circuit breaker: closed → open → half_open → closed."""
 
     CLOSED = "closed"
     OPEN = "open"
@@ -70,28 +43,21 @@ class CircuitBreaker:
         return self._state
 
     def allow(self, now: float) -> bool:
-        """Return True if a connection attempt should proceed."""
         if self._state == self.CLOSED:
             return True
         if self._state == self.OPEN:
-            if (
-                self._opened_at is not None
-                and now - self._opened_at >= self.reset_timeout
-            ):
+            if self._opened_at is not None and now - self._opened_at >= self.reset_timeout:
                 self._state = self.HALF_OPEN
                 return True
             return False
-        # HALF_OPEN: allow the pending trial
         return True
 
     def record_success(self) -> None:
-        """Reset to closed state after a successful trial or reconnect."""
         self._state = self.CLOSED
         self._failures = 0
         self._opened_at = None
 
     def record_failure(self, now: Optional[float] = None) -> None:
-        """Record a failure. Trips the breaker once ``fail_threshold`` is hit."""
         self._failures += 1
         ts = now if now is not None else time.time()
         if self._state == self.HALF_OPEN or self._failures >= self.fail_threshold:
@@ -99,27 +65,13 @@ class CircuitBreaker:
             self._opened_at = ts
 
 
-# ── Cache injection ───────────────────────────────────────────────────────────
-
-
 def _inject_price(sym: str, price: float, ts: int = 0) -> None:  # noqa: ARG001
-    """Write a refreshed price into the quote cache for *sym*.
-
-    Reuses the existing cache entry (preserving ``prev_close``, ``day_open``,
-    etc.) and only updates ``price`` (and recomputes ``change_pct``). If no
-    entry exists yet, skips — the next REST poll will populate the full shape.
-
-    Thread-safe at the GIL level: CPython dict operations are atomic; this is
-    acceptable for the live-streaming use case.
-    """
     key = f"quote:{sym}"
     now = time.time()
     hit = cache._store.get(key)
     if not hit:
-        # No baseline yet from a REST call — skip rather than inject a partial quote.
         return
     val, _ts = hit
-    # val is (quote_dict, source_string) — same shape that services/quotes.py stores.
     try:
         quote_dict, _source = val
     except (TypeError, ValueError):
@@ -133,14 +85,8 @@ def _inject_price(sym: str, price: float, ts: int = 0) -> None:  # noqa: ARG001
     cache._touch(key, (updated, "finnhub_ws"), now)
 
 
-# ── Stream manager ────────────────────────────────────────────────────────────
-
-
 class _StreamManager:
-    """Singleton background ingestion manager.
-
-    ``maybe_start()`` is idempotent — safe to call multiple times.
-    """
+    """Singleton background ingestion manager."""
 
     def __init__(self) -> None:
         self._started = False
@@ -149,16 +95,15 @@ class _StreamManager:
         self._cb = CircuitBreaker(fail_threshold=5, reset_timeout=60.0)
 
     def maybe_start(self, symbols: Optional[List[str]] = None) -> None:
-        """Start the background WS thread if explicitly enabled via env.
+        """Start the background WS thread only when explicitly configured.
 
-        Accepted truthy values are ``1``, ``true``, ``yes`` and ``on``
-        (case-insensitive). Values such as ``false``, ``0`` or an empty/unset
-        variable leave streaming disabled, which is important for Railway
-        Serverless because an accidental WebSocket would keep the service awake.
-        Never raises — failure to start is logged, not propagated.
+        Accepted truthy values are ``1``, ``true``, ``yes`` and ``on``.
+        A missing Finnhub API key is also treated as disabled; this prevents a
+        useless reconnect loop from keeping a low-traffic Railway service awake.
         """
         enabled = os.environ.get("FINNHUB_STREAM_ENABLED", "").strip().lower()
-        if enabled not in {"1", "true", "yes", "on"}:
+        api_key = os.environ.get("FINNHUB_API_KEY", "").strip()
+        if enabled not in {"1", "true", "yes", "on"} or not api_key:
             return
         with self._lock:
             if self._started:
@@ -166,18 +111,14 @@ class _StreamManager:
             self._started = True
             self._symbols = list(symbols or [])
         logger.info("stream: starting background Finnhub WS ingestion thread")
-        t = threading.Thread(
-            target=self._run_loop, daemon=True, name="finnhub-ws-ingestion"
-        )
+        t = threading.Thread(target=self._run_loop, daemon=True, name="finnhub-ws-ingestion")
         t.start()
 
     def update_symbols(self, symbols: List[str]) -> None:
-        """Update the subscription set (takes effect on next reconnect)."""
         with self._lock:
             self._symbols = list(symbols)
 
     def _run_loop(self) -> None:
-        """Reconnect loop with exponential backoff + circuit breaker."""
         from providers.finnhub_ws import FinnhubWSClient
 
         attempt = 0
@@ -185,9 +126,7 @@ class _StreamManager:
             now = time.time()
             if not self._cb.allow(now):
                 delay = backoff_delay(attempt, base=1.0, cap=30.0)
-                logger.info(
-                    "stream: circuit open; waiting %.1fs before next attempt", delay
-                )
+                logger.info("stream: circuit open; waiting %.1fs before next attempt", delay)
                 time.sleep(delay)
                 attempt += 1
                 continue
@@ -196,20 +135,16 @@ class _StreamManager:
                 with self._lock:
                     syms = list(self._symbols)
                 client = FinnhubWSClient(symbols=syms, on_trade=_inject_price)
-                client.connect()  # blocks until disconnect / library absent
-                # connect() returned — treat as a non-fatal disconnect
+                client.connect()
                 self._cb.record_failure(time.time())
             except Exception as e:
                 self._cb.record_failure(time.time())
                 logger.error("stream: unexpected error: %s", e)
 
             delay = backoff_delay(attempt, base=1.0, cap=30.0)
-            logger.info(
-                "stream: reconnecting in %.1fs (attempt %d)", delay, attempt
-            )
+            logger.info("stream: reconnecting in %.1fs (attempt %d)", delay, attempt)
             time.sleep(delay)
             attempt += 1
 
 
-# Module-level singleton — import is always safe (no side effects at import time).
 manager = _StreamManager()
