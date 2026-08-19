@@ -1,8 +1,8 @@
 """Stream ingestion manager: Finnhub WS → in-process cache.
 
-Enabled only when ``FINNHUB_STREAM_ENABLED`` is set in the environment AND
-``FINNHUB_API_KEY`` is present.  Importing this module has no side effects:
-no threads are started, no connections are opened.
+Enabled only when ``FINNHUB_STREAM_ENABLED`` is explicitly truthy in the
+environment. Importing this module has no side effects: no threads are started,
+no connections are opened.
 
 Usage:
     from services import stream as _stream
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
     """Deterministic exponential backoff: ``base * 2^attempt``, capped at ``cap``.
 
-    No randomness — deterministic for predictable unit tests.  Callers may
+    No randomness — deterministic for predictable unit tests. Callers may
     add jitter around the returned value if desired.
 
     >>> backoff_delay(0)
@@ -91,7 +91,7 @@ class CircuitBreaker:
         self._opened_at = None
 
     def record_failure(self, now: Optional[float] = None) -> None:
-        """Record a failure.  Trips the breaker once ``fail_threshold`` is hit."""
+        """Record a failure. Trips the breaker once ``fail_threshold`` is hit."""
         self._failures += 1
         ts = now if now is not None else time.time()
         if self._state == self.HALF_OPEN or self._failures >= self.fail_threshold:
@@ -106,7 +106,7 @@ def _inject_price(sym: str, price: float, ts: int = 0) -> None:  # noqa: ARG001
     """Write a refreshed price into the quote cache for *sym*.
 
     Reuses the existing cache entry (preserving ``prev_close``, ``day_open``,
-    etc.) and only updates ``price`` (and recomputes ``change_pct``).  If no
+    etc.) and only updates ``price`` (and recomputes ``change_pct``). If no
     entry exists yet, skips — the next REST poll will populate the full shape.
 
     Thread-safe at the GIL level: CPython dict operations are atomic; this is
@@ -149,12 +149,16 @@ class _StreamManager:
         self._cb = CircuitBreaker(fail_threshold=5, reset_timeout=60.0)
 
     def maybe_start(self, symbols: Optional[List[str]] = None) -> None:
-        """Start the background WS thread if enabled via env.
+        """Start the background WS thread if explicitly enabled via env.
 
-        No-op when ``FINNHUB_STREAM_ENABLED`` is unset or when already started.
+        Accepted truthy values are ``1``, ``true``, ``yes`` and ``on``
+        (case-insensitive). Values such as ``false``, ``0`` or an empty/unset
+        variable leave streaming disabled, which is important for Railway
+        Serverless because an accidental WebSocket would keep the service awake.
         Never raises — failure to start is logged, not propagated.
         """
-        if not os.environ.get("FINNHUB_STREAM_ENABLED"):
+        enabled = os.environ.get("FINNHUB_STREAM_ENABLED", "").strip().lower()
+        if enabled not in {"1", "true", "yes", "on"}:
             return
         with self._lock:
             if self._started:
