@@ -8,7 +8,7 @@ WORKDIR /app/frontend
 # to force correct platform resolution. The committed lockfile remains the
 # source of truth in git; only this ephemeral build container ignores it.
 COPY frontend/package.json ./
-RUN npm install --no-audit --no-fund
+RUN npm install --no-audit --no-fund --legacy-peer-deps
 
 COPY frontend/ ./
 RUN npm run build
