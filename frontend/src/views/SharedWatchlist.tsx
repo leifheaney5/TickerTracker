@@ -6,6 +6,7 @@ import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { Logo } from '../components/Logo'
 import { money, pct } from '../lib/format'
 import { UNIVERSE } from '../data/universe'
+import { TargetSummary } from '../components/TargetEditor'
 
 // Read-only public view of a shared watchlist, reached via /s/<token>.
 export function SharedWatchlist({ token }: { token: string }) {
@@ -99,11 +100,11 @@ export function SharedWatchlist({ token }: { token: string }) {
           {/* Column headers */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px',
+            gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px minmax(170px,1fr)',
             background: 'var(--panel)',
             borderBottom: '1px solid var(--line)',
           }}>
-            {['TICKER', 'PRICE', '24H'].map((h, i) => (
+            {['TICKER', 'PRICE', '24H', 'BUY / SELL TARGETS'].map((h, i) => (
               <div key={i} style={{ padding: '12px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>
             ))}
           </div>
@@ -124,7 +125,7 @@ export function SharedWatchlist({ token }: { token: string }) {
                 key={item.symbol}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px',
+                  gridTemplateColumns: 'minmax(160px,1.6fr) 110px 90px minmax(170px,1fr)',
                   alignItems: 'center',
                   borderTop: '1px solid var(--line)',
                 }}
@@ -141,6 +142,11 @@ export function SharedWatchlist({ token }: { token: string }) {
                 </div>
                 <div style={{ padding: '12px 14px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: q ? (up ? 'var(--up)' : 'var(--down)') : 'var(--tx3)' }}>
                   {q ? pct(changePct) : '—'}
+                </div>
+                <div style={{ padding: '12px 14px' }}>
+                  {item.buy_target > 0 || item.sell_target > 0
+                    ? <TargetSummary buyTarget={item.buy_target} sellTarget={item.sell_target} price={q?.price} compact />
+                    : <span style={{ color: 'var(--tx3)' }}>—</span>}
                 </div>
               </div>
             )

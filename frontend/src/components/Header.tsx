@@ -1,446 +1,54 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useStore, type View, isAuthed } from '../state/store'
-import { FONT_SANS, FONT_MONO } from '../theme/tokens'
-import { Logo } from './Logo'
-import { UNIVERSE } from '../data/universe'
-import { api } from '../api/client'
+import { FONT_SANS } from '../theme/tokens'
 import { useIsMobile } from '../hooks/useIsMobile'
 
-// Header chrome — ported from the prototype template (lines 29-141): logo mark,
-// segmented view nav, centered LIVE wordmark, search popover, portfolio chip /
-// connect-account, help and avatar. Alerts dropdown is wired in a later unit.
-
 const NAV: { label: string; view: View }[] = [
-  { label: 'Dashboard', view: 'dashboard' },
-  { label: 'At-a-Glance', view: 'overview' },
-  { label: 'Market', view: 'market' },
-  { label: 'Crypto', view: 'crypto' },
+  { label: 'Dashboard', view: 'dashboard' }, { label: 'At-a-Glance', view: 'overview' },
+  { label: 'Market', view: 'market' }, { label: 'Crypto', view: 'crypto' },
 ]
 
-function navBtnStyle(active: boolean): React.CSSProperties {
-  return {
-    padding: '7px 13px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-    fontFamily: FONT_SANS, fontSize: '12.5px', whiteSpace: 'nowrap',
-    fontWeight: active ? 700 : 500,
-    background: active ? 'var(--accent,#3ddc84)' : 'transparent',
-    color: active ? 'var(--accentInk)' : 'var(--tx2)',
-  }
+function navStyle(active: boolean): React.CSSProperties {
+  return { padding: '7px 13px', borderRadius: 8, border: 0, cursor: 'pointer', fontFamily: FONT_SANS, fontSize: 12.5, whiteSpace: 'nowrap', fontWeight: active ? 700 : 500, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accentInk)' : 'var(--tx2)' }
 }
 
 export function Header() {
   const view = useStore((s) => s.view)
   const setView = useStore((s) => s.setView)
-  const searchOpen = useStore((s) => s.searchOpen)
-  const setSearchOpen = useStore((s) => s.setSearchOpen)
-  const search = useStore((s) => s.search)
-  const setSearch = useStore((s) => s.setSearch)
-  const setSelected = useStore((s) => s.setSelected)
+  const openFinder = useStore((s) => s.openTickerFinder)
   const settings = useStore((s) => s.settings)
   const authed = useStore(isAuthed)
-  const currentUser = useStore((s) => s.currentUser)
+  const user = useStore((s) => s.currentUser)
   const openAuth = useStore((s) => s.openAuth)
-  const theme = useStore((s) => s.theme)
-  const setTheme = useStore((s) => s.setTheme)
   const isMobile = useIsMobile()
-  // Hide the centered "Ticker Tracker" wordmark unless the viewport is wide
-  // enough that it won't collide with the (wide) view-nav + right-side controls.
-  // The nav alone runs to ~680px and the right cluster needs ~360px, so the
-  // wordmark only has clear space well above 1400px.
-  const narrowDesktop = useIsMobile(1439)
   const [menuOpen, setMenuOpen] = useState(false)
+  const initials = user ? (user.name ? user.name.split(' ').map((part) => part[0]).join('').slice(0, 2) : user.email.slice(0, 2)).toUpperCase() : ''
+  const navigate = (next: View) => { setView(next); setMenuOpen(false) }
 
-  // Close hamburger menu when navigating
-  const navigate = (v: View) => {
-    setView(v)
-    setMenuOpen(false)
-  }
-
-  // Portfolio value from holdings is wired later; show connect state per settings.
-  const connected = settings?.broker_connected ?? false
-
-  // Live symbol search across the WHOLE market (Finnhub via /api/search),
-  // debounced — not limited to the static universe. Falls back to filtering the
-  // universe locally if the API returns nothing (e.g. offline).
-  const q = search.trim()
-  const [matches, setMatches] = useState<{ symbol: string; description: string }[]>([])
-  const [searching, setSearching] = useState(false)
-  useEffect(() => {
-    if (!q) { setMatches([]); return }
-    let cancelled = false
-    setSearching(true)
-    const id = setTimeout(async () => {
-      try {
-        const { data } = await api.search(q)
-        if (cancelled) return
-        if (data && data.length) {
-          setMatches(data.map((r) => ({ symbol: r.symbol, description: r.description })))
-        } else {
-          const up = q.toUpperCase()
-          setMatches(Object.keys(UNIVERSE)
-            .filter((s) => s.includes(up) || (UNIVERSE[s].name || '').toUpperCase().includes(up))
-            .slice(0, 12)
-            .map((s) => ({ symbol: s, description: UNIVERSE[s].name })))
-        }
-      } catch {
-        if (!cancelled) setMatches([])
-      } finally {
-        if (!cancelled) setSearching(false)
-      }
-    }, 250)
-    return () => { cancelled = true; clearTimeout(id) }
-  }, [q])
-
-  // Avatar initials: use real user name/email when authed.
-  const acctInitials = authed && currentUser
-    ? (currentUser.name
-        ? currentUser.name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
-        : currentUser.email.slice(0, 2).toUpperCase())
-    : 'JD'
-
-  if (isMobile) {
-    return (
-      <header
-        style={{
-          flex: '0 0 auto', background: 'var(--panel)', borderBottom: '1px solid var(--line)',
-          position: 'relative', zIndex: 30,
-        }}
-      >
-        {/* Mobile top bar */}
-        <div
-          style={{
-            height: '54px', display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '0 14px',
-          }}
-        >
-          {/* Logo mark */}
-          <div
-            title="Ticker Tracker"
-            style={{
-              width: 32, height: 32, borderRadius: 9, background: 'var(--card)',
-              border: '1px solid var(--line2)', position: 'relative', flex: '0 0 auto',
-            }}
-          >
-            <span style={{ position: 'absolute', left: 5, top: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: 'var(--up)' }}>T</span>
-            <span style={{ position: 'absolute', right: 5, bottom: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: 'var(--down)' }}>T</span>
-          </div>
-
-          {/* Hamburger */}
-          <button
-            onClick={() => setMenuOpen((o) => !o)}
-            title="Navigation"
-            aria-label="Open navigation menu"
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: 5, width: 34, height: 34, borderRadius: 9, background: menuOpen ? 'var(--cardHi)' : 'var(--card)',
-              border: '1px solid var(--line)', cursor: 'pointer', flex: '0 0 auto',
-            }}
-          >
-            {menuOpen ? (
-              <span style={{ fontSize: '16px', color: 'var(--tx2)', lineHeight: 1 }}>✕</span>
-            ) : (
-              <>
-                <span style={{ display: 'block', width: 14, height: 2, background: 'var(--tx2)', borderRadius: 1 }} />
-                <span style={{ display: 'block', width: 14, height: 2, background: 'var(--tx2)', borderRadius: 1 }} />
-                <span style={{ display: 'block', width: 14, height: 2, background: 'var(--tx2)', borderRadius: 1 }} />
-              </>
-            )}
-          </button>
-
-          {/* Current view label — fills space */}
-          <span style={{ flex: 1, fontSize: '13.5px', fontWeight: 700, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {NAV.find((n) => n.view === view)?.label ?? 'Ticker Tracker'}
-          </span>
-
-          {/* Theme toggle */}
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-              borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
-              color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px', flex: '0 0 auto',
-            }}
-          >
-            {theme === 'dark' ? '☾' : '☀'}
-          </button>
-
-          {/* Search */}
-          <div style={{ position: 'relative', flex: '0 0 auto' }}>
-            <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              title="Search"
-              aria-label="Search"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-                borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
-                color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px',
-              }}
-            >
-              ⌕
-            </button>
-            {searchOpen && (
-              <div
-                style={{
-                  position: 'fixed', top: 54, left: 0, right: 0, background: 'var(--panel)',
-                  borderBottom: '1px solid var(--line2)',
-                  boxShadow: '0 18px 50px rgba(0,0,0,.55)', overflow: 'hidden', zIndex: 45,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderBottom: '1px solid var(--line)' }}>
-                  <span style={{ color: 'var(--tx3)', fontSize: '15px' }}>⌕</span>
-                  <input
-                    autoFocus
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search ticker or company…"
-                    aria-label="Search ticker or company"
-                    style={{ flex: 1, border: 'none', background: 'transparent', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13.5px' }}
-                  />
-                  <button onClick={() => setSearchOpen(false)} aria-label="Close search" style={{ background: 'none', border: 'none', color: 'var(--tx3)', cursor: 'pointer', fontSize: '14px' }}>✕</button>
-                </div>
-                {q && (searching || matches.length === 0) && (
-                  <div style={{ padding: '14px', fontSize: '12.5px', color: 'var(--tx3)' }}>
-                    {searching ? 'Searching…' : 'No matches'}
-                  </div>
-                )}
-                {matches.length > 0 && (
-                  <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                    {matches.map((m) => (
-                      <div
-                        key={m.symbol}
-                        onClick={() => { setSelected(m.symbol); setView('dashboard'); setSearch(''); setSearchOpen(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', cursor: 'pointer', borderTop: '1px solid var(--line)' }}
-                      >
-                        <Logo symbol={m.symbol} size={26} />
-                        <span style={{ fontWeight: 700, fontSize: '13px', minWidth: 46, color: 'var(--tx)' }}>{m.symbol}</span>
-                        <span style={{ flex: 1, fontSize: '12.5px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.description}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Sign in / Avatar */}
-          {authed ? (
-            <button
-              onClick={() => setView('settings')}
-              title="Account & settings"
-              aria-label="Account menu"
-              style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--card)', border: '1px solid var(--line2)', color: 'var(--tx)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
-            >
-              {acctInitials}
-            </button>
-          ) : (
-            <button
-              onClick={() => openAuth('login')}
-              title="Sign in"
-              style={{ height: 34, padding: '0 12px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
-            >
-              Sign in
-            </button>
-          )}
-        </div>
-
-        {/* Mobile nav dropdown */}
-        {menuOpen && (
-          <div
-            style={{
-              background: 'var(--panel)', borderTop: '1px solid var(--line)',
-              padding: '10px 12px 14px', display: 'flex', flexDirection: 'column', gap: 2,
-            }}
-          >
-            {NAV.map((n) => (
-              <button
-                key={n.view}
-                onClick={() => navigate(n.view)}
-                style={{
-                  padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                  fontFamily: FONT_SANS, fontSize: '14px', textAlign: 'left',
-                  fontWeight: view === n.view ? 700 : 500,
-                  background: view === n.view ? 'var(--accent,#3ddc84)' : 'transparent',
-                  color: view === n.view ? 'var(--accentInk)' : 'var(--tx2)',
-                }}
-              >
-                {n.label}
-              </button>
-            ))}
-            {/* Portfolio link in menu on mobile (when connected) */}
-            {connected && (
-              <div style={{ marginTop: 6, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-                <button
-                  onClick={() => navigate('holdings')}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--card)', color: 'var(--tx)', fontFamily: FONT_SANS, fontWeight: 600, fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
-                >
-                  Portfolio
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </header>
-    )
-  }
-
-  // Desktop layout (unchanged)
-  return (
-    <header
-      style={{
-        height: '60px', flex: '0 0 auto', display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '16px',
-        padding: '0 22px', borderBottom: '1px solid var(--line)',
-        background: 'var(--panel)', position: 'relative', zIndex: 30,
-      }}
-    >
-      {/* left: logo mark + view nav */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', justifySelf: 'start', minWidth: 0 }}>
-        <div
-          title="Ticker Tracker"
-          style={{
-            width: 32, height: 32, borderRadius: 9, background: 'var(--card)',
-            border: '1px solid var(--line2)', position: 'relative', flex: '0 0 auto',
-          }}
-        >
-          <span style={{ position: 'absolute', left: 5, top: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: 'var(--up)' }}>T</span>
-          <span style={{ position: 'absolute', right: 5, bottom: 1, font: `800 16px ${FONT_MONO}`, lineHeight: 1, color: 'var(--down)' }}>T</span>
-        </div>
-        <div
-          style={{
-            display: 'flex', gap: '3px', padding: '3px', borderRadius: '10px',
-            background: 'var(--card)', border: '1px solid var(--line)',
-            overflowX: 'auto', minWidth: 0, flex: '0 1 auto',
-          }}
-        >
-          {NAV.map((n) => (
-            <button key={n.view} onClick={() => setView(n.view)} style={navBtnStyle(view === n.view)}>
-              {n.label}
-            </button>
-          ))}
-        </div>
+  if (isMobile) return (
+    <header style={{ flex: '0 0 auto', background: 'var(--panel)', borderBottom: '1px solid var(--line)', position: 'relative', zIndex: 30 }}>
+      <div style={{ height: 58, display: 'flex', alignItems: 'center', gap: 9, padding: '0 12px' }}>
+        <img src="/favicon.svg" alt="Ticker Tracker" width={40} height={40} style={{ borderRadius: 10, flex: '0 0 auto' }} />
+        <button onClick={() => setMenuOpen((open) => !open)} aria-label="Open navigation menu" style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--tx2)', cursor: 'pointer' }}>{menuOpen ? '×' : '☰'}</button>
+        <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{NAV.find((item) => item.view === view)?.label ?? 'Ticker Tracker'}</span>
+        <button onClick={() => openFinder({ kind: 'browse' })} aria-label="Search tickers" style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--tx2)', cursor: 'pointer', fontSize: 17 }}>⌕</button>
+        {authed ? <button onClick={() => setView('settings')} aria-label="Account menu" style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--card)', border: '1px solid var(--line2)', color: 'var(--tx)', fontWeight: 700 }}>{initials}</button> : <button onClick={() => openAuth('login')} style={{ height: 36, padding: '0 12px', borderRadius: 10, border: 0, background: 'var(--accent)', color: 'var(--accentInk)', fontWeight: 700 }}>Sign in</button>}
       </div>
+      {menuOpen && <nav style={{ padding: '8px 12px 12px', borderTop: '1px solid var(--line)', display: 'grid', gap: 3 }}>{NAV.map((item) => <button key={item.view} onClick={() => navigate(item.view)} style={{ ...navStyle(view === item.view), textAlign: 'left', padding: '11px 14px' }}>{item.label}</button>)}</nav>}
+    </header>
+  )
 
-      {/* center: LIVE pulse + wordmark — hidden on narrow desktop to avoid
-          colliding with the view-nav */}
-      {!narrowDesktop && (
-        <div style={{ justifySelf: 'center', display: 'flex', alignItems: 'center', gap: '9px', whiteSpace: 'nowrap' }}>
-          <span
-            title="Live"
-            style={{
-              width: 7, height: 7, borderRadius: '50%', background: 'var(--up)',
-              boxShadow: '0 0 9px var(--up)', animation: 'ttpulse 1.8s ease-in-out infinite', flex: '0 0 auto',
-            }}
-          />
-          <span style={{ fontFamily: FONT_SANS, fontWeight: 800, fontSize: '17px', letterSpacing: '-.025em' }}>
-            <span style={{ color: 'var(--up)' }}>Ticker</span>
-            <span style={{ color: 'var(--down)' }}>&nbsp;Tracker</span>
-          </span>
-        </div>
-      )}
-
-      {/* right: search, portfolio/connect, theme toggle, avatar */}
-      <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-        {/* Theme toggle */}
-        <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-            borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
-            color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px', flex: '0 0 auto',
-          }}
-        >
-          {theme === 'dark' ? '☾' : '☀'}
-        </button>
-
-        <div style={{ position: 'relative', flex: '0 0 auto' }}>
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            title="Search"
-            aria-label="Search"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-              borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)',
-              color: 'var(--tx2)', cursor: 'pointer', fontSize: '15px',
-            }}
-          >
-            ⌕
-          </button>
-          {searchOpen && (
-            <div
-              style={{
-                position: 'absolute', top: 46, right: 0, width: 332, background: 'var(--panel)',
-                border: '1px solid var(--line2)', borderRadius: 13,
-                boxShadow: '0 18px 50px rgba(0,0,0,.55)', overflow: 'hidden', zIndex: 45,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderBottom: '1px solid var(--line)' }}>
-                <span style={{ color: 'var(--tx3)', fontSize: '15px' }}>⌕</span>
-                <input
-                  autoFocus
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search ticker or company…"
-                  aria-label="Search ticker or company"
-                  style={{ flex: 1, border: 'none', background: 'transparent', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13.5px' }}
-                />
-              </div>
-              {q && (searching || matches.length === 0) && (
-                <div style={{ padding: '14px', fontSize: '12.5px', color: 'var(--tx3)' }}>
-                  {searching ? 'Searching…' : 'No matches'}
-                </div>
-              )}
-              {matches.length > 0 && (
-                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                  {matches.map((m) => (
-                    <div
-                      key={m.symbol}
-                      onClick={() => { setSelected(m.symbol); setView('dashboard'); setSearch(''); setSearchOpen(false) }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', cursor: 'pointer', borderTop: '1px solid var(--line)' }}
-                    >
-                      <Logo symbol={m.symbol} size={26} />
-                      <span style={{ fontWeight: 700, fontSize: '13px', minWidth: 46, color: 'var(--tx)' }}>{m.symbol}</span>
-                      <span style={{ flex: 1, fontSize: '12.5px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.description}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {connected && (
-          <div
-            onClick={() => setView('holdings')}
-            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 12px', borderRadius: 11, background: 'var(--card)', border: '1px solid var(--line)', flex: '0 0 auto', cursor: 'pointer' }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.12 }}>
-              <span style={{ fontSize: '9.5px', letterSpacing: '.05em', color: 'var(--tx3)', fontWeight: 500 }}>PORTFOLIO</span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '14px', fontWeight: 600, color: 'var(--tx)' }}>—</span>
-            </div>
-          </div>
-        )}
-
-        {authed ? (
-          <button
-            onClick={() => setView('settings')}
-            title="Account & settings"
-            aria-label="Account menu"
-            style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--card)', border: '1px solid var(--line2)', color: 'var(--tx)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12px', cursor: 'pointer', flex: '0 0 auto' }}
-          >
-            {acctInitials}
-          </button>
-        ) : (
-          <button
-            onClick={() => openAuth('login')}
-            title="Sign in"
-            style={{ height: 34, padding: '0 16px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', flex: '0 0 auto' }}
-          >
-            Sign in
-          </button>
-        )}
+  return (
+    <header style={{ minHeight: 64, flex: '0 0 auto', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16, padding: '0 22px', borderBottom: '1px solid var(--line)', background: 'var(--panel)', zIndex: 30 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+        <img src="/favicon.svg" alt="Ticker Tracker" width={44} height={44} style={{ borderRadius: 11, flex: '0 0 auto' }} />
+        <nav style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 10, background: 'var(--card)', border: '1px solid var(--line)', overflowX: 'auto' }}>{NAV.map((item) => <button key={item.view} onClick={() => setView(item.view)} style={navStyle(view === item.view)}>{item.label}</button>)}</nav>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap' }}><span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--up)', boxShadow: '0 0 9px var(--up)' }} /><span style={{ fontWeight: 800, fontSize: 17 }}><span style={{ color: 'var(--up)' }}>Ticker</span> <span style={{ color: 'var(--down)' }}>Tracker</span></span></div>
+      <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={() => openFinder({ kind: 'browse' })} style={{ height: 40, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 8, borderRadius: 11, background: 'var(--card)', border: '1px solid var(--line2)', color: 'var(--tx)', cursor: 'pointer', fontWeight: 700 }}><span aria-hidden="true">⌕</span> Find ticker <kbd style={{ color: 'var(--tx3)', fontSize: 10 }}>/</kbd></button>
+        {settings?.broker_connected && <button onClick={() => setView('holdings')} style={{ height: 40, padding: '0 14px', borderRadius: 11, background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--tx2)', cursor: 'pointer' }}>Portfolio</button>}
+        {authed ? <button onClick={() => setView('settings')} aria-label="Account menu" style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--card)', border: '1px solid var(--line2)', color: 'var(--tx)', fontWeight: 700 }}>{initials}</button> : <button onClick={() => openAuth('login')} style={{ height: 40, padding: '0 17px', borderRadius: 11, border: 0, background: 'var(--accent)', color: 'var(--accentInk)', fontWeight: 700 }}>Sign in</button>}
       </div>
     </header>
   )

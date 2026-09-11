@@ -89,3 +89,57 @@ def test_patch_item_move_to_unowned_list_returns_404(client):
                      json={"watchlist_id": prem_lid})
     assert r.status_code == 404
     assert r.get_json()["data"]["error"] == "not found"
+
+
+def test_list_item_targets_roundtrip_with_legacy_sell_alias(client):
+    _login(client, "prem@x.com")
+    lid = client.get("/api/watchlists").get_json()["data"][0]["id"]
+    r = client.post(f"/api/watchlists/{lid}/items", json={
+        "symbol": "AAPL", "buy_target": 185,
+        "sell_target": 240, "target": 999,
+    })
+    assert r.status_code == 200
+    assert r.get_json()["data"]["buy_target"] == 185
+    assert r.get_json()["data"]["sell_target"] == 240
+    assert r.get_json()["data"]["target"] == 240
+
+    r = client.patch(f"/api/watchlists/{lid}/items/AAPL", json={
+        "buy_target": 0, "target": 250,
+    })
+    assert r.status_code == 200
+    assert r.get_json()["data"]["buy_target"] == 0
+    assert r.get_json()["data"]["sell_target"] == 250
+    assert r.get_json()["data"]["target"] == 250
+
+
+@pytest.mark.parametrize("method,path_suffix,payload", [
+    ("post", "/items", {"symbol": "AAPL", "buy_target": "nan"}),
+    ("post", "/items", {"symbol": "MSFT", "sell_target": -1}),
+    ("patch", "/items/AAPL", {"target": "not-a-number"}),
+])
+def test_list_item_routes_reject_invalid_targets(client, method, path_suffix, payload):
+    _login(client, "prem@x.com")
+    lid = client.get("/api/watchlists").get_json()["data"][0]["id"]
+    if method == "patch":
+        assert client.post(f"/api/watchlists/{lid}/items", json={"symbol": "AAPL"}).status_code == 200
+    r = getattr(client, method)(f"/api/watchlists/{lid}{path_suffix}", json=payload)
+    assert r.status_code == 400
+
+
+def test_list_item_target_patch_is_scoped_to_owner(client):
+    _login(client, "prem@x.com")
+    prem_lid = client.get("/api/watchlists").get_json()["data"][0]["id"]
+    assert client.post(f"/api/watchlists/{prem_lid}/items", json={
+        "symbol": "AAPL", "buy_target": 185, "sell_target": 240,
+    }).status_code == 200
+
+    _login(client, "free@x.com")
+    r = client.patch(f"/api/watchlists/{prem_lid}/items/AAPL", json={
+        "buy_target": 1, "sell_target": 2,
+    })
+    assert r.status_code == 404
+
+    _login(client, "prem@x.com")
+    item = client.get("/api/watchlists").get_json()["data"][0]["items"][0]
+    assert item["buy_target"] == 185
+    assert item["sell_target"] == 240

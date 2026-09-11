@@ -6,6 +6,37 @@ from providers.finnhub import fetch_news
 logger = logging.getLogger(__name__)
 
 
+def diversify_news(items, limit=12, per_source=2):
+    """Deduplicate real articles and fairly interleave publishers."""
+    seen_urls = set()
+    seen_headlines = set()
+    groups = {}
+    source_order = []
+    for item in items:
+        url = (item.get("url") or "").strip().lower()
+        headline = " ".join((item.get("headline") or "").lower().split())
+        if not url or not headline or url in seen_urls or headline in seen_headlines:
+            continue
+        seen_urls.add(url)
+        seen_headlines.add(headline)
+        source = (item.get("source") or "Unknown").strip() or "Unknown"
+        key = source.casefold()
+        if key not in groups:
+            groups[key] = []
+            source_order.append(key)
+        groups[key].append(item)
+
+    selected = []
+    for index in range(per_source):
+        for source in source_order:
+            rows = groups[source]
+            if index < len(rows):
+                selected.append(rows[index])
+                if len(selected) >= limit:
+                    return selected
+    return selected
+
+
 def get_news(sym=None):
     key = f"news:{sym or 'MARKET'}"
     try:
@@ -15,8 +46,8 @@ def get_news(sym=None):
         # news so there's always relevant content to show.
         if sym and not val:
             market, _ = cache.cached("news:MARKET", 900, lambda: fetch_news(None))
-            return market, "finnhub"
-        return val, "finnhub"
+            return diversify_news(market), "finnhub"
+        return diversify_news(val), "finnhub"
     except Exception as e:
         logger.warning("news fallback to mock for %s: %s", sym, e)
         return mock_news(sym), "mock"

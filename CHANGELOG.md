@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Independent buy and sell targets with directional reached states, target-distance sorting, and explicit editing across saved and shared watchlists.
+- One ticker finder for browsing, tracking, list additions, and stock comparisons.
+- Publisher marks and a diversified article mix for company and market news.
+
+### Changed
+
+- Made Compare, measured Pulse trends, Contact us, the Ticker Tracker mark, and watchlist movers easier to find.
+- Standardized the app on dark mode and added the official Google identity mark to sign-in.
+- Reduced cold-load request duplication with correct initial-route selection, frontend request coalescing, deferred sparkline loading, backend cache single-flight, and parallel Pulse inputs.
+
 ## [1.18.1] — 2026-06-30
 
 > **Pulse, in plain language.** Makes the Pulse dial self-explanatory at a glance

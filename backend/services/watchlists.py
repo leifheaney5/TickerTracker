@@ -18,7 +18,10 @@ class LastList(Exception):
 
 
 def _item_dict(it, locked=False):
-    return {"symbol": it.symbol, "position": it.position, "target": it.target,
+    sell_target = it.target or 0
+    return {"symbol": it.symbol, "position": it.position,
+            "buy_target": it.buy_target or 0,
+            "sell_target": sell_target, "target": sell_target,
             "alert_price": it.alert_price, "alert_dir": it.alert_dir,
             "alert_active": bool(it.alert_active), "watchlist_id": it.watchlist_id,
             "kind": getattr(it, "kind", "stock") or "stock",
@@ -124,8 +127,10 @@ def delete_watchlist(uid, list_id) -> bool:
 
 
 def add_item(uid, list_id, symbol, target=0, alert_price=0, alert_dir="above",
-             kind="stock", coin_name="") -> dict:
+             kind="stock", coin_name="", buy_target=0,
+             sell_target=None) -> dict:
     symbol = _norm_symbol(symbol, kind)
+    sell_value = target if sell_target is None else sell_target
     with db.get_session() as s:
         wl = _owned(s, uid, list_id)
         if not wl:
@@ -133,7 +138,8 @@ def add_item(uid, list_id, symbol, target=0, alert_price=0, alert_dir="above",
         existing = s.query(models.WatchlistItem).filter_by(
             user_id=uid, watchlist_id=list_id, symbol=symbol).first()
         if existing:
-            existing.target = target
+            existing.buy_target = buy_target
+            existing.target = sell_value
             existing.alert_price = alert_price
             existing.alert_dir = alert_dir
             s.commit()
@@ -145,14 +151,18 @@ def add_item(uid, list_id, symbol, target=0, alert_price=0, alert_dir="above",
                 raise FreeLimit()
         pos = s.query(models.WatchlistItem).filter_by(user_id=uid, watchlist_id=list_id).count()
         it = models.WatchlistItem(user_id=uid, watchlist_id=list_id, symbol=symbol,
-                                  position=pos, target=target, alert_price=alert_price,
+                                  position=pos, buy_target=buy_target,
+                                  target=sell_value, alert_price=alert_price,
                                   alert_dir=alert_dir, kind=kind, coin_name=coin_name)
         s.add(it); s.commit()
         return _item_dict(it)
 
 
 def update_item(uid, list_id, symbol, **fields):
-    allowed = {"target", "alert_price", "alert_dir", "alert_active", "position", "watchlist_id"}
+    if "sell_target" in fields:
+        fields["target"] = fields.pop("sell_target")
+    allowed = {"buy_target", "target", "alert_price", "alert_dir",
+               "alert_active", "position", "watchlist_id"}
     with db.get_session() as s:
         it = _find_item(s, uid, list_id, symbol)
         if not it:

@@ -27,6 +27,7 @@ import { money, pct } from '../lib/format'
 import { api } from '../api/client'
 import type { WatchlistWithItems, WatchlistItemFull } from '../api/types'
 import { ShareCard } from '../components/ShareCard'
+import { TargetEditor, TargetSummary } from '../components/TargetEditor'
 
 // ── id encoding helpers ──────────────────────────────────────────────────────
 // Each dnd-kit sortable id encodes the type so onDragEnd can dispatch the
@@ -79,8 +80,7 @@ function TickerRow({
   updateListWatch,
   removeFromList,
 }: TickerRowProps) {
-  const [editSym, setEditSym] = useState<string | null>(null)
-  const [editVal, setEditVal] = useState('')
+  const [editingTargets, setEditingTargets] = useState(false)
 
   const sortableId = itemId(lid, item.symbol)
   const {
@@ -106,19 +106,13 @@ function TickerRow({
   const c = chg(item.symbol)
   const up = c >= 0
 
-  const saveTarget = (sym: string) => {
-    const v = parseFloat(editVal)
-    if (!isNaN(v)) updateListWatch(lid, sym, { target: v })
-    setEditSym(null)
-  }
-
   return (
     <div
       ref={setNodeRef}
       style={{
         ...style,
         display: 'grid',
-        gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 140px 110px 80px',
+        gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 270px 110px 80px',
         alignItems: 'center',
         borderTop: '1px solid var(--line)',
         background: isDragging ? 'var(--cardHi)' : undefined,
@@ -165,33 +159,27 @@ function TickerRow({
         {live ? pct(c) : <Skeleton inline width={40} height={11} />}
       </div>
 
-      {/* target */}
+      {/* buy and sell targets */}
       <div style={{ padding: '10px 14px' }}>
-        {editSym === item.symbol ? (
-          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-            <input
-              autoFocus
-              value={editVal}
-              onChange={(e) => setEditVal(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && saveTarget(item.symbol)}
-              placeholder="$"
-              aria-label={`Target price for ${item.symbol}`}
-              style={{ width: 70, height: 30, padding: '0 8px', borderRadius: 7, border: '1px solid var(--accent)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '12.5px' }}
-            />
-            <button
-              onClick={() => saveTarget(item.symbol)}
-              style={{ height: 30, padding: '0 10px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontWeight: 700, cursor: 'pointer' }}
-            >
-              ✓
-            </button>
-          </div>
+        {editingTargets ? (
+          <TargetEditor
+            symbol={item.symbol}
+            buyTarget={item.buy_target}
+            sellTarget={item.sell_target}
+            onSave={async (targets) => { await updateListWatch(lid, item.symbol, targets); setEditingTargets(false) }}
+            onCancel={() => setEditingTargets(false)}
+          />
         ) : (
-          <span
-            onClick={() => { if (!item.locked) { setEditVal(item.target ? String(item.target) : ''); setEditSym(item.symbol) } }}
-            style={{ fontFamily: FONT_MONO, fontSize: '12.5px', color: item.target ? 'var(--tx)' : 'var(--tx3)', cursor: item.locked ? 'default' : 'pointer' }}
+          <button
+            type="button"
+            aria-label={`Edit buy and sell targets for ${item.symbol}`}
+            onClick={() => { if (!item.locked) setEditingTargets(true) }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, border: 0, background: 'transparent', padding: 0, color: 'var(--tx3)', cursor: item.locked ? 'default' : 'pointer', textAlign: 'left' }}
           >
-            {item.target ? money(item.target) : 'set target ✎'}
-          </span>
+            {item.buy_target > 0 || item.sell_target > 0
+              ? <TargetSummary buyTarget={item.buy_target} sellTarget={item.sell_target} price={live ? price(item.symbol) : null} compact />
+              : <span style={{ fontFamily: FONT_MONO, fontSize: '12.5px' }}>Set buy / sell ✎</span>}
+          </button>
         )}
       </div>
 
@@ -248,7 +236,7 @@ interface WatchlistCardProps {
   removeFromList: (listId: number, sym: string) => void
   renameList: (id: number, name: string) => void
   deleteList: (id: number) => void
-  addToList: (listId: number, sym: string) => Promise<boolean>
+  onAddTicker: (listId: number) => void
   onCopyLink: (list: WatchlistWithItems) => void
   onDownloadImage: (list: WatchlistWithItems) => void
 }
@@ -264,15 +252,13 @@ function WatchlistCard({
   removeFromList,
   renameList,
   deleteList,
-  addToList,
+  onAddTicker,
   onCopyLink,
   onDownloadImage,
 }: WatchlistCardProps) {
   const [renaming, setRenaming] = useState(false)
   const [renameVal, setRenameVal] = useState(list.name)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [addSym, setAddSym] = useState('')
-  const [addError, setAddError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Close the ⋯ menu on any click outside it.
@@ -309,18 +295,6 @@ function WatchlistCard({
     const trimmed = renameVal.trim()
     if (trimmed && trimmed !== list.name) renameList(list.id, trimmed)
     setRenaming(false)
-  }
-
-  const handleAddTicker = async () => {
-    const sym = addSym.trim().toUpperCase()
-    if (!sym || !/^[A-Z0-9.-]{1,12}$/.test(sym)) return
-    setAddError(null)
-    const ok = await addToList(list.id, sym)
-    if (ok) {
-      setAddSym('')
-    } else {
-      setAddError('Limit reached or symbol invalid')
-    }
   }
 
   const itemIds = list.items.map((item) => itemId(list.id, item.symbol))
@@ -410,10 +384,10 @@ function WatchlistCard({
 
       {/* Ticker rows */}
       <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 620 }}>
+        <div style={{ minWidth: 850 }}>
           {/* column headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 140px 110px 80px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
-            {['', 'TICKER', 'PRICE', '24H', 'TARGET', 'ALERT', ''].map((h, i) => (
+          <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 270px 110px 80px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
+            {['', 'TICKER', 'PRICE', '24H', 'BUY / SELL TARGETS', 'ALERT', ''].map((h, i) => (
               <div key={i} style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>
             ))}
           </div>
@@ -442,22 +416,7 @@ function WatchlistCard({
 
           {/* Add ticker row */}
           <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              value={addSym}
-              onChange={(e) => { setAddSym(e.target.value.toUpperCase()); setAddError(null) }}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddTicker()}
-              placeholder="Add ticker…"
-              aria-label={`Add ticker to ${list.name}`}
-              style={{ flex: 1, height: 32, padding: '0 10px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '12.5px', textTransform: 'uppercase' }}
-            />
-            <button
-              onClick={handleAddTicker}
-              disabled={!addSym.trim()}
-              style={{ height: 32, padding: '0 14px', borderRadius: 8, border: 'none', background: addSym.trim() ? 'var(--accent)' : 'var(--cardHi)', color: addSym.trim() ? 'var(--accentInk)' : 'var(--tx3)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700, cursor: addSym.trim() ? 'pointer' : 'default' }}
-            >
-              Add
-            </button>
-            {addError && <span style={{ fontSize: '12px', color: 'var(--down)' }}>{addError}</span>}
+            <button onClick={() => onAddTicker(list.id)} style={{ width: '100%', height: 36, borderRadius: 9, border: '1px dashed var(--line2)', background: 'transparent', color: 'var(--accent)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>+ Find and add ticker</button>
           </div>
         </div>
       </div>
@@ -481,11 +440,11 @@ export function ManageWatchlist() {
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
   const updateListWatch = useStore((s) => s.updateListWatch)
+  const openTickerFinder = useStore((s) => s.openTickerFinder)
   const removeFromList = useStore((s) => s.removeFromList)
   const renameList = useStore((s) => s.renameList)
   const deleteList = useStore((s) => s.deleteList)
   const createList = useStore((s) => s.createList)
-  const addToList = useStore((s) => s.addToList)
   const reorderListCards = useStore((s) => s.reorderListCards)
   const moveTicker = useStore((s) => s.moveTicker)
   const reorderTicker = useStore((s) => s.reorderTicker)
@@ -671,7 +630,7 @@ export function ManageWatchlist() {
                   removeFromList={removeFromList}
                   renameList={renameList}
                   deleteList={deleteList}
-                  addToList={addToList}
+                  onAddTicker={(listId) => openTickerFinder({ kind: 'list', listId })}
                   onCopyLink={handleCopyLink}
                   onDownloadImage={handleDownloadImage}
                 />

@@ -22,8 +22,8 @@ def should_fire(price: float, alert_price: float, alert_dir: str) -> bool:
 
 def due_alerts(session, now=None):
     """Watchlist items eligible to notify this run, off cooldown. An item is
-    eligible if it has an armed alert (alert_active + alert_price) OR a price
-    target set — so just setting a target on a card gets you an email.
+    eligible if it has an armed alert (alert_active + alert_price) OR a buy or
+    sell target set — so just setting a target on a card gets you an email.
     Locked items (free-user overflow beyond FREE_MAX_ACTIVE_ITEMS) are excluded."""
     now = now or dt.datetime.utcnow()
     rows = session.query(models.WatchlistItem).all()
@@ -34,7 +34,7 @@ def due_alerts(session, now=None):
     out = []
     for w in rows:
         has_alert = bool(w.alert_active) and (w.alert_price or 0) > 0
-        has_target = (w.target or 0) > 0
+        has_target = (w.buy_target or 0) > 0 or (w.target or 0) > 0
         if not (has_alert or has_target):
             continue
         # Exclude locked (free overflow) items
@@ -50,27 +50,24 @@ def due_alerts(session, now=None):
 
 def _evaluate(w, price):
     """Return (level, direction, kind) if this item should fire for `price`,
-    else None. Prefers an explicit armed alert; falls back to the target.
-    Target direction is inferred: target above the alert level is an 'above'
-    goal, etc. — for a plain target we treat reaching/exceeding it as firing."""
+    else None. Prefers an explicit armed alert, then evaluates the directional
+    buy and sell targets."""
     # 1) explicit armed alert
     if bool(w.alert_active) and (w.alert_price or 0) > 0:
         if should_fire(price, w.alert_price, w.alert_dir):
             return (w.alert_price, w.alert_dir, "alert")
-    # 2) price target — fire once price reaches/passes it (in the goal direction)
+    # 2) buy target — reached at or below the configured value
+    if (w.buy_target or 0) > 0 and price <= w.buy_target:
+        return (w.buy_target, "below", "buy_target")
+    # 3) persisted legacy target is the sell target — reached at or above it
     if (w.target or 0) > 0:
-        # If no explicit direction, assume the target is a goal to rise into when
-        # it's >= a typical level; simplest robust rule: fire when price crosses
-        # the target in EITHER direction relative to when it was set is hard
-        # without history, so: notify when current price has reached the target
-        # (>= target). This matches "my target has been hit".
         if price >= w.target:
-            return (w.target, "above", "target")
+            return (w.target, "above", "sell_target")
     return None
 
 
 def _alert_email_html(symbol, price, level, direction, kind):
-    """Branded, colorful alert email. `kind` is 'target' or 'alert'; `direction`
+    """Branded, colorful alert email. `kind` is 'buy_target', 'sell_target', or 'alert'; `direction`
     is 'above'/'below'; `level` is the price that was crossed."""
     from html import escape
     from providers import email_templates as t
@@ -79,7 +76,10 @@ def _alert_email_html(symbol, price, level, direction, kind):
     color = t.UP if up else t.DOWN
     arrow = "&#9650;" if up else "&#9660;"  # ▲ / ▼
     moved = "rose above" if up else "fell below"
-    label = "price target" if kind == "target" else "alert price"
+    label = {
+        "buy_target": "buy target",
+        "sell_target": "sell target",
+    }.get(kind, "alert price")
     diff = price - level
     diff_pct = (diff / level * 100) if level else 0
     sign = "+" if diff >= 0 else ""
@@ -163,7 +163,10 @@ def check_alerts(now=None, quote_fn=None, send_fn=None, crypto_price_fn=None) ->
                 continue
             if not billing.is_pro(w.user_id):
                 continue  # price-hit alert emails are a Pro feature
-            label = "price target" if kind == "target" else "alert price"
+            label = {
+                "buy_target": "buy target",
+                "sell_target": "sell target",
+            }.get(kind, "alert price")
             display = w.coin_name or w.symbol
             ok = send_fn(user.email,
                          f"{display} hit your {label}",
@@ -177,7 +180,7 @@ def check_alerts(now=None, quote_fn=None, send_fn=None, crypto_price_fn=None) ->
 
 
 def _seed_for_test(user_email, symbol, alert_price=0, alert_dir="above",
-                   alert_active=False, target=0):
+                   alert_active=False, target=0, buy_target=0):
     """Test helper: create a user + primary watchlist + watchlist item (armed alert and/or target)."""
     with db.get_session() as s:
         u = models.User(email=user_email, name="t", email_verified=True)
@@ -188,6 +191,7 @@ def _seed_for_test(user_email, symbol, alert_price=0, alert_dir="above",
         s.add(models.WatchlistItem(user_id=u.id, watchlist_id=wl.id, symbol=symbol,
                                    position=0,
                                    alert_price=alert_price, alert_dir=alert_dir,
-                                   alert_active=alert_active, target=target))
+                                   alert_active=alert_active, target=target,
+                                   buy_target=buy_target))
         s.add(models.BillingSubscription(user_id=u.id, status="active", plan="pro"))
         s.commit()

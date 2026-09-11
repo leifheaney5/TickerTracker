@@ -7,7 +7,9 @@ from services import watchlists as _wl
 def _flat_dict(it):
     """Flatten a list-service item dict to the legacy flat-watchlist shape
     (carries kind/coin_name so crypto coins survive the union)."""
-    return {"symbol": it["symbol"], "position": it["position"], "target": it["target"],
+    return {"symbol": it["symbol"], "position": it["position"],
+            "buy_target": it["buy_target"], "sell_target": it["sell_target"],
+            "target": it["target"],
             "alert_price": it["alert_price"], "alert_dir": it["alert_dir"],
             "alert_active": bool(it["alert_active"]),
             "kind": it.get("kind", "stock"), "coin_name": it.get("coin_name", "")}
@@ -29,11 +31,13 @@ def get_watchlist():
 
 
 def add_watch(symbol, target=0, alert_price=0, alert_dir="above",
-              kind="stock", coin_name=""):
+              kind="stock", coin_name="", buy_target=0, sell_target=None):
     uid = current_user_id()
     lid = _wl.get_or_create_primary_list(uid)
-    it = _wl.add_item(uid, lid, symbol, target=target, alert_price=alert_price,
-                      alert_dir=alert_dir, kind=kind, coin_name=coin_name)
+    it = _wl.add_item(uid, lid, symbol, target=target,
+                      buy_target=buy_target, sell_target=sell_target,
+                      alert_price=alert_price, alert_dir=alert_dir,
+                      kind=kind, coin_name=coin_name)
     return _flat_dict(it)
 
 

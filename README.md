@@ -17,7 +17,7 @@ holdings, price Alerts, and Settings.
 - **Price Alerts & Digest:** Automated email alerts when stocks hit your targets, plus a weekly watchlist digest delivered via Resend (powered by Railway cron service).
 - **Manage Watchlist:** Bulk add (comma/space/newline-delimited, CSV/txt import), per-row price-alert arming, and easy removal.
 - **Shareable Watchlists:** Generate read-only watchlist links (`/s/<token>`) to share your curated lists.
-- **Light/Dark Theme:** Toggle between themes (dark is the default).
+- **Dark visual system:** A consistent dark-mode experience across every view.
 - **Onboarding Starter Watchlists:** Quick-start templates (Big Tech, AI, Crypto Majors, Dividend).
 - **Earnings Calendar, Screeners, & News Sentiment:** Saved filter results, per-watchlist "mood" chips showing sentiment.
 - **Mobile-Responsive:** Layout adapts to all screen sizes; web manifest and favicons for iOS/Android home-screen install.

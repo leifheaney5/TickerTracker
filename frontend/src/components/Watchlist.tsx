@@ -9,12 +9,23 @@ import { Skeleton } from './Skeleton'
 import { money, pct } from '../lib/format'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { TargetSummary } from './TargetEditor'
+import { compareTargetDistance } from '../lib/targets'
+import { MoversRibbon } from './MoversRibbon'
 
 // Watchlist sidebar — ported from the prototype template (lines 148-216):
 // title + count + sort cycle, group folder tabs, draggable cards with sparkline
 // and target-progress bar, empty state, and the add-ticker footer form.
 
-const SORT_LABEL: Record<SortBy, string> = { manual: 'Manual', change: '% Change', price: 'Price', az: 'A–Z' }
+const SORT_OPTIONS: Array<{ value: SortBy; label: string }> = [
+  { value: 'manual', label: 'Manual' },
+  { value: 'gainers', label: 'Day gainers' },
+  { value: 'losers', label: 'Day losers' },
+  { value: 'price', label: 'Price' },
+  { value: 'az', label: 'A–Z' },
+  { value: 'closest-buy', label: 'Closest to buy target' },
+  { value: 'closest-sell', label: 'Closest to sell target' },
+]
 
 function groupTabStyle(active: boolean): React.CSSProperties {
   return {
@@ -42,6 +53,7 @@ export function Watchlist() {
   const hasQuote = useStore((s) => s.hasQuote)
   const flash = useStore((s) => s.flash)
   const addWatch = useStore((s) => s.addWatch)
+  const openTickerFinder = useStore((s) => s.openTickerFinder)
   const history = useStore((s) => s.history)
   const loadHistory = useStore((s) => s.loadHistory)
   const requireAuth = useRequireAuth()
@@ -50,13 +62,9 @@ export function Watchlist() {
 
   const [showAdd, setShowAdd] = useState(false)
   const [addSym, setAddSym] = useState('')
-  const [addTarget, setAddTarget] = useState('')
+  const [addBuyTarget, setAddBuyTarget] = useState('')
+  const [addSellTarget, setAddSellTarget] = useState('')
   const [dragSym, setDragSym] = useState<string | null>(null)
-
-  const cycleSort = () => {
-    const order: SortBy[] = ['manual', 'change', 'price', 'az']
-    setSortBy(order[(order.indexOf(sortBy) + 1) % order.length])
-  }
 
   // base list: use DB-backed watchlist when authed, otherwise show demo list read-only.
   const sourceSymbols = isAuthed
@@ -66,9 +74,18 @@ export function Watchlist() {
         .map((w) => w.symbol)
     : DEMO_WATCH.slice()
   let base = sourceSymbols.filter((s) => group === 'All' || UNIVERSE[s]?.group === group)
-  if (sortBy === 'change') base = base.slice().sort((a, b) => chg(b) - chg(a))
+  if (sortBy === 'gainers') base = base.slice().sort((a, b) => chg(b) - chg(a))
+  else if (sortBy === 'losers') base = base.slice().sort((a, b) => chg(a) - chg(b))
   else if (sortBy === 'price') base = base.slice().sort((a, b) => price(b) - price(a))
   else if (sortBy === 'az') base = base.slice().sort((a, b) => a.localeCompare(b))
+  else if (sortBy === 'closest-buy' || sortBy === 'closest-sell') {
+    const side = sortBy === 'closest-buy' ? 'buy' : 'sell'
+    const itemFor = (symbol: string) => watchlist.find((item) => item.symbol === symbol) ?? {
+      symbol, position: sourceSymbols.indexOf(symbol), buy_target: 0, sell_target: UNIVERSE[symbol]?.target ?? 0,
+    }
+    const quoteMap = Object.fromEntries(sourceSymbols.map((symbol) => [symbol, hasQuote(symbol) ? { price: price(symbol) } : undefined]))
+    base = base.slice().sort((a, b) => compareTargetDistance(itemFor(a), itemFor(b), quoteMap, side))
+  }
 
   const dragOK = sortBy === 'manual'
 
@@ -79,20 +96,21 @@ export function Watchlist() {
   const symKey = sourceSymbols.join(',')
   useEffect(() => {
     if (!sourceSymbols.length) return
-    for (const sym of sourceSymbols) {
-      if (!history[`${sym}:1M`]) {
-        loadHistory(sym, '1M')
-      }
-    }
+    const missing = sourceSymbols.filter((sym) => !history[`${sym}:1M`])
+    const timers = Array.from({ length: Math.ceil(missing.length / 6) }, (_, batch) => window.setTimeout(() => {
+      missing.slice(batch * 6, batch * 6 + 6).forEach((sym) => void loadHistory(sym, '1M'))
+    }, 250 + batch * 350))
+    return () => timers.forEach(window.clearTimeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symKey])
 
   const submitAdd = () => {
     const sym = addSym.trim().toUpperCase()
     if (!sym) return
-    addWatch(sym, parseFloat(addTarget) || 0)
+    addWatch(sym, { buy_target: parseFloat(addBuyTarget) || 0, sell_target: parseFloat(addSellTarget) || 0 })
     setAddSym('')
-    setAddTarget('')
+    setAddBuyTarget('')
+    setAddSellTarget('')
     setShowAdd(false)
   }
 
@@ -130,14 +148,9 @@ export function Watchlist() {
                 >
                   <span style={{ fontSize: '11px', color: 'var(--accent)' }}>⤢ Manage</span>
                 </div>
-                <button
-                  onClick={cycleSort}
-                  title="Change sort order"
-                  aria-label={`Sort by: ${SORT_LABEL[sortBy]}. Click to cycle sort order`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', color: 'var(--tx3)', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  ⇅ {SORT_LABEL[sortBy]}
-                </button>
+                <select aria-label="Sort watchlist" value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} style={{ height: 32, borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--card)', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, padding: '0 8px' }}>
+                  {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
               </div>
               <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
                 {GROUPS.map((g) => (
@@ -152,14 +165,15 @@ export function Watchlist() {
               {base.map((sym) => {
                 const u = UNIVERSE[sym] || { name: sym, target: 0 } as typeof UNIVERSE[string]
                 const wl = watchlist.find((w) => w.symbol === sym)
-                const target = wl?.target ?? u.target ?? 0
+                const buyTarget = wl?.buy_target ?? 0
+                const sellTarget = wl?.sell_target ?? u.target ?? 0
                 const live = hasQuote(sym)
                 const p = price(sym)
                 const c = chg(sym)
                 const up = c >= 0
                 const fl = flash[sym]
-                const hasT = target > 0
-                const near = live && hasT && p / target >= 0.92
+                const hasT = buyTarget > 0 || sellTarget > 0
+                const near = live && ((buyTarget > 0 && p <= buyTarget * 1.08) || (sellTarget > 0 && p >= sellTarget * .92))
                 const priceColor = fl === 'up' ? 'var(--up)' : fl === 'down' ? 'var(--down)' : 'var(--tx)'
                 return (
                   <div
@@ -193,16 +207,7 @@ export function Watchlist() {
                         <Sparkline symbol={sym} />
                       </div>
                     </div>
-                    {hasT && (
-                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--tx3)' }}>
-                        <span>Target {money(target)}</span>
-                        {live && (
-                          <span style={{ color: p >= target ? 'var(--up)' : 'var(--tx3)', fontWeight: p >= target ? 600 : 400 }}>
-                            {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {hasT && <div style={{ marginTop: 8 }}><TargetSummary buyTarget={buyTarget} sellTarget={sellTarget} price={live ? p : null} compact /></div>}
                   </div>
                 )
               })}
@@ -226,12 +231,13 @@ export function Watchlist() {
                     style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13px', textTransform: 'uppercase' }}
                   />
                   <input
-                    value={addTarget}
-                    onChange={(e) => setAddTarget(e.target.value)}
-                    placeholder="Target price (optional)"
-                    aria-label="Target price"
+                    value={addBuyTarget}
+                    onChange={(e) => setAddBuyTarget(e.target.value)}
+                    placeholder="Buy target (optional)"
+                    aria-label="Buy target"
                     style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '13px' }}
                   />
+                  <input value={addSellTarget} onChange={(e) => setAddSellTarget(e.target.value)} placeholder="Sell target (optional)" aria-label="Sell target" style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '13px' }} />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={submitAdd} style={{ flex: 1, height: 34, borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Add</button>
                     <button onClick={() => setShowAdd(false)} style={{ height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '12.5px', cursor: 'pointer' }}>Cancel</button>
@@ -239,7 +245,7 @@ export function Watchlist() {
                 </div>
               ) : (
                 <button
-                  onClick={() => requireAuth(() => setShowAdd(true))}
+                  onClick={() => requireAuth(() => openTickerFinder({ kind: 'track' }))}
                   style={{ width: '100%', height: 42, borderRadius: 11, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(61,220,132,.2)' }}
                 >
                   <span style={{ fontSize: '17px', lineHeight: 1, marginTop: -1 }}>+</span>Add ticker
@@ -270,13 +276,9 @@ export function Watchlist() {
             <span style={{ fontSize: '11.5px', color: 'var(--tx3)' }}>{base.length}</span>
             <span style={{ fontSize: '11px', color: 'var(--accent)' }}>⤢ Manage</span>
           </div>
-          <button
-            onClick={cycleSort}
-            title="Change sort order"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', color: 'var(--tx3)', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
-          >
-            ⇅ {SORT_LABEL[sortBy]}
-          </button>
+          <select aria-label="Sort watchlist" value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} style={{ height: 32, borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--card)', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '11.5px', fontWeight: 600, padding: '0 8px', maxWidth: 176 }}>
+            {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
         </div>
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
           {GROUPS.map((g) => (
@@ -285,24 +287,27 @@ export function Watchlist() {
             </button>
           ))}
         </div>
+        <MoversRibbon />
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 'var(--lgap,8px)' }}>
         {base.map((sym) => {
           const u = UNIVERSE[sym] || { name: sym, target: 0 } as typeof UNIVERSE[string]
           const wl = watchlist.find((w) => w.symbol === sym)
-          const target = wl?.target ?? u.target ?? 0
+          const buyTarget = wl?.buy_target ?? 0
+          const sellTarget = wl?.sell_target ?? u.target ?? 0
           const live = hasQuote(sym)
           const p = price(sym)
           const c = chg(sym)
           const up = c >= 0
           const fl = flash[sym]
-          const hasT = target > 0
-          const near = live && hasT && p / target >= 0.92
+          const hasT = buyTarget > 0 || sellTarget > 0
+          const near = live && ((buyTarget > 0 && p <= buyTarget * 1.08) || (sellTarget > 0 && p >= sellTarget * .92))
           const priceColor = fl === 'up' ? 'var(--up)' : fl === 'down' ? 'var(--down)' : 'var(--tx)'
           return (
             <div
               key={sym}
+              data-testid={`watchlist-row-${sym}`}
               onClick={() => setSelected(sym)}
               draggable={dragOK && isAuthed}
               onDragStart={() => requireAuth(() => setDragSym(sym))}
@@ -341,18 +346,7 @@ export function Watchlist() {
                   <Sparkline symbol={sym} />
                 </div>
               </div>
-              {hasT && (
-                // Compact one-line target (progress BAR removed to declutter the
-                // list / cut the wall of green). "reached" highlights in accent.
-                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--tx3)' }}>
-                  <span>Target {money(target)}</span>
-                  {live && (
-                    <span style={{ color: p >= target ? 'var(--up)' : 'var(--tx3)', fontWeight: p >= target ? 600 : 400 }}>
-                      {p >= target ? '✓ reached' : ((target - p) / p * 100).toFixed(1) + '% to go'}
-                    </span>
-                  )}
-                </div>
-              )}
+              {hasT && <div style={{ marginTop: 8 }}><TargetSummary buyTarget={buyTarget} sellTarget={sellTarget} price={live ? p : null} compact /></div>}
             </div>
           )
         })}
@@ -378,11 +372,13 @@ export function Watchlist() {
               style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13px', textTransform: 'uppercase' }}
             />
             <input
-              value={addTarget}
-              onChange={(e) => setAddTarget(e.target.value)}
-              placeholder="Target price (optional)"
+              value={addBuyTarget}
+              onChange={(e) => setAddBuyTarget(e.target.value)}
+              placeholder="Buy target (optional)"
+              aria-label="Buy target"
               style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '13px' }}
             />
+            <input value={addSellTarget} onChange={(e) => setAddSellTarget(e.target.value)} placeholder="Sell target (optional)" aria-label="Sell target" style={{ height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '13px' }} />
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={submitAdd} style={{ flex: 1, height: 34, borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Add</button>
               <button onClick={() => setShowAdd(false)} style={{ height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid var(--line2)', background: 'transparent', color: 'var(--tx2)', fontFamily: FONT_SANS, fontSize: '12.5px', cursor: 'pointer' }}>Cancel</button>
@@ -390,7 +386,7 @@ export function Watchlist() {
           </div>
         ) : (
           <button
-            onClick={() => requireAuth(() => setShowAdd(true))}
+            onClick={() => requireAuth(() => openTickerFinder({ kind: 'track' }))}
             style={{ width: '100%', height: 42, borderRadius: 11, border: 'none', background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontWeight: 700, fontSize: '13.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(61,220,132,.2)' }}
           >
             <span style={{ fontSize: '17px', lineHeight: 1, marginTop: -1 }}>+</span>Add ticker

@@ -15,6 +15,11 @@ Real services are monkeypatched (the unit under test is the *composition*, not t
 import pytest
 
 import services.pulse as pulse
+import cache
+
+
+def setup_function():
+    cache.clear()
 
 
 def _closes_to_bars(closes):

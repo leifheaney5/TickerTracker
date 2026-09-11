@@ -57,7 +57,7 @@ def _auth_schema_is_stale() -> bool:
 
 
 def _ensure_columns(conn) -> None:
-    """Additively add alert_active and alert_last_fired_at to watchlist_items
+    """Additively add targets and alert state to watchlist_items
     if they are absent.  Idempotent: safe to call on a fresh or already-migrated
     table.  Uses ADD COLUMN IF NOT EXISTS on Postgres; falls back to PRAGMA
     inspection on SQLite (which lacks that syntax)."""
@@ -68,6 +68,10 @@ def _ensure_columns(conn) -> None:
         if "target" not in existing:
             conn.execute(text(
                 "ALTER TABLE watchlist_items ADD COLUMN target REAL DEFAULT 0.0"
+            ))
+        if "buy_target" not in existing:
+            conn.execute(text(
+                "ALTER TABLE watchlist_items ADD COLUMN buy_target REAL DEFAULT 0.0"
             ))
         if "alert_price" not in existing:
             conn.execute(text(
@@ -117,6 +121,10 @@ def _ensure_columns(conn) -> None:
         conn.execute(text(
             "ALTER TABLE watchlist_items "
             "ADD COLUMN IF NOT EXISTS target REAL DEFAULT 0.0"
+        ))
+        conn.execute(text(
+            "ALTER TABLE watchlist_items "
+            "ADD COLUMN IF NOT EXISTS buy_target REAL DEFAULT 0.0"
         ))
         conn.execute(text(
             "ALTER TABLE watchlist_items "
