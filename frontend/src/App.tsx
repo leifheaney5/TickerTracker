@@ -75,7 +75,7 @@ export default function App() {
   // demo list when anonymous) so cards/movers/At-a-Glance always show LIVE
   // prices — not stale seed values. Re-runs when auth or watchlist changes.
   useEffect(() => {
-    if (!['dashboard', 'overview', 'deep', 'holdings', 'alerts'].includes(view)) return
+    if (!['dashboard', 'overview', 'deep', 'holdings', 'alerts', 'map', 'managewatch'].includes(view)) return
     pollQuotes()
     const id = setInterval(pollQuotes, 60000)
     return () => clearInterval(id)

@@ -37,7 +37,7 @@ export function Header() {
       </div>
       {menuOpen && <nav style={{ padding: '8px 12px 12px', borderTop: '1px solid var(--line)', display: 'grid', gap: 3 }}>
         {NAV.map((item) => <button key={item.view} onClick={() => navigate(item.view)} style={{ ...navStyle(view === item.view), textAlign: 'left', padding: '11px 14px' }}>{item.label}</button>)}
-        {authed && <button onClick={() => navigate('alerts')} style={{ ...navStyle(view === 'alerts'), textAlign: 'left', padding: '11px 14px' }}>Alerts</button>}
+        {authed && <button data-testid="mobile-nav-alerts" onClick={() => navigate('alerts')} style={{ ...navStyle(view === 'alerts'), textAlign: 'left', padding: '11px 14px' }}>Alerts</button>}
         {connected && <button onClick={() => navigate('holdings')} style={{ ...navStyle(view === 'holdings'), textAlign: 'left', padding: '11px 14px' }}>Portfolio</button>}
       </nav>}
     </header>
