@@ -446,7 +446,7 @@ function WatchlistCard({
         <div style={{ minWidth: 780 }}>
           {/* column headers */}
           <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 76px 90px 140px 170px 80px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
-            {['', 'TICKER', 'PRICE', '24H', 'CHG $', 'CHART', 'BUY / SELL TARGETS', 'ALERT', ''].map((h, i) => (
+            {['', 'TICKER', 'PRICE', '24H', 'CHG $', 'CHART', 'TARGET', 'ALERT', ''].map((h, i) => (
               <div key={i} style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>
             ))}
           </div>
@@ -476,7 +476,14 @@ function WatchlistCard({
 
           {/* Add ticker row */}
           <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button onClick={() => onAddTicker(list.id)} style={{ width: '100%', height: 36, borderRadius: 9, border: '1px dashed var(--line2)', background: 'transparent', color: 'var(--accent)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>+ Find and add ticker</button>
+            <input
+              aria-label="Add ticker"
+              placeholder="Add ticker…"
+              readOnly
+              onClick={() => onAddTicker(list.id)}
+              style={{ flex: 1, minWidth: 0, height: 36, borderRadius: 9, border: '1px dashed var(--line2)', background: 'transparent', color: 'var(--tx2)', padding: '0 12px', fontFamily: FONT_SANS, fontSize: '12.5px', cursor: 'pointer' }}
+            />
+            <button onClick={() => onAddTicker(list.id)} style={{ height: 36, padding: '0 16px', borderRadius: 9, border: 0, background: 'var(--accent)', color: 'var(--accentInk)', fontFamily: FONT_SANS, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>Add</button>
           </div>
         </div>
       </div>
