@@ -4,7 +4,6 @@ import { FONT_SANS, FONT_MONO, IDX_COLORS } from '../theme/tokens'
 import { SECTORS, IDX, HM, hmChange, hmExchange } from '../data/market'
 import { Treemap, type TreemapItem } from '../charts/Treemap'
 import { UNIVERSE } from '../data/universe'
-import { api } from '../api/client'
 import { asOf } from '../lib/format'
 
 // Market / Map / Sectors — ported from the prototype templates (lines 753-779,
@@ -24,6 +23,7 @@ export function MarketViews({ sub }: { sub: Sub }) {
   const setView = useStore((s) => s.setView)
   const fng = useStore((s) => s.fng)
   const loadFng = useStore((s) => s.loadFng)
+  const fngFetchedAt = useStore((s) => s.fngFetchedAt)
   const setSelected = useStore((s) => s.setSelected)
   const crypto = useStore((s) => s.crypto)
   const loadCrypto = useStore((s) => s.loadCrypto)
@@ -35,7 +35,6 @@ export function MarketViews({ sub }: { sub: Sub }) {
   const [secTf, setSecTf] = useState('1M')
   const [mapW, setMapW] = useState(800)
   const mapRef = useRef<HTMLDivElement | null>(null)
-  const [fngFetchedAt, setFngFetchedAt] = useState('')
   const [universe, setUniverse] = useState<Universe>('stocks')
   const [sector, setSector] = useState<string>('All')
   const [exchange, setExchange] = useState<'All' | 'NASDAQ' | 'NYSE'>('All')
@@ -45,7 +44,6 @@ export function MarketViews({ sub }: { sub: Sub }) {
 
   useEffect(() => {
     loadFng()
-    api.fng().then((r) => setFngFetchedAt(r.fetchedAt)).catch(() => {})
   }, [loadFng])
   useEffect(() => {
     const el = mapRef.current

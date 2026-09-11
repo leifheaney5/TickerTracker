@@ -16,12 +16,12 @@ import { ManageWatchlist } from './views/ManageWatchlist'
 import { FearAndGreed } from './views/FearAndGreed'
 import { Footer } from './components/Footer'
 import { UpgradePrompt } from './components/UpgradePrompt'
+import { TickerFinder } from './components/TickerFinder'
 import { Toaster } from './components/Toaster'
 
 // App root: mounts design tokens, the header chrome, and the active view body.
 // The active view + selected ticker come from the URL via RouterBridge.
 export default function App() {
-  const loadWatchlist = useStore((s) => s.loadWatchlist)
   const loadWatchlists = useStore((s) => s.loadWatchlists)
   const loadSettings = useStore((s) => s.loadSettings)
   const loadHoldings = useStore((s) => s.loadHoldings)
@@ -32,7 +32,6 @@ export default function App() {
   const currentUser = useStore((s) => s.currentUser)
   const view = useStore((s) => s.view)
   const openAuth = useStore((s) => s.openAuth)
-  const theme = useStore((s) => s.theme)
 
   const { helpOpen, setHelpOpen } = useKeyboardShortcuts()
 
@@ -43,7 +42,6 @@ export default function App() {
     // Load auth state first; only fetch personalized data when authenticated.
     loadMe().then(() => {
       if (useStore.getState().currentUser) {
-        loadWatchlist()
         loadWatchlists()
         loadSettings()
         loadHoldings()
@@ -71,33 +69,34 @@ export default function App() {
     if (verify === 'ok' || verify === 'failed' || checkout === 'success' || checkout === 'cancel') {
       window.history.replaceState(null, '', window.location.pathname + window.location.hash)
     }
-  }, [loadMe, loadWatchlist, loadWatchlists, loadSettings, loadHoldings, loadBilling, openAuth])
+  }, [loadMe, loadWatchlists, loadSettings, loadHoldings, loadBilling, openAuth])
 
   // Poll quotes for the effective symbol list (the user's watchlist, or the
   // demo list when anonymous) so cards/movers/At-a-Glance always show LIVE
   // prices — not stale seed values. Re-runs when auth or watchlist changes.
   useEffect(() => {
+    if (!['dashboard', 'overview', 'deep', 'holdings', 'alerts', 'map', 'managewatch'].includes(view)) return
     pollQuotes()
     const id = setInterval(pollQuotes, 60000)
     return () => clearInterval(id)
-  }, [watchlist.length, currentUser, pollQuotes])
+  }, [watchlist.length, currentUser, pollQuotes, view])
 
-  // Keep the page body (behind the app shell) matching the active theme, so
-  // overscroll / edges aren't a hard-coded dark in light mode.
+  // Ticker Tracker intentionally uses one dark visual system.
   useEffect(() => {
-    document.documentElement.style.setProperty('--app-bg', THEMES[theme].bg)
-  }, [theme])
+    document.documentElement.style.setProperty('--app-bg', THEMES.dark.bg)
+  }, [])
 
   return (
     <div
       style={{
-        ...rootCssVars(undefined, 'balanced', theme),
+        ...rootCssVars(undefined, 'balanced', 'dark'),
         position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column',
         overflow: 'hidden', fontFamily: FONT_SANS, color: 'var(--tx)', background: 'var(--bg)',
       }}
     >
       <AuthScreen />
       <UpgradePrompt />
+      <TickerFinder />
       <Toaster />
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
       {verifyBanner && (

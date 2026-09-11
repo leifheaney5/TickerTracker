@@ -11,7 +11,7 @@ import type {
 } from '../api/types'
 import { UNIVERSE, DEFAULT_WATCH } from '../data/universe'
 import { reorderLists, moveItem, reorderWithinList, flattenActive } from './watchlistReducers'
-import { pathForView } from '../routes'
+import { initialViewForLocation, pathForView } from '../routes'
 import { detectAlertCrossings } from '../lib/alertDetect'
 import { useToastStore } from './toastStore'
 import { money } from '../lib/format'
@@ -41,7 +41,8 @@ export type View =
   | 'managewatch'
 
 export type ChartType = 'candles' | 'line' | 'area'
-export type SortBy = 'manual' | 'change' | 'price' | 'az'
+export type SortBy = 'manual' | 'gainers' | 'losers' | 'price' | 'az' | 'closest-buy' | 'closest-sell'
+export type FinderIntent = { kind: 'browse' | 'track' | 'compare' } | { kind: 'list'; listId: number }
 
 // Module-level guard so the first-run watchlist seed runs at most once even if
 // loadWatchlist is invoked twice (React StrictMode double-invokes effects).
@@ -54,6 +55,15 @@ let _alertHitSet = new Set<string>()
 // Symbols whose brand logo we've already requested this session (success or a
 // confirmed "no logo"), so repeated polls don't re-hit /api/logos for them.
 const logosAttempted = new Set<string>()
+const pendingRequests = new Map<string, Promise<void>>()
+
+function coalesce(key: string, task: () => Promise<void>): Promise<void> {
+  const existing = pendingRequests.get(key)
+  if (existing) return existing
+  const pending = task().finally(() => pendingRequests.delete(key))
+  pendingRequests.set(key, pending)
+  return pending
+}
 
 interface StoreState {
   // ── UI state (mirrors prototype state) ──
@@ -67,6 +77,7 @@ interface StoreState {
   hover: number | null
   searchOpen: boolean
   search: string
+  tickerFinder: FinderIntent | null
 
   // ── data caches keyed by symbol ──
   quotes: Record<string, Quote>
@@ -91,6 +102,7 @@ interface StoreState {
   crypto: CryptoResponse | null
   cryptoLimit: 25 | 50 | 100
   fng: Fng | null
+  fngFetchedAt: string
   flash: Record<string, 'up' | 'down' | null>
   quotesFetchedAt: string
 
@@ -104,6 +116,8 @@ interface StoreState {
   setHover: (i: number | null) => void
   setSearchOpen: (b: boolean) => void
   setSearch: (q: string) => void
+  openTickerFinder: (intent?: FinderIntent) => void
+  closeTickerFinder: () => void
   toggleCompare: (sym: string) => void
 
   loadWatchlist: () => Promise<void>
@@ -140,13 +154,9 @@ interface StoreState {
   loadPulseHistory: (sym: string) => Promise<void>
   loadSignalAlerts: (sym: string) => Promise<void>
   loadEarnings: (sym: string) => Promise<void>
-  addWatch: (sym: string, target?: number) => Promise<void>
+  addWatch: (sym: string, targets?: { buy_target?: number; sell_target?: number }) => Promise<boolean>
   removeWatch: (sym: string) => Promise<void>
-  updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<void>
-
-  // ── theme ──
-  theme: 'dark' | 'light'
-  setTheme: (t: 'dark' | 'light') => void
+  updateWatch: (sym: string, fields: Partial<WatchlistItem>) => Promise<boolean>
 
   // ── auth modal ──
   authModal: boolean
@@ -181,7 +191,7 @@ interface StoreState {
 }
 
 export const useStore = create<StoreState>((set, get) => ({
-  view: 'dashboard',
+  view: initialViewForLocation(typeof window === 'undefined' ? '/dashboard' : window.location.pathname) as View,
   selected: 'NVDA',
   timeframe: '3M',
   chartType: 'candles',
@@ -191,6 +201,7 @@ export const useStore = create<StoreState>((set, get) => ({
   hover: null,
   searchOpen: false,
   search: '',
+  tickerFinder: null,
 
   quotes: {},
   marketStatus: 'Unknown',
@@ -214,16 +225,9 @@ export const useStore = create<StoreState>((set, get) => ({
   crypto: null,
   cryptoLimit: 50,
   fng: null,
+  fngFetchedAt: '',
   flash: {},
   quotesFetchedAt: '',
-
-  theme: (typeof localStorage !== 'undefined'
-    ? (localStorage.getItem('tt_theme') as 'dark' | 'light') || 'dark'
-    : 'dark'),
-  setTheme: (t) => {
-    if (typeof localStorage !== 'undefined') localStorage.setItem('tt_theme', t)
-    set({ theme: t })
-  },
 
   authModal: false,
   authIntent: 'login',
@@ -232,13 +236,13 @@ export const useStore = create<StoreState>((set, get) => ({
 
   currentUser: null,
   authChecked: false,
-  loadMe: async () => {
+  loadMe: () => coalesce('auth:me', async () => {
     try {
       const r = await fetch('/api/auth/me', { credentials: 'include' })
       const j = await r.json()
       set({ currentUser: j.user ?? null, authChecked: true })
     } catch { set({ authChecked: true }) }
-  },
+  }),
   login: async (email, password) => {
     const r = await fetch('/api/auth/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { ok: false, error: j.error || 'Login failed' } }
@@ -250,7 +254,7 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ currentUser: j.user ?? null })
     // Re-fetch personalized data so the newly-logged-in user sees their own
     // watchlist/settings/holdings without a page reload.
-    await get().loadWatchlist(); await get().loadWatchlists(); await get().loadSettings(); await get().loadHoldings(); await get().loadBilling()
+    await get().loadWatchlists(); await get().loadSettings(); await get().loadHoldings(); await get().loadBilling()
     return { ok: true }
   },
   signup: async (email, password, name) => {
@@ -294,6 +298,8 @@ export const useStore = create<StoreState>((set, get) => ({
   setHover: (i) => set({ hover: i }),
   setSearchOpen: (b) => set({ searchOpen: b }),
   setSearch: (q) => set({ search: q }),
+  openTickerFinder: (tickerFinder = { kind: 'browse' }) => set({ tickerFinder, searchOpen: true }),
+  closeTickerFinder: () => set({ tickerFinder: null, searchOpen: false, search: '' }),
   toggleCompare: (sym) => {
     const st = get()
     if (st.compare.includes(sym)) {
@@ -320,7 +326,7 @@ export const useStore = create<StoreState>((set, get) => ({
         // First run: seed the server with the default watchlist (sequentially;
         // add_watch upserts by symbol so this is idempotent).
         for (let i = 0; i < DEFAULT_WATCH.length; i++) {
-          await api.addWatch({ symbol: DEFAULT_WATCH[i], target: UNIVERSE[DEFAULT_WATCH[i]]?.target ?? 0 })
+          await api.addWatch({ symbol: DEFAULT_WATCH[i], sell_target: UNIVERSE[DEFAULT_WATCH[i]]?.target ?? 0 })
         }
         const seeded = await api.getWatchlist()
         set({ watchlist: seeded.data })
@@ -331,7 +337,8 @@ export const useStore = create<StoreState>((set, get) => ({
       // offline fallback: synthesize from defaults
       set({
         watchlist: DEFAULT_WATCH.map((symbol, i) => ({
-          symbol, position: i, target: UNIVERSE[symbol]?.target ?? 0,
+          symbol, position: i, buy_target: 0, sell_target: UNIVERSE[symbol]?.target ?? 0,
+          target: UNIVERSE[symbol]?.target ?? 0,
           alert_price: 0, alert_dir: 'above' as const, alert_active: false,
           kind: 'stock' as const,
         })),
@@ -339,12 +346,12 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
-  loadWatchlists: async () => {
+  loadWatchlists: () => coalesce('watchlists', async () => {
     try {
       const { data } = await api.getWatchlists()
       set({ watchlists: data, watchlist: flattenActive(data) })
     } catch { /* offline: keep existing */ }
-  },
+  }),
   createList: async (name) => {
     try {
       await api.createWatchlist(name)
@@ -412,7 +419,7 @@ export const useStore = create<StoreState>((set, get) => ({
   },
   clearLimitError: () => set({ lastLimitError: null }),
 
-  loadSettings: async () => {
+  loadSettings: () => coalesce('settings', async () => {
     try {
       const { data } = await api.getSettings()
       set({ settings: data })
@@ -424,7 +431,7 @@ export const useStore = create<StoreState>((set, get) => ({
         },
       })
     }
-  },
+  }),
 
   updateSettings: async (fields) => {
     set((st) => ({ settings: st.settings ? { ...st.settings, ...fields } : st.settings }))
@@ -434,30 +441,30 @@ export const useStore = create<StoreState>((set, get) => ({
     } catch { /* keep optimistic value offline */ }
   },
 
-  loadHoldings: async () => {
+  loadHoldings: () => coalesce('holdings', async () => {
     try {
       const { data } = await api.getHoldings()
       set({ holdings: data })
     } catch { /* leave empty */ }
-  },
+  }),
 
-  loadBilling: async () => {
+  loadBilling: () => coalesce('billing', async () => {
     try {
       const { data } = await api.getBilling()
       set({ billing: data })
     } catch { /* anonymous or offline: leave null */ }
-  },
+  }),
 
   openUpgrade: (feature = 'pro', message = '') =>
     set({ upgradePrompt: { feature, message } }),
   closeUpgrade: () => set({ upgradePrompt: null }),
 
-  loadCrypto: async () => {
+  loadCrypto: () => coalesce(`crypto:${get().cryptoLimit}:${get().cryptoWatchIds().join(',')}`, async () => {
     try {
       const { data } = await api.crypto(get().cryptoLimit, get().cryptoWatchIds())
       set({ crypto: data })
     } catch { /* leave null */ }
-  },
+  }),
 
   setCryptoLimit: async (n) => {
     set({ cryptoLimit: n })
@@ -483,21 +490,22 @@ export const useStore = create<StoreState>((set, get) => ({
     } catch { /* ignore */ }
   },
 
-  loadFng: async () => {
+  loadFng: () => coalesce('fng', async () => {
     try {
-      const { data } = await api.fng()
-      set({ fng: data })
+      const { data, fetchedAt } = await api.fng()
+      set({ fng: data, fngFetchedAt: fetchedAt })
     } catch { /* leave null */ }
-  },
+  }),
 
   pollQuotes: async () => {
     const syms = get().watchSymbols()
     const selected = get().selected
     const all = Array.from(new Set([...syms, selected])).filter(Boolean)
     if (!all.length) return
-    // Fire-and-forget: ensure brand logos exist for everything currently visible.
-    get().loadLogos(all)
-    try {
+    return coalesce(`quotes:${all.slice().sort().join(',')}`, async () => {
+      // Fire-and-forget: ensure brand logos exist for everything currently visible.
+      get().loadLogos(all)
+      try {
       const { data, fetchedAt } = await api.quotes(all)
       const prev = get().quotes
       const flash: Record<string, 'up' | 'down' | null> = {}
@@ -513,7 +521,6 @@ export const useStore = create<StoreState>((set, get) => ({
       set({ quotes: { ...prev, ...stamped }, marketStatus: data.market_status, flash, quotesFetchedAt: fetchedAt })
       // clear flash after the prototype's ~650ms window
       setTimeout(() => set({ flash: {} }), 650)
-
       // Detect alert crossings and push in-app toasts on first transition.
       const { watchlist: wl } = get()
       if (wl.length > 0) {
@@ -532,25 +539,28 @@ export const useStore = create<StoreState>((set, get) => ({
     } catch {
       // keep last-known quotes; symbols without one render a skeleton (hasQuote=false)
     }
+    })
   },
 
   loadHistory: async (sym, tf) => {
     const key = `${sym}:${tf}`
     if (get().history[key]) return
-    try {
-      const { data } = await api.history(sym, tf)
-      set((st) => ({ history: { ...st.history, [key]: data } }))
-    } catch {
-      /* no history → chart renders a skeleton until a later load succeeds */
-    }
+    return coalesce(`history:${key}`, async () => {
+      try {
+        const { data } = await api.history(sym, tf)
+        set((st) => ({ history: { ...st.history, [key]: data } }))
+      } catch { /* no history → chart renders a skeleton until a later load succeeds */ }
+    })
   },
 
   loadFundamentals: async (sym) => {
     if (get().fundamentals[sym]) return
-    try {
-      const { data } = await api.fundamentals(sym)
-      set((st) => ({ fundamentals: { ...st.fundamentals, [sym]: data } }))
-    } catch { /* no fundamentals → cells render a skeleton until a later load succeeds */ }
+    return coalesce(`fundamentals:${sym}`, async () => {
+      try {
+        const { data } = await api.fundamentals(sym)
+        set((st) => ({ fundamentals: { ...st.fundamentals, [sym]: data } }))
+      } catch { /* no fundamentals → cells render a skeleton until a later load succeeds */ }
+    })
   },
 
   loadLogos: async (syms) => {
@@ -571,40 +581,33 @@ export const useStore = create<StoreState>((set, get) => ({
   loadNews: async (sym) => {
     const key = sym || 'MARKET'
     if (get().newsLoaded[key]) return // already fetched (even if it returned 0 items)
-    try {
-      const { data } = await api.news(sym)
-      set((st) => ({
-        news: { ...st.news, [key]: data },
-        newsLoaded: { ...st.newsLoaded, [key]: true },
-      }))
-    } catch {
-      // mark loaded so the UI shows an empty state, not a perpetual spinner
-      set((st) => ({ newsLoaded: { ...st.newsLoaded, [key]: true } }))
-    }
+    return coalesce(`news:${key}`, async () => {
+      try {
+        const { data } = await api.news(sym)
+        set((st) => ({ news: { ...st.news, [key]: data }, newsLoaded: { ...st.newsLoaded, [key]: true } }))
+      } catch { set((st) => ({ newsLoaded: { ...st.newsLoaded, [key]: true } })) }
+    })
   },
 
   loadRatings: async (sym) => {
     if (get().ratings[sym]) return
-    try {
-      const { data } = await api.ratings(sym)
-      set((st) => ({ ratings: { ...st.ratings, [sym]: data } }))
-    } catch { /* leave empty */ }
+    return coalesce(`ratings:${sym}`, async () => {
+      try { const { data } = await api.ratings(sym); set((st) => ({ ratings: { ...st.ratings, [sym]: data } })) } catch { /* leave empty */ }
+    })
   },
 
   loadPulse: async (sym) => {
     if (get().pulse[sym]) return
-    try {
-      const { data } = await api.pulse(sym)
-      set((st) => ({ pulse: { ...st.pulse, [sym]: data } }))
-    } catch { /* leave unset — the dial simply doesn't render */ }
+    return coalesce(`pulse:${sym}`, async () => {
+      try { const { data } = await api.pulse(sym); set((st) => ({ pulse: { ...st.pulse, [sym]: data } })) } catch { /* leave unset */ }
+    })
   },
 
   loadPulseHistory: async (sym) => {
     if (get().pulseHistory[sym]) return
-    try {
-      const { data } = await api.pulseHistory(sym)
-      set((st) => ({ pulseHistory: { ...st.pulseHistory, [sym]: data } }))
-    } catch { /* leave unset — the trend simply doesn't render */ }
+    return coalesce(`pulse-history:${sym}`, async () => {
+      try { const { data } = await api.pulseHistory(sym); set((st) => ({ pulseHistory: { ...st.pulseHistory, [sym]: data } })) } catch { /* leave unset */ }
+    })
   },
 
   loadSignalAlerts: async (sym) => {
@@ -623,16 +626,18 @@ export const useStore = create<StoreState>((set, get) => ({
     } catch { /* leave unset → card shows loading/empty */ }
   },
 
-  addWatch: async (sym, target = 0) => {
+  addWatch: async (sym, targets = {}) => {
     try {
-      await api.addWatch({ symbol: sym, target })
+      await api.addWatch({ symbol: sym, ...targets })
       const { data } = await api.getWatchlist()
       set({ watchlist: data })
+      return true
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
         get().openUpgrade(e.body?.feature ?? 'watchlist', e.body?.message ?? '')
       }
       // otherwise ignore (offline)
+      return false
     }
   },
 
@@ -651,12 +656,14 @@ export const useStore = create<StoreState>((set, get) => ({
     }))
     try {
       await api.updateWatch(sym, fields)
+      return true
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
         set({ watchlist: prev }) // roll back optimistic change
         get().openUpgrade(e.body?.feature ?? 'alerts', e.body?.message ?? '')
       }
       // otherwise keep optimistic value (offline)
+      return false
     }
   },
 

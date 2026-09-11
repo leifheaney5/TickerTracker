@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import time
+import threading
 from collections import OrderedDict
 from typing import Any, Callable, Tuple
 
@@ -32,10 +33,14 @@ logger = logging.getLogger(__name__)
 MAX_ENTRIES = 2000
 
 _store: "OrderedDict[str, Tuple[Any, float]]" = OrderedDict()
+_guard = threading.RLock()
+_locks = OrderedDict()  # key -> [Lock, active-and-waiting reference count]
 
 
 def clear() -> None:
-    _store.clear()
+    with _guard:
+        _store.clear()
+        _locks.clear()
     # Also clear redis client cache so tests can reset state cleanly.
     global _redis_client, _redis_warned
     _redis_client = None
@@ -155,11 +160,32 @@ def cached(key: str, ttl: float, producer: Callable[[], Any]) -> Tuple[Any, bool
     *stale* is True only when the producer raised and a prior value was returned.
     Uses Redis when available; falls back to the in-process LRU transparently.
     """
-    rc = _get_redis()
-
-    if rc is not None:
-        return _cached_redis(rc, key, ttl, producer)
-    return _cached_local(key, ttl, producer)
+    with _guard:
+        entry = _locks.get(key)
+        if entry is None:
+            entry = [threading.Lock(), 0]
+            _locks[key] = entry
+        entry[1] += 1
+        _locks.move_to_end(key)
+        if len(_locks) > MAX_ENTRIES:
+            for old_key, old_entry in list(_locks.items()):
+                if old_key != key and old_entry[1] == 0:
+                    _locks.pop(old_key, None)
+                    if len(_locks) <= MAX_ENTRIES:
+                        break
+    try:
+        with entry[0]:
+            rc = _get_redis()
+            if rc is not None:
+                return _cached_redis(rc, key, ttl, producer)
+            return _cached_local(key, ttl, producer)
+    finally:
+        with _guard:
+            current_entry = _locks.get(key)
+            if current_entry is entry:
+                current_entry[1] -= 1
+                if current_entry[1] == 0:
+                    _locks.pop(key, None)
 
 
 def _cached_local(
@@ -167,13 +193,15 @@ def _cached_local(
 ) -> Tuple[Any, bool]:
     """In-process LRU path (original implementation)."""
     now = time.time()
-    hit = _store.get(key)
-    if hit and now - hit[1] < ttl:
-        _store.move_to_end(key)
-        return hit[0], False
+    with _guard:
+        hit = _store.get(key)
+        if hit and now - hit[1] < ttl:
+            _store.move_to_end(key)
+            return hit[0], False
     try:
         value = producer()
-        _touch(key, value, now)
+        with _guard:
+            _touch(key, value, time.time())
         return value, False
     except Exception:
         if hit:
@@ -196,24 +224,28 @@ def _cached_redis(
         value, cached_at = entry
         if now - cached_at < ttl:
             # Fresh hit — also warm the local LRU as a read-through cache
-            _touch(key, value, now)
+            with _guard:
+                _touch(key, value, now)
             return value, False
         # Logically expired; try to refresh
         try:
             new_value = producer()
             _redis_set(rc, key, new_value, now, ttl)
-            _touch(key, new_value, now)
+            with _guard:
+                _touch(key, new_value, now)
             return new_value, False
         except Exception:
             # Return stale
             return value, True
     else:
         # Not in Redis — fall through to local LRU for stale fallback
-        hit = _store.get(key)
+        with _guard:
+            hit = _store.get(key)
         try:
             value = producer()
             _redis_set(rc, key, value, now, ttl)
-            _touch(key, value, now)
+            with _guard:
+                _touch(key, value, now)
             return value, False
         except Exception:
             if hit:

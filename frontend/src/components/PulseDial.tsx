@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
-import { pulseColor, pulseCaption, type PulseBand } from '../lib/pulse'
+import { pulseColor, pulseCaption, pulseTrend, type PulseBand } from '../lib/pulse'
 import { PulseAbout } from './PulseAbout'
 
 // PulseDial — the signature Pulse motif: a 270° gauge rendering the 0-100 composite score.
@@ -32,12 +32,15 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
 export function PulseDial({ symbol, size = 56 }: Props) {
   const pulse = useStore((s) => s.pulse[symbol])
   const loadPulse = useStore((s) => s.loadPulse)
+  const history = useStore((s) => s.pulseHistory[symbol])
+  const loadPulseHistory = useStore((s) => s.loadPulseHistory)
   const [aboutOpen, setAboutOpen] = useState(false)
   const infoRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     loadPulse(symbol)
-  }, [symbol, loadPulse])
+    loadPulseHistory(symbol)
+  }, [symbol, loadPulse, loadPulseHistory])
 
   // Render nothing until a COMPLETE pulse has loaded — a partial/bandless object
   // (e.g. mid-load or a sparse provider response) must not crash on band.toUpperCase().
@@ -48,6 +51,7 @@ export function PulseDial({ symbol, size = 56 }: Props) {
   const color = pulseColor(band)
   const caption = pulseCaption(band)
   const f = score / 100
+  const trend = pulseTrend(history ?? [])
 
   const cx = size / 2
   const cy = size / 2
@@ -84,6 +88,9 @@ export function PulseDial({ symbol, size = 56 }: Props) {
       <span style={{ fontFamily: FONT_SANS, fontSize: 10, fontWeight: 700, letterSpacing: '.02em', color }}>
         {caption}
       </span>
+      {trend && <span style={{ padding: '3px 7px', borderRadius: 999, background: trend.direction === 'up' ? 'rgba(61,220,132,.13)' : trend.direction === 'down' ? 'rgba(79,140,255,.14)' : 'var(--cardHi)', color: trend.direction === 'up' ? 'var(--up)' : trend.direction === 'down' ? 'var(--compare0)' : 'var(--tx2)', fontFamily: FONT_SANS, fontSize: 9.5, fontWeight: 800, whiteSpace: 'nowrap' }}>
+        {trend.direction === 'up' ? '↑ Signals rising' : trend.direction === 'down' ? '↓ Signals cooling' : '→ Signals steady'} {trend.delta > 0 ? '+' : ''}{trend.delta.toFixed(0)} · {trend.days}d
+      </span>}
 
       {/* Metric label + info chip. The ⓘ opens the "What is Pulse?" explainer; focus returns here on close. */}
       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

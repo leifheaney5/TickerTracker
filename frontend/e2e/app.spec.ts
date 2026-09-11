@@ -29,10 +29,8 @@ test.describe('App shell', () => {
 
   test('search button opens search input', async ({ page }) => {
     await page.goto('/')
-    // Click the search button (aria-label="Search")
-    await page.getByRole('button', { name: 'Search' }).click()
-    // After clicking, a search input appears
-    await expect(page.getByPlaceholder('Search ticker or company…')).toBeVisible()
+    await page.getByRole('button', { name: /Find ticker/ }).click()
+    await expect(page.getByRole('combobox', { name: 'Search ticker or company' })).toBeVisible()
   })
 
   test('? key opens shortcuts overlay and Esc closes it', async ({ page }) => {
@@ -49,11 +47,22 @@ test.describe('App shell', () => {
     await expect(page.getByText('Keyboard shortcuts')).not.toBeVisible()
   })
 
-  test('theme toggle button exists with correct aria-label', async ({ page }) => {
+  test('uses dark-only chrome with the canonical mark', async ({ page }) => {
     await page.goto('/')
-    // Find theme toggle by aria-label pattern
-    const themeBtn = page.getByRole('button', { name: /switch to (light|dark) theme/i })
-    await expect(themeBtn).toBeVisible()
+    await expect(page.getByRole('button', { name: /theme/i })).toHaveCount(0)
+    await expect(page.getByRole('img', { name: 'Ticker Tracker' })).toHaveAttribute('src', '/favicon.svg')
+  })
+
+  test('compare action is prominent and uses the shared ticker finder', async ({ page }) => {
+    await page.goto('/dashboard')
+    await page.getByRole('button', { name: '＋ Compare stocks' }).click()
+    await expect(page.getByRole('dialog', { name: 'Compare a ticker' })).toBeVisible()
+  })
+
+  test('Contact us stays available on a 320px viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 })
+    await page.goto('/dashboard')
+    await expect(page.getByRole('button', { name: 'Contact us' })).toBeVisible()
   })
 })
 
@@ -85,5 +94,22 @@ test.describe('Routing', () => {
   test('unknown path falls back to /dashboard', async ({ page }) => {
     await page.goto('/this-route-does-not-exist')
     await expect(page).toHaveURL(/\/dashboard$/)
+  })
+})
+
+test.describe('Initial-load performance', () => {
+  test('a hard /market load avoids dashboard requests and fetches Fear and Greed once', async ({ page }) => {
+    const requests: string[] = []
+    await page.route('**/api/**', async (route) => {
+      const path = new URL(route.request().url()).pathname
+      requests.push(path)
+      if (path === '/api/auth/me') return route.fulfill({ json: { user: null } })
+      if (path === '/api/fng') return route.fulfill({ json: { data: { value: 50, label: 'Neutral' }, meta: { source: 'test', stale: false, fetched_at: '2026-09-10T00:00:00Z' } } })
+      return route.fulfill({ status: 404, json: {} })
+    })
+    await page.goto('/market')
+    await expect(page.getByText(/Crypto Fear & Greed: 50/)).toBeVisible()
+    expect(requests.filter((path) => path === '/api/fng')).toHaveLength(1)
+    expect(requests.some((path) => /^\/api\/(pulse|history|fundamentals|news|ratings|quotes|logos)/.test(path))).toBe(false)
   })
 })

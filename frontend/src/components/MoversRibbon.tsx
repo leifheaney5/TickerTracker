@@ -18,10 +18,11 @@ export function MoversRibbon() {
   const setSelected = useStore((s) => s.setSelected)
   const [tab, setTab] = useState<'gainers' | 'losers'>('gainers')
 
-  const ranked = watchSymbols()
-    .slice()
+  const liveSymbols = watchSymbols().filter((symbol) => quotes[symbol]?.price != null)
+  const signed = liveSymbols.filter((symbol) => tab === 'gainers' ? chg(symbol) > 0 : chg(symbol) < 0)
+  const ranked = (signed.length ? signed : liveSymbols)
     .sort((a, b) => (tab === 'gainers' ? chg(b) - chg(a) : chg(a) - chg(b)))
-    .slice(0, 8)
+    .slice(0, 4)
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '7px 11px', borderRadius: 8, border: 'none', cursor: 'pointer',
@@ -31,7 +32,9 @@ export function MoversRibbon() {
   })
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto' }}>
+    <section aria-label="Watchlist movers" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--line)', flex: '0 0 auto' }}>
+      <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.05em', color: 'var(--tx3)' }}>WATCHLIST MOVERS</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <div style={{ display: 'flex', gap: 4, flex: '0 0 auto' }}>
         <button onClick={() => setTab('gainers')} style={tabStyle(tab === 'gainers')}>▲ Gainers</button>
         <button onClick={() => setTab('losers')} style={tabStyle(tab === 'losers')}>▼ Losers</button>
@@ -44,7 +47,7 @@ export function MoversRibbon() {
             <div
               key={sym}
               onClick={() => setSelected(sym)}
-              style={{ flex: '0 0 auto', minWidth: 120, padding: '8px 11px', borderRadius: 10, background: 'var(--card)', border: '1px solid var(--line)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+              style={{ flex: '0 0 auto', minWidth: 106, padding: '7px 9px', borderRadius: 9, background: 'var(--card)', border: '1px solid var(--line)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <Logo symbol={sym} size={18} />
@@ -63,6 +66,7 @@ export function MoversRibbon() {
         })}
         {ranked.length === 0 && <span style={{ color: 'var(--tx3)', fontSize: 12, fontFamily: FONT_SANS }}>No movers</span>}
       </div>
-    </div>
+      </div>
+    </section>
   )
 }

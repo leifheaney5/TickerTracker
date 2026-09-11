@@ -145,7 +145,10 @@ export type AlertDir = 'above' | 'below'
 export interface WatchlistItem {
   symbol: string
   position: number
-  target: number
+  buy_target: number
+  sell_target: number
+  /** Legacy response alias for sell_target. New frontend writes never use it. */
+  target?: number
   alert_price: number
   alert_dir: AlertDir
   alert_active: boolean
@@ -188,7 +191,12 @@ export interface WatchlistWithItems {
 
 export interface SymbolHit { symbol: string; description: string; type: string }
 
-export interface SharedWatchlistItem { symbol: string }
+export interface SharedWatchlistItem {
+  symbol: string
+  buy_target: number
+  sell_target: number
+  target?: number
+}
 
 export interface SharedWatchlistResponse {
   owner_name: string

@@ -36,6 +36,11 @@ export function viewForPath(pathname: string): string | null {
   return PATH_TO_VIEW[pathname] ?? null
 }
 
+export function initialViewForLocation(pathname: string): string {
+  if (tickerForPath(pathname)) return 'dashboard'
+  return viewForPath(pathname) ?? 'dashboard'
+}
+
 const SYM_RE = /^[A-Z0-9.-]{1,12}$/
 
 // Parse '/ticker/NVDA' → 'NVDA' (uppercased, validated), else null.

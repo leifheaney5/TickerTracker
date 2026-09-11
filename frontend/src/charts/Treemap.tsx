@@ -73,7 +73,7 @@ interface TreemapProps {
 //   tipFor  → useCallback'd in callers with matching deps
 //   highlight → useMemo or stable Set in callers
 // The Crypto-map caller (Crypto.tsx) passes no tipFor; memo is safe there too.
-function _Treemap({ items, width, height, onTileClick, highlight, tipFor }: TreemapProps) {
+function TreemapView({ items, width, height, onTileClick, highlight, tipFor }: TreemapProps) {
   // Memoize layout: squarify is O(n log n) over ~96 tiles. Without this, every
   // hover (setTip) re-runs the full layout. Keys are the only inputs that affect
   // geometry — live quote updates never touch items/width/height.
@@ -142,4 +142,4 @@ function _Treemap({ items, width, height, onTileClick, highlight, tipFor }: Tree
   )
 }
 
-export const Treemap = memo(_Treemap)
+export const Treemap = memo(TreemapView)

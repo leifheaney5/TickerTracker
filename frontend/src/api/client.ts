@@ -30,6 +30,27 @@ export class ApiError extends Error {
   }
 }
 
+type RawWatchlistItem = Partial<WatchlistItem> & Pick<WatchlistItem, 'symbol'>
+
+export function normalizeWatchlistItem<T extends RawWatchlistItem>(item: T): T & WatchlistItem {
+  const sellTarget = Number(item.sell_target ?? item.target ?? 0)
+  return {
+    alert_active: false,
+    alert_dir: 'above',
+    alert_price: 0,
+    kind: 'stock',
+    position: 0,
+    ...item,
+    buy_target: Number(item.buy_target ?? 0),
+    sell_target: Number.isFinite(sellTarget) ? sellTarget : 0,
+    target: Number.isFinite(sellTarget) ? sellTarget : 0,
+  } as T & WatchlistItem
+}
+
+function normalizeWatchlist<T extends RawWatchlistItem>(items: T[]): Array<T & WatchlistItem> {
+  return items.map(normalizeWatchlistItem)
+}
+
 async function get<T>(path: string): Promise<Result<T>> {
   const r = await fetch(path, { credentials: 'include' })
   if (!r.ok) throw new ApiError(r.status, await r.json().catch(() => null), path)
@@ -73,25 +94,39 @@ export const api = {
   pulseHistory: (sym: string) => get<PulsePoint[]>(`/api/pulse/${encodeURIComponent(sym)}/history`),
   signalAlerts: (sym: string) => get<SignalAlerts>(`/api/pulse/${encodeURIComponent(sym)}/signals`),
 
-  getWatchlist: () => get<WatchlistItem[]>('/api/watchlist'),
-  addWatch: (b: { symbol: string; target?: number; alert_price?: number; alert_dir?: string; kind?: 'stock' | 'crypto'; coin_name?: string }) =>
-    send<WatchlistItem>('/api/watchlist', 'POST', b),
-  updateWatch: (sym: string, b: Partial<WatchlistItem>) =>
-    send<WatchlistItem>(`/api/watchlist/${encodeURIComponent(sym)}`, 'PATCH', b),
+  getWatchlist: async () => {
+    const result = await get<RawWatchlistItem[]>('/api/watchlist')
+    return { ...result, data: normalizeWatchlist(result.data) }
+  },
+  addWatch: async (b: { symbol: string; buy_target?: number; sell_target?: number; alert_price?: number; alert_dir?: string; kind?: 'stock' | 'crypto'; coin_name?: string }) => {
+    const result = await send<RawWatchlistItem>('/api/watchlist', 'POST', b)
+    return { ...result, data: normalizeWatchlistItem(result.data) }
+  },
+  updateWatch: async (sym: string, b: Omit<Partial<WatchlistItem>, 'target'>) => {
+    const result = await send<RawWatchlistItem>(`/api/watchlist/${encodeURIComponent(sym)}`, 'PATCH', b)
+    return { ...result, data: normalizeWatchlistItem(result.data) }
+  },
   removeWatch: (sym: string) =>
     send<{ removed: boolean }>(`/api/watchlist/${encodeURIComponent(sym)}`, 'DELETE'),
 
-  getWatchlists: () => get<WatchlistWithItems[]>('/api/watchlists'),
+  getWatchlists: async () => {
+    const result = await get<WatchlistWithItems[]>('/api/watchlists')
+    return { ...result, data: result.data.map((list) => ({ ...list, items: normalizeWatchlist(list.items) })) }
+  },
   createWatchlist: (name: string) =>
     send<WatchlistWithItems>('/api/watchlists', 'POST', { name }),
   patchWatchlist: (id: number, b: { name?: string; position?: number }) =>
     send<{ id: number; name: string; position: number }>(`/api/watchlists/${id}`, 'PATCH', b),
   deleteWatchlist: (id: number) =>
     send<{ deleted: boolean }>(`/api/watchlists/${id}`, 'DELETE'),
-  addListItem: (id: number, b: { symbol: string; target?: number }) =>
-    send<WatchlistItemFull>(`/api/watchlists/${id}/items`, 'POST', b),
-  patchListItem: (id: number, sym: string, b: Partial<WatchlistItemFull>) =>
-    send<WatchlistItemFull>(`/api/watchlists/${id}/items/${encodeURIComponent(sym)}`, 'PATCH', b),
+  addListItem: async (id: number, b: { symbol: string; buy_target?: number; sell_target?: number }) => {
+    const result = await send<WatchlistItemFull>(`/api/watchlists/${id}/items`, 'POST', b)
+    return { ...result, data: normalizeWatchlistItem(result.data) }
+  },
+  patchListItem: async (id: number, sym: string, b: Omit<Partial<WatchlistItemFull>, 'target'>) => {
+    const result = await send<WatchlistItemFull>(`/api/watchlists/${id}/items/${encodeURIComponent(sym)}`, 'PATCH', b)
+    return { ...result, data: normalizeWatchlistItem(result.data) }
+  },
   removeListItem: (id: number, sym: string) =>
     send<{ removed: boolean }>(`/api/watchlists/${id}/items/${encodeURIComponent(sym)}`, 'DELETE'),
   shareList: (id: number) =>
@@ -107,7 +142,10 @@ export const api = {
     send<{ removed: boolean }>(`/api/holdings/${encodeURIComponent(sym)}`, 'DELETE'),
 
   createShare: () => send<{ token: string }>('/api/watchlist/share', 'POST'),
-  getShared: (token: string) => get<SharedWatchlistResponse>(`/api/shared/${encodeURIComponent(token)}`),
+  getShared: async (token: string) => {
+    const result = await get<SharedWatchlistResponse>(`/api/shared/${encodeURIComponent(token)}`)
+    return { ...result, data: { ...result.data, items: normalizeWatchlist(result.data.items) } }
+  },
 
   earnings: (syms: string[]) =>
     get<EarningsRow[]>(`/api/earnings?syms=${encodeURIComponent(syms.join(','))}`),

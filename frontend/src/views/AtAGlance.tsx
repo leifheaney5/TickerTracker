@@ -23,7 +23,8 @@ const OV_COLS: Col[] = [
   { key: 'chg', label: '24H', num: true }, { key: 'cap', label: 'Mkt Cap', num: true },
   { key: 'pe', label: 'P/E', num: true }, { key: 'vol', label: 'Vol', num: true },
   { key: 'sector', label: 'Sector', num: false }, { key: 'industry', label: 'Industry', num: false },
-  { key: 'trend', label: '30D Trend', num: false }, { key: 'target', label: 'Target', num: true },
+  { key: 'trend', label: '30D Trend', num: false }, { key: 'buy_target', label: 'Buy target', num: true },
+  { key: 'sell_target', label: 'Sell target', num: true },
 ]
 
 export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
@@ -37,6 +38,7 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
   const hasQuote = useStore((s) => s.hasQuote)
   const fundamentals = useStore((s) => s.fundamentals)
   const loadFundamentals = useStore((s) => s.loadFundamentals)
+  const loadHistory = useStore((s) => s.loadHistory)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
 
@@ -47,7 +49,11 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
 
   const symbols = watchSymbols().filter((s) => group === 'All' || UNIVERSE[s]?.group === group)
 
-  useEffect(() => { symbols.forEach((s) => loadFundamentals(s)) }, [symbols.join(','), loadFundamentals])
+  useEffect(() => {
+    symbols.forEach((s) => loadFundamentals(s))
+    const timer = window.setTimeout(() => symbols.slice(0, 12).forEach((s) => void loadHistory(s, '1M')), 250)
+    return () => window.clearTimeout(timer)
+  }, [symbols.join(','), loadFundamentals, loadHistory])
 
   useEffect(() => {
     if (symbols.length === 0) return
@@ -55,7 +61,10 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
   }, [symbols.join(',')])
 
   const fundOf = (sym: string) => fundamentals[sym]
-  const targetOf = (sym: string) => watchlist.find((w) => w.symbol === sym)?.target ?? 0
+  const targetsOf = (sym: string) => {
+    const item = watchlist.find((w) => w.symbol === sym)
+    return { buy: item?.buy_target ?? 0, sell: item?.sell_target ?? 0 }
+  }
 
   const sortVal = (sym: string, key: string): number | string => {
     const u = UNIVERSE[sym] || ({} as typeof UNIVERSE[string])
@@ -69,7 +78,8 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
       case 'vol': return quotes[sym]?.volume ?? 0
       case 'sector': return (f?.sector && f.sector !== '—' ? f.sector : u.sector) || ''
       case 'industry': return u.industry || ''
-      case 'target': return targetOf(sym)
+      case 'buy_target': return targetsOf(sym).buy
+      case 'sell_target': return targetsOf(sym).sell
       default: return sym
     }
   }
@@ -131,8 +141,8 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
       <div style={{ border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden', background: 'var(--card)', flex: '0 0 auto' }}>
         <div style={{ overflowX: 'auto' }}>
           {!isDeep ? (
-            <div style={{ minWidth: 1180 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
+            <div style={{ minWidth: 1300 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px 120px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
                 {OV_COLS.map((c) => (
                   <div key={c.key} onClick={() => onSort(c.key)} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: sortKey === c.key ? 'var(--tx2)' : 'var(--tx3)', cursor: 'pointer', userSelect: 'none' }}>
                     {c.label}{sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
@@ -152,9 +162,9 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                 const c = chg(sym)
                 const up = c >= 0
                 const sector = f?.sector && f.sector !== '—' ? f.sector : u.sector
-                const target = targetOf(sym)
+                const targets = targetsOf(sym)
                 return (
-                  <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px', alignItems: 'center', borderTop: '1px solid var(--line)' }}>
+                  <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px 120px', alignItems: 'center', borderTop: '1px solid var(--line)' }}>
                     <div onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 14px', cursor: 'pointer', minWidth: 0 }}>
                       <Logo symbol={sym} size={28} />
                       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -170,7 +180,8 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                     <div style={{ padding: '13px 12px', fontSize: '12px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sector}</div>
                     <div style={{ padding: '13px 12px', fontSize: '12px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.industry || '—'}</div>
                     <div style={{ padding: '13px 12px' }}><Sparkline symbol={sym} /></div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: target ? 'var(--tx)' : 'var(--tx3)' }}>{target ? money(target) : '—'}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: targets.buy ? 'var(--tx)' : 'var(--tx3)' }}>{targets.buy ? money(targets.buy) : '—'}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: targets.sell ? 'var(--tx)' : 'var(--tx3)' }}>{targets.sell ? money(targets.sell) : '—'}</div>
                   </div>
                 )
               })}

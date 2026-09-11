@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStore } from '../state/store'
 import type { AuthUser } from '../api/types'
-import { FONT_SANS, FONT_MONO } from '../theme/tokens'
+import { FONT_SANS } from '../theme/tokens'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 
 type Mode = 'login' | 'signup' | 'forgot' | 'reset' | 'totp'
@@ -243,7 +243,7 @@ export function AuthScreen() {
         {hasOAuth && <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>}
         {providers.google && (
           <button type="button" data-testid="google-login" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
-            <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
+            <img src="/brand/google-g.svg" alt="" width={18} height={18} />Continue with Google
           </button>
         )}
         {providers.apple && (
@@ -303,7 +303,7 @@ export function AuthScreen() {
         {hasOAuth && <div style={divider}><span style={divLine} /><span>or</span><span style={divLine} /></div>}
         {providers.google && (
           <button type="button" data-testid="google-login" style={googleBtn} onClick={() => { window.location.href = '/api/auth/google' }}>
-            <span style={{ fontSize: '15px', fontFamily: FONT_MONO }}>G</span>Continue with Google
+            <img src="/brand/google-g.svg" alt="" width={18} height={18} />Continue with Google
           </button>
         )}
         {providers.apple && (

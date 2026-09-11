@@ -1,7 +1,7 @@
 import json as _json
+import math
 import os
 import re
-import json as _json
 import datetime as _dt
 from flask import Flask, Response, jsonify, request, send_from_directory, stream_with_context, make_response
 
@@ -131,6 +131,35 @@ _COIN_ID_RE = re.compile(r"^[a-z0-9-]{1,64}$")
 
 def valid_coin_id(s: str) -> bool:
     return bool(_COIN_ID_RE.match(s or ""))
+
+
+def _target_write_fields(body, include_defaults=False):
+    """Validate API target values and map the public sell names to storage."""
+    values = {}
+    for key in ("buy_target", "target", "sell_target"):
+        if key not in body:
+            continue
+        raw = body[key]
+        if isinstance(raw, bool):
+            raise ValueError("invalid target")
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            raise ValueError("invalid target") from None
+        if not math.isfinite(value) or value < 0:
+            raise ValueError("invalid target")
+        values[key] = value
+
+    fields = {}
+    if include_defaults or "buy_target" in values:
+        fields["buy_target"] = values.get("buy_target", 0.0)
+    if "sell_target" in values:
+        fields["target"] = values["sell_target"]
+    elif "target" in values:
+        fields["target"] = values["target"]
+    elif include_defaults:
+        fields["target"] = 0.0
+    return fields
 
 
 def envelope(data, source="internal", stale=False):
@@ -415,12 +444,16 @@ def watchlist_post():
         sym = (b.get("symbol") or "").upper()
         if not valid_symbol(sym):
             return envelope({"error": "invalid symbol"}), 400
+    try:
+        target_fields = _target_write_fields(b, include_defaults=True)
+    except ValueError:
+        return envelope({"error": "invalid target"}), 400
     # Free-plan watchlist limit applies to both stocks and crypto coins.
     err = _billing.check_watchlist_add(uid, sym)
     if err:
         return jsonify(err), 402
     try:
-        item = add_watch(sym, target=float(b.get("target", 0) or 0),
+        item = add_watch(sym, **target_fields,
                          alert_price=float(b.get("alert_price", 0) or 0),
                          alert_dir=b.get("alert_dir", "above"),
                          kind=kind, coin_name=(b.get("coin_name") or "")[:64])
@@ -436,8 +469,12 @@ def watchlist_patch(sym):
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
     # Explicit allowlist of client-patchable fields (avoid mass-assignment).
-    allowed = {"target", "alert_price", "alert_dir", "alert_active"}
+    allowed = {"alert_price", "alert_dir", "alert_active"}
     fields = {k: v for k, v in b.items() if k in allowed}
+    try:
+        fields.update(_target_write_fields(b))
+    except ValueError:
+        return envelope({"error": "invalid target"}), 400
     if fields.get("alert_active") is True:
         err = _billing.check_alert_activate(uid, sym.upper())
         if err:
@@ -511,8 +548,12 @@ def watchlist_item_post(list_id):
     if not valid_symbol(sym):
         return envelope({"error": "invalid symbol"}), 400
     try:
+        target_fields = _target_write_fields(b, include_defaults=True)
+    except ValueError:
+        return envelope({"error": "invalid target"}), 400
+    try:
         item = _wls.add_item(uid, list_id, sym,
-                             target=float(b.get("target", 0) or 0),
+                             **target_fields,
                              alert_price=float(b.get("alert_price", 0) or 0),
                              alert_dir=b.get("alert_dir", "above"))
         return envelope(item, source="db")
@@ -528,8 +569,12 @@ def watchlist_item_patch(list_id, sym):
     if uid is None:
         return envelope({"error": "authentication required"}), 401
     b = request.get_json(force=True) or {}
-    allowed = {"target", "alert_price", "alert_dir", "alert_active", "position", "watchlist_id"}
+    allowed = {"alert_price", "alert_dir", "alert_active", "position", "watchlist_id"}
     fields = {k: v for k, v in b.items() if k in allowed}
+    try:
+        fields.update(_target_write_fields(b))
+    except ValueError:
+        return envelope({"error": "invalid target"}), 400
     try:
         item = _wls.update_item(uid, list_id, sym.upper(), **fields)
     except ValueError:

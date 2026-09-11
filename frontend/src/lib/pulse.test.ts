@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pulseBand, pulseColor, pulseCaption, pulseArc, type PulseBand } from './pulse'
+import { pulseBand, pulseColor, pulseCaption, pulseArc, pulseTrend, type PulseBand } from './pulse'
 
 describe('pulseBand (quartile bands, matches backend + brand dial)', () => {
   it('maps scores to bands at quartile boundaries', () => {
@@ -34,15 +34,15 @@ describe('pulseCaption (plain dial caption — names the subject, never reads as
   it('maps every band to a "signals ___" caption', () => {
     expect(pulseCaption('Cooling')).toBe('signals quiet')
     expect(pulseCaption('Neutral')).toBe('signals mixed')
-    expect(pulseCaption('Building')).toBe('signals rising')
+    expect(pulseCaption('Building')).toBe('signals positive')
     expect(pulseCaption('Hot')).toBe('signals strong')
   })
   it('aligns with the score→band boundaries so the dial caption matches the arc', () => {
     expect(pulseCaption(pulseBand(24.9))).toBe('signals quiet')
     expect(pulseCaption(pulseBand(25))).toBe('signals mixed')
     expect(pulseCaption(pulseBand(49.9))).toBe('signals mixed')
-    expect(pulseCaption(pulseBand(50))).toBe('signals rising')
-    expect(pulseCaption(pulseBand(74.9))).toBe('signals rising')
+    expect(pulseCaption(pulseBand(50))).toBe('signals positive')
+    expect(pulseCaption(pulseBand(74.9))).toBe('signals positive')
     expect(pulseCaption(pulseBand(75))).toBe('signals strong')
   })
   it('never emits the ambiguous "building" wording', () => {
@@ -51,6 +51,18 @@ describe('pulseCaption (plain dial caption — names the subject, never reads as
   })
 })
 
+describe('pulseTrend', () => {
+  it('reports measured rising, cooling, and steady trends', () => {
+    expect(pulseTrend([{ date: '2026-09-01', score: 40 }, { date: '2026-09-07', score: 55 }])?.direction).toBe('up')
+    expect(pulseTrend([{ date: '2026-09-01', score: 55 }, { date: '2026-09-07', score: 40 }])?.direction).toBe('down')
+    expect(pulseTrend([{ date: '2026-09-01', score: 50 }, { date: '2026-09-07', score: 50.2 }])?.direction).toBe('steady')
+  })
+
+  it('returns null without two recent real dated points', () => {
+    expect(pulseTrend([{ date: '2026-09-01', score: 40 }])).toBeNull()
+    expect(pulseTrend([{ date: 'bad', score: 40 }, { date: '2026-09-01', score: 50 }])).toBeNull()
+  })
+})
 describe('pulseArc (0..100 -> sweep fraction of a 270° gauge)', () => {
   it('0 score sweeps nothing, 100 sweeps the full arc', () => {
     expect(pulseArc(0)).toBeCloseTo(0, 5)
