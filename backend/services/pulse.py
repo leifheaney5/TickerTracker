@@ -18,7 +18,9 @@ Pulse is a summary of public signals, NOT investment advice — see ``DISCLAIMER
 """
 import datetime
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
+import cache
 import services.history as history_svc
 import services.fundamentals as fundamentals_svc
 import services.ratings as ratings_svc
@@ -142,16 +144,21 @@ def _sentiment(news_items):
     return value, f"{bull}↑ {bear}↓ of {total} headlines"
 
 
-def compute_pulse(sym):
+def _compute_pulse(sym):
     """Compute the Pulse composite for a stock symbol. Always returns a dict; never raises."""
     sym = (sym or "").upper()
 
-    bars = _safe(lambda: history_svc.get_history(sym, "1Y")[0], default=[]) or []
+    with ThreadPoolExecutor(max_workers=4, thread_name_prefix="pulse") as pool:
+        history_future = pool.submit(_safe, lambda: history_svc.get_history(sym, "1Y")[0], [])
+        fund_future = pool.submit(_safe, lambda: fundamentals_svc.get_fundamentals(sym)[0], {})
+        ratings_future = pool.submit(_safe, lambda: ratings_svc.get_ratings(sym)[0], {})
+        news_future = pool.submit(_safe, lambda: news_svc.get_news(sym)[0], [])
+        bars = history_future.result() or []
+        fund = fund_future.result() or {}
+        ratings = ratings_future.result() or {}
+        news_items = news_future.result() or []
     closes = [b["c"] for b in bars]
     price = closes[-1] if closes else None
-    fund = _safe(lambda: fundamentals_svc.get_fundamentals(sym)[0], default={}) or {}
-    ratings = _safe(lambda: ratings_svc.get_ratings(sym)[0], default={}) or {}
-    news_items = _safe(lambda: news_svc.get_news(sym)[0], default=[]) or []
 
     components = []
 
@@ -192,3 +199,10 @@ def compute_pulse(sym):
         "kind": "stock",
         "disclaimer": DISCLAIMER,
     }
+
+
+def compute_pulse(sym):
+    """Compute and briefly cache Pulse so dependent signal evaluation reuses it."""
+    normalized = (sym or "").upper()
+    value, _ = cache.cached(f"pulse:{normalized}", 120, lambda: _compute_pulse(normalized))
+    return value

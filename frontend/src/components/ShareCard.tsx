@@ -30,6 +30,10 @@ export const ShareCard = forwardRef<HTMLDivElement, Props>(function ShareCard({ 
               <Logo symbol={it.symbol} size={40} />
               <span style={{ fontSize: 30, fontWeight: 800, width: 150 }}>{it.symbol}</span>
               <span style={{ flex: 1, fontSize: 22, opacity: .65, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{UNIVERSE[it.symbol]?.name || ''}</span>
+              <span style={{ width: 190, fontFamily: FONT_MONO, fontSize: 16, lineHeight: 1.4, opacity: .8 }}>
+                {it.buy_target > 0 && <span style={{ display: 'block' }}>Buy {money(it.buy_target)}</span>}
+                {it.sell_target > 0 && <span style={{ display: 'block' }}>Sell {money(it.sell_target)}</span>}
+              </span>
               <span style={{ fontFamily: FONT_MONO, fontSize: 28 }}>{money(q.price)}</span>
               <span style={{ fontFamily: FONT_MONO, fontSize: 24, width: 120, textAlign: 'right', color: up ? '#3ddc97' : '#ff6b6b' }}>{pct(q.pct)}</span>
             </div>
