@@ -20,7 +20,9 @@ export function PulseWhy() {
   const pulse = useStore((s) => s.pulse[selected])
   const [open, setOpen] = useState(false)
 
-  if (!pulse) return null
+  // Require a COMPLETE pulse (band + components) before rendering — a partial object
+  // must not crash on band.toUpperCase() or components.map().
+  if (!pulse || !pulse.band || !pulse.components) return null
   const band = pulse.band as PulseBand
   const maxContribution = Math.max(0.0001, ...pulse.components.map((c) => c.contribution ?? 0))
 

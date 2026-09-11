@@ -2,7 +2,11 @@ import { useStore, type ChartType } from '../state/store'
 import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import type { Timeframe } from '../api/types'
 
-const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M', '1Y', '5Y']
+// Chart controls — ported from the prototype template (lines 299-333): timeframe
+// segmented control, chart-type toggle (hidden in compare mode), and the Compare
+// dropdown (overlay up to 4 tickers normalized to %).
+
+const TIMEFRAMES: Timeframe[] = ['1D', '5D', '1W', '1M', '3M', '1Y', '5Y', 'YTD', 'MAX']
 const CHART_TYPES: { label: string; value: ChartType }[] = [
   { label: 'Candles', value: 'candles' }, { label: 'Line', value: 'line' }, { label: 'Area', value: 'area' },
 ]

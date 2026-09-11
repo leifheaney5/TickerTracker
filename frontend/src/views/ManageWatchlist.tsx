@@ -28,6 +28,9 @@ import { api } from '../api/client'
 import type { WatchlistWithItems, WatchlistItemFull } from '../api/types'
 import { ShareCard } from '../components/ShareCard'
 import { TargetEditor, TargetSummary } from '../components/TargetEditor'
+import { Sparkline } from '../charts/Sparkline'
+import { dailyChangeDollar } from '../lib/dailyChg'
+import { useToastStore } from '../state/toastStore'
 
 // ── id encoding helpers ──────────────────────────────────────────────────────
 // Each dnd-kit sortable id encodes the type so onDragEnd can dispatch the
@@ -64,6 +67,8 @@ interface TickerRowProps {
   listId: number
   price: (s: string) => number
   chg: (s: string) => number
+  // quotes subscribed at ManageWatchlist level so rows re-render on price updates
+  quotes: Record<string, { price: number }>
   setSelected: (s: string) => void
   setView: (v: 'dashboard') => void
   updateListWatch: (listId: number, s: string, f: Partial<WatchlistItemFull>) => void
@@ -75,6 +80,7 @@ function TickerRow({
   listId: lid,
   price,
   chg,
+  quotes: _quotes,
   setSelected,
   setView,
   updateListWatch,
@@ -105,6 +111,7 @@ function TickerRow({
   const live = useStore((s) => s.hasQuote(item.symbol))
   const c = chg(item.symbol)
   const up = c >= 0
+  const chgDollar = dailyChangeDollar(price(item.symbol), c)
 
   return (
     <div
@@ -112,7 +119,7 @@ function TickerRow({
       style={{
         ...style,
         display: 'grid',
-        gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 270px 110px 80px',
+        gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 76px 90px 140px 170px 80px',
         alignItems: 'center',
         borderTop: '1px solid var(--line)',
         background: isDragging ? 'var(--cardHi)' : undefined,
@@ -159,6 +166,16 @@ function TickerRow({
         {live ? pct(c) : <Skeleton inline width={40} height={11} />}
       </div>
 
+      {/* CHG $ */}
+      <div data-testid={`chg-dollar-${item.symbol}`} style={{ padding: '12px 8px', fontFamily: FONT_MONO, fontSize: '12px', fontWeight: 600, color: live ? (chgDollar >= 0 ? 'var(--up)' : 'var(--down)') : undefined }}>
+        {live ? (chgDollar >= 0 ? '+' : '') + money(chgDollar) : <Skeleton inline width={44} height={11} />}
+      </div>
+
+      {/* Sparkline */}
+      <div data-testid={`sparkline-${item.symbol}`} style={{ padding: '8px 8px' }}>
+        <Sparkline symbol={item.symbol} width={80} height={28} />
+      </div>
+
       {/* buy and sell targets */}
       <div style={{ padding: '10px 14px' }}>
         {editingTargets ? (
@@ -184,26 +201,66 @@ function TickerRow({
       </div>
 
       {/* alert */}
-      <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <input
-          title="Set price alert"
-          aria-label={`Alert price for ${item.symbol}`}
-          type="number"
-          placeholder="$"
-          defaultValue={item.alert_price || ''}
-          disabled={item.locked}
-          onBlur={(e) => !item.locked && updateListWatch(lid, item.symbol, { alert_price: parseFloat(e.target.value) || 0 })}
-          style={{ width: 64, height: 28, padding: '0 7px', borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '12px', opacity: item.locked ? 0.5 : 1 }}
-        />
-        <button
-          onClick={() => !item.locked && updateListWatch(lid, item.symbol, { alert_active: !item.alert_active })}
-          disabled={item.locked}
-          title={item.alert_active ? 'Alert on' : 'Alert off'}
-          aria-label={`Toggle price alert for ${item.symbol}`}
-          style={{ height: 28, padding: '0 8px', borderRadius: 7, border: 'none', cursor: item.locked ? 'default' : 'pointer', fontSize: '11px', fontWeight: 700, background: item.alert_active ? 'var(--up)' : 'var(--cardHi)', color: item.alert_active ? 'var(--accentInk)' : 'var(--tx3)' }}
-        >
-          {item.alert_active ? 'ON' : 'OFF'}
-        </button>
+      <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {/* direction toggle — above / below */}
+        <div role="group" aria-label={`Alert direction for ${item.symbol}`} style={{ display: 'flex', gap: 3 }}>
+          <button
+            type="button"
+            aria-pressed={item.alert_dir === 'above'}
+            data-testid={`alert-dir-above-${item.symbol}`}
+            disabled={item.locked}
+            onClick={() => !item.locked && updateListWatch(lid, item.symbol, { alert_dir: 'above' })}
+            style={{
+              height: 22, padding: '0 7px', borderRadius: 5, border: 'none',
+              cursor: item.locked ? 'default' : 'pointer',
+              fontSize: '10.5px', fontWeight: 700, fontFamily: FONT_SANS,
+              background: item.alert_dir === 'above' ? 'var(--up)' : 'var(--cardHi)',
+              color: item.alert_dir === 'above' ? 'var(--accentInk)' : 'var(--tx3)',
+              opacity: item.locked ? 0.5 : 1,
+            }}
+          >
+            ↑ Above
+          </button>
+          <button
+            type="button"
+            aria-pressed={item.alert_dir === 'below'}
+            data-testid={`alert-dir-below-${item.symbol}`}
+            disabled={item.locked}
+            onClick={() => !item.locked && updateListWatch(lid, item.symbol, { alert_dir: 'below' })}
+            style={{
+              height: 22, padding: '0 7px', borderRadius: 5, border: 'none',
+              cursor: item.locked ? 'default' : 'pointer',
+              fontSize: '10.5px', fontWeight: 700, fontFamily: FONT_SANS,
+              background: item.alert_dir === 'below' ? 'var(--down)' : 'var(--cardHi)',
+              color: item.alert_dir === 'below' ? 'var(--accentInk)' : 'var(--tx3)',
+              opacity: item.locked ? 0.5 : 1,
+            }}
+          >
+            ↓ Below
+          </button>
+        </div>
+        {/* price input + active toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <input
+            title="Set price alert"
+            aria-label={`Alert price for ${item.symbol}`}
+            type="number"
+            placeholder="$"
+            defaultValue={item.alert_price || ''}
+            disabled={item.locked}
+            onBlur={(e) => !item.locked && updateListWatch(lid, item.symbol, { alert_price: parseFloat(e.target.value) || 0 })}
+            style={{ width: 60, height: 26, padding: '0 6px', borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--bg)', color: 'var(--tx)', fontFamily: FONT_MONO, fontSize: '12px', opacity: item.locked ? 0.5 : 1 }}
+          />
+          <button
+            onClick={() => !item.locked && updateListWatch(lid, item.symbol, { alert_active: !item.alert_active })}
+            disabled={item.locked}
+            title={item.alert_active ? 'Alert on' : 'Alert off'}
+            aria-label={`Toggle price alert for ${item.symbol}`}
+            style={{ height: 26, padding: '0 7px', borderRadius: 7, border: 'none', cursor: item.locked ? 'default' : 'pointer', fontSize: '11px', fontWeight: 700, background: item.alert_active ? 'var(--up)' : 'var(--cardHi)', color: item.alert_active ? 'var(--accentInk)' : 'var(--tx3)' }}
+          >
+            {item.alert_active ? 'ON' : 'OFF'}
+          </button>
+        </div>
       </div>
 
       {/* remove */}
@@ -230,6 +287,7 @@ interface WatchlistCardProps {
   totalLists: number
   price: (s: string) => number
   chg: (s: string) => number
+  quotes: Record<string, { price: number }>
   setSelected: (s: string) => void
   setView: (v: 'dashboard') => void
   updateListWatch: (listId: number, s: string, f: Partial<WatchlistItemFull>) => void
@@ -246,6 +304,7 @@ function WatchlistCard({
   totalLists,
   price,
   chg,
+  quotes,
   setSelected,
   setView,
   updateListWatch,
@@ -384,10 +443,10 @@ function WatchlistCard({
 
       {/* Ticker rows */}
       <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 850 }}>
+        <div style={{ minWidth: 780 }}>
           {/* column headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 270px 110px 80px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
-            {['', 'TICKER', 'PRICE', '24H', 'BUY / SELL TARGETS', 'ALERT', ''].map((h, i) => (
+          <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(140px,1.6fr) 100px 80px 76px 90px 140px 170px 80px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
+            {['', 'TICKER', 'PRICE', '24H', 'CHG $', 'CHART', 'BUY / SELL TARGETS', 'ALERT', ''].map((h, i) => (
               <div key={i} style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: 'var(--tx3)' }}>{h}</div>
             ))}
           </div>
@@ -400,6 +459,7 @@ function WatchlistCard({
                 listId={list.id}
                 price={price}
                 chg={chg}
+                quotes={quotes}
                 setSelected={setSelected}
                 setView={setView}
                 updateListWatch={updateListWatch}
@@ -437,6 +497,9 @@ export function ManageWatchlist() {
   const watchlists = useStore((s) => s.watchlists)
   const price = useStore((s) => s.price)
   const chg = useStore((s) => s.chg)
+  // Subscribe to quotes so rows re-render on price updates (Zustand gotcha:
+  // selecting s.price fn-ref alone wouldn't trigger a re-render on quote changes).
+  const quotes = useStore((s) => s.quotes)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
   const updateListWatch = useStore((s) => s.updateListWatch)
@@ -450,8 +513,7 @@ export function ManageWatchlist() {
   const reorderTicker = useStore((s) => s.reorderTicker)
   const lastLimitError = useStore((s) => s.lastLimitError)
   const clearLimitError = useStore((s) => s.clearLimitError)
-  const [shareLabel, setShareLabel] = useState<'Copying…' | 'Copied!' | null>(null)
-  const [sharingListId, setSharingListId] = useState<number | null>(null)
+  const pushToast = useToastStore((s) => s.pushToast)
   // Download-image state: which list is being snapshotted + its QR data URL
   const [downloadList, setDownloadList] = useState<WatchlistWithItems | null>(null)
   const [downloadQr, setDownloadQr] = useState<string>('')
@@ -463,17 +525,13 @@ export function ManageWatchlist() {
   )
 
   const handleCopyLink = async (list: WatchlistWithItems) => {
-    setSharingListId(list.id)
-    setShareLabel('Copying…')
     try {
       const res = await api.shareList(list.id)
       const url = `${location.origin}/s/${res.data.token}`
       await navigator.clipboard.writeText(url)
-      setShareLabel('Copied!')
-      setTimeout(() => { setShareLabel(null); setSharingListId(null) }, 2500)
+      pushToast('Link copied!', { kind: 'success' })
     } catch {
-      setShareLabel(null)
-      setSharingListId(null)
+      // ignore — clipboard permission denied or API error
     }
   }
 
@@ -624,6 +682,7 @@ export function ManageWatchlist() {
                   totalLists={watchlists.length}
                   price={price}
                   chg={chg}
+                  quotes={quotes}
                   setSelected={setSelected}
                   setView={(v) => setView(v)}
                   updateListWatch={updateListWatch}
@@ -638,13 +697,6 @@ export function ManageWatchlist() {
             </div>
           </SortableContext>
         </DndContext>
-
-        {/* Share status toast */}
-        {sharingListId !== null && shareLabel !== null && (
-          <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 500, padding: '12px 20px', borderRadius: 10, background: shareLabel === 'Copied!' ? 'var(--up)' : 'var(--card)', border: '1px solid var(--line)', boxShadow: '0 4px 16px rgba(0,0,0,.2)', color: shareLabel === 'Copied!' ? 'var(--accentInk)' : 'var(--tx)', fontFamily: FONT_SANS, fontSize: '13px', fontWeight: 600 }}>
-            {shareLabel === 'Copied!' ? '✓ Link copied!' : 'Copying…'}
-          </div>
-        )}
 
         {/* Off-screen ShareCard for PNG snapshot */}
         {downloadList && (

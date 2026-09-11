@@ -19,11 +19,412 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standardized the app on dark mode and added the official Google identity mark to sign-in.
 - Reduced cold-load request duplication with correct initial-route selection, frontend request coalescing, deferred sparkline loading, backend cache single-flight, and parallel Pulse inputs.
 
+> **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
+> engagement, and security. Batch A below; subsequent batches follow.
+
+## [1.25.1] — 2026-06-30
+
+> **Platform expansion — e2e hardening + two crash fixes.** Browser-level Playwright
+> coverage for the new surfaces surfaced two real crashes that unit tests (single-state
+> jsdom renders) could not.
+
+### Fixed
+
+- **Settings page crash (React #310)** for authenticated users: `usePushSubscription`,
+  `useTwoFactor`, and `usePasskey` were called *after* the unauthenticated early-return, so
+  the hook count changed across the unauth→auth transition. Hoisted all three above the guard.
+- **Home-page crash on incomplete Pulse data**: `PulseDial` / `PulseWhy` called
+  `band.toUpperCase()` / `components.map()` on a pulse object that was present but missing
+  fields, crashing the whole view. Both now require a complete pulse before rendering.
+
+### Added
+
+- **Playwright e2e coverage** for the expansion surfaces (`auth`, `holdings`, `settings`,
+  `watchlist` specs): OAuth-provider button gating, TOTP challenge step, allocation-mode
+  toggle, dividends + benchmark panels, the new watchlist grid columns, and the Security
+  card. Full suite green (52 tests).
+
+### Changed
+
+- Minor `vite build` strict-type fixes (`AuthScreen`, `usePushSubscription`, `streamHelpers`)
+  that `tsc --noEmit` did not flag; `data-testid="alloc-center-label"` added to the Holdings
+  allocation donut for a stable e2e locator.
+
+## [1.25.0] — 2026-06-30
+
+> **Platform expansion — Batch E2: TOTP 2FA + passkey entrypoint.** Optional
+> time-based two-factor auth with recovery codes, and a feature-gated WebAuthn scaffold.
+
+### Added
+
+- **TOTP two-factor authentication** (`backend/auth/twofactor.py`): enroll
+  (`POST /api/2fa/setup` → secret + `otpauth://` URI), confirm (`POST /api/2fa/verify` →
+  enables 2FA, returns one-time **recovery codes**), `disable`, and `status` endpoints. The
+  TOTP secret is stored **encrypted at rest** (reuses Batch E1's `EncryptedString`); recovery
+  codes are Argon2-hashed and single-use. Login now returns a `two_factor_required` challenge
+  with a 5-minute `itsdangerous` token, exchanged at `POST /api/auth/2fa` for the session
+  (TOTP code **or** a recovery code). **Users without 2FA are unaffected** — the existing login
+  path is unchanged (covered by `test_login_no_2fa_path_unchanged`).
+- **Frontend 2FA**: a Security section in Settings (QR enrolment via the `qrcode` dep,
+  verify, recovery-code display, disable) and a TOTP challenge step in `AuthScreen`.
+- **WebAuthn / passkey entrypoint** (`backend/auth/webauthn_auth.py`): real but feature-gated
+  register/auth begin+complete endpoints + `WebAuthnCredential` model + a Settings "Add a
+  passkey" button. Gated on `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` (+ the `webauthn` lib) —
+  returns `{enabled:false}` when unconfigured rather than faking success.
+
+### Security
+
+- **2FA setup step-up guard**: `POST /api/2fa/setup` now refuses to rotate the TOTP secret
+  while 2FA is already enabled (returns 400 — must `/disable` first, which requires a current
+  factor). Prevents a hijacked session from silently resetting a victim's working 2FA.
+
+### Notes
+
+- New deps (guarded imports): `pyotp`, `webauthn`. New env vars: `WEBAUTHN_RP_ID`,
+  `WEBAUTHN_RP_NAME`, `WEBAUTHN_ORIGIN`. Migration `ii01_2fa_webauthn` (totp columns +
+  `recovery_codes` + `webauthn_credentials`); new columns are nullable/defaulted.
+
+## [1.24.0] — 2026-06-30
+
+> **Platform expansion — Batch E1: field encryption + Apple Sign In.** AES-256-GCM
+> at-rest encryption for PII and a second OAuth provider.
+
+### Added
+
+- **AES-256-GCM field encryption** (`backend/auth/crypto.py`): `encrypt`/`decrypt` (fresh
+  per-value nonce, `ENCRYPTION_KEY` from env) plus an `EncryptedString` SQLAlchemy
+  `TypeDecorator`. Applied to `User.phone` (PII). A `gcm1:` version marker makes encryption
+  **backward-compatible**: legacy plaintext rows read verbatim, decrypt failures degrade
+  gracefully (logged, never a 500), and an unset key = transparent passthrough for dev.
+- **Sign in with Apple** (`backend/auth/apple.py`): Authlib provider with Apple's required
+  short-lived **ES256 client-secret JWT** (`build_client_secret`), `form_post` callback,
+  first-auth name handling, linked via the existing `OAuthIdentity` (`provider='apple'`).
+  New `GET /api/auth/providers` reports which OAuth providers are configured; `AuthScreen`
+  renders the Google/Apple buttons accordingly. All env-gated (`APPLE_CLIENT_ID/TEAM_ID/
+  KEY_ID/PRIVATE_KEY`) — hidden when unconfigured, so current behavior is unchanged.
+
+### Changed
+
+- OAuth user find-or-create centralized in `auth/oauth_common.py`; Google delegates to it
+  with identical behavior.
+
+### Notes
+
+- New env vars: `ENCRYPTION_KEY` (urlsafe-base64 of 32 bytes; absent = passthrough),
+  `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (.p8 contents).
+  No DB migration — `EncryptedString` is backed by the existing `String` column.
+
+## [1.23.0] — 2026-06-30
+
+> **Platform expansion — Batch D: real-time streaming + optional Redis.** A backend
+> Finnhub WebSocket ingestion pipeline with reconnect/backoff + circuit breaker, an
+> opt-in SSE bridge to the browser, and a shared Redis cache backend. **All opt-in and
+> env-gated — with no env set, runtime behavior is unchanged (60s poll + in-process cache).**
+
+### Added
+
+- **Backend Finnhub WebSocket ingestion** (`providers/finnhub_ws.py`, `services/stream.py`):
+  a daemon-thread WS client (guarded `websocket-client` import) that feeds the latest trade
+  prices into the cache. Resilience: tested **exponential backoff** (`backoff_delay`) and a
+  tested **circuit breaker** (closed/open/half-open with injected clock). Gated on
+  `FINNHUB_STREAM_ENABLED` — a no-op otherwise. Provider stays backend-side (never the browser).
+- **SSE browser bridge**: `GET /api/stream/quotes` (env-gated `text/event-stream`) +
+  `GET /api/stream/status`. Frontend `hooks/useQuoteStream.ts` checks status, opens an
+  `EventSource`, merges quotes via the existing flash path, and reconnects with backoff +
+  a circuit breaker — **falling back to the always-on 60s poll** on failure or when disabled.
+  Pure tested helpers `streamBackoff` + `StreamCircuitBreaker`.
+- **Optional Redis cache backend** (`cache.py`): when `REDIS_URL` is set, `cached()` uses Redis
+  (JSON-serialized, shared across instances) with the same stale-while-error semantics;
+  otherwise the in-process LRU is used unchanged. Guarded `redis` import with transparent fallback.
+
+### Notes
+
+- Each SSE connection occupies one gunicorn sync worker for its lifetime; before enabling in
+  production, raise worker count or switch to gevent/eventlet, and tune `SSE_MAX_TICKS` /
+  `SSE_TICK_INTERVAL`. WS price injection preserves `prev_close`/OHLC baselines (no partial quotes).
+
+## [1.22.0] — 2026-06-30
+
+> **Platform expansion — Batch C2: dividends + index benchmarking.** Real dividend
+> projections from holdings and a portfolio-vs-benchmark performance overlay.
+
+### Added
+
+- **Dividend tracking** (`services/dividends.py`, route `GET /api/portfolio/dividends`):
+  projects upcoming/recent dividends per held symbol (ex-date, per-share, shares, total,
+  upcoming/paid status) and an annual-income estimate, sourced from Yahoo dividend history
+  (24h cache, non-fatal on failure, deterministic `mock.py` fallback). Pure tested helpers
+  `project_dividends` / `annual_income_estimate`. New **Dividends panel** in the Holdings view.
+- **Index benchmarking** (`services/benchmark.py`, route `GET /api/portfolio/benchmark`):
+  normalized %-growth overlay of the portfolio vs **SPY** or **QQQ** over a timeframe, built
+  from real Yahoo price history. New **Portfolio vs Benchmark** chart (`charts/BenchmarkChart.tsx`)
+  in the Holdings view with index + timeframe toggles. Pure tested helpers `normalize_pct` /
+  `portfolio_value_series`.
+
+### Notes
+
+- The benchmark overlay is a **current-holdings backtest** — it assumes today's holdings were
+  held across the whole window (historical positions aren't stored). This assumption is shown
+  as an always-visible disclaimer in the API response and the chart UI, per the no-fabrication rule.
+
+## [1.21.0] — 2026-06-29
+
+> **Platform expansion — Batch C1: transaction ledger + P&L engine.** A real
+> average-cost transaction ledger feeding a server-side profit/loss engine.
+
+### Added
+
+- **Transaction ledger** (`Transaction` model + `services/portfolio.py`): records buys/sells
+  with **fees**, updating each `Holding` via the **average-cost method** — buy fees raise the
+  cost basis; sells realize `qty*(price−avg_cost)−fees`; overselling is rejected. Accumulated
+  `realized_pnl` and `fees_paid` are stored on the `Holding` row. Pure tested helpers
+  `apply_buy` / `apply_sell`. Routes: `GET`/`POST /api/transactions`.
+- **Backend P&L engine** (`compute_pnl`, route `GET /api/portfolio/pnl`): per-position and
+  portfolio totals for cost basis, market value, unrealized $/%, **daily P&L from the real
+  previous close** (`(price − prev_close) × shares`; 0 when prev_close is unavailable — never
+  fabricated), realized P&L, and fees. Pure tested helper `position_pnl`.
+
+### Changed
+
+- **Holdings/Portfolio view** now consumes `/api/portfolio/pnl` for an accurate, prev_close-based
+  TODAY figure (replacing the day-% approximation) and surfaces realized-P&L and fees-paid cards
+  when non-zero.
+
+### Notes
+
+- Average-cost (not FIFO/specific-ID) accounting is used deliberately — per-lot tax accounting
+  was deferred with the tax-loss-harvesting feature. A transactions-entry UI is a tracked
+  follow-up (API + client methods are already wired).
+
+## [1.20.0] — 2026-06-29
+
+> **Platform expansion — Batch B: alert depth + web push.** Two new server-evaluated
+> alert rules and a browser-push delivery channel alongside the existing email path.
+
+### Added
+
+- **Volume-spike alerts**: opt-in per-watchlist-item rule (`WatchlistItem.vol_spike_pct`)
+  that fires when the latest daily volume exceeds the trailing ~20-session average by the
+  configured percent. Volume sourced from Yahoo daily history (Finnhub `/quote` reports 0).
+  Pure tested helper `volume_spike_triggered()`.
+- **Upcoming-earnings alerts**: opt-in rule (`WatchlistItem.earnings_days`) that fires when
+  a symbol's next earnings date is within X days, de-duplicated per event via `AlertLog`.
+  Pure tested helper `earnings_within()`.
+- **Web push delivery channel**: new `PushSubscription` model + `/api/push/{vapid-public-key,
+  subscribe,unsubscribe}` routes, a guarded `providers/webpush.py` (no-op when `pywebpush`
+  or VAPID env keys are absent), a `frontend/public/sw.js` service worker, a
+  `usePushSubscription` hook, and a Settings toggle. Alert fires now also send a best-effort
+  web push (pruning expired 404/410 subscriptions).
+
+### Changed
+
+- `services/alerts.py` reworked to evaluate price, volume-spike, and earnings rules in one
+  cron pass; alert emails `html.escape` the symbol (injection defense). `AlertLog.alert_kind`
+  records the rule type for per-kind dedup.
+
+### Notes
+
+- Web push is dormant until `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_CLAIMS_EMAIL`
+  are set and `pywebpush` is installed (pinned in `backend/requirements.txt`); the guarded
+  import keeps the app and tests running without it.
+
+## [1.19.0] — 2026-06-29
+
+> **Platform expansion — Batch A: analytics & engagement quick wins.** Extends existing
+> charting, portfolio, watchlist, and alert surfaces — no new infrastructure.
+
+### Added
+
+- **Chart timeframes 5D / YTD / MAX** on top of the existing 1D–5Y set
+  (`ChartControls.tsx`, backed by new `yahooquery` period mappings in
+  `backend/providers/yahoo.py`: `5D→5d/15m`, `YTD→ytd/1d`, `MAX→max/1mo`).
+- **Allocation grouping** on the Holdings/Portfolio donut: toggle between
+  **Position**, **Sector** (from `UNIVERSE[sym].sector`), and **Asset Class**
+  (Crypto vs Stocks). Pure, tested aggregator in `frontend/src/lib/allocation.ts`.
+- **Daily change-$ column and per-row sparkline** in the multi-watchlist manage grid
+  (`ManageWatchlist.tsx`), mirroring the sidebar watchlist. New tested helper
+  `frontend/src/lib/dailyChg.ts`.
+- **In-app toast system** (`state/toastStore.ts` + `components/Toaster.tsx`): alert
+  threshold crossings detected during the quote poll now raise an in-app toast on first
+  transition (tested helper `frontend/src/lib/alertDetect.ts`); the ad-hoc "Copied!" toast
+  is unified onto the same system.
+## [1.18.7] — 2026-06-30
+
+> **WCAG 2.1 AA accessibility batch.** Six items from the hf-engineer deepscan:
+> focus trap + dialog semantics on auth and upgrade modals, screen-reader
+> announcements for auth errors, improved dark-theme contrast, and keyboard/touch
+> accessible signal chips.
+
+### Added
+
+- **`useFocusTrap` hook** (`frontend/src/hooks/useFocusTrap.ts`): reusable, dependency-free
+  focus-trap that constrains Tab/Shift-Tab within a modal, moves focus to the first
+  focusable element on open, returns focus to the trigger element on close, and fires
+  an optional `onEscape` callback (WCAG 2.1.2).
+
+### Changed
+
+- **Auth modal — focus trap** (A2): `AuthScreen.tsx` now uses `useFocusTrap`; Tab/Shift-Tab
+  cycle within the modal only; Escape closes the modal; focus returns to the opener.
+- **Auth modal — dialog semantics** (A3): modal container has `role="dialog"`,
+  `aria-modal="true"`, and `aria-labelledby="auth-title"`; title changed from `<span>`
+  to `<h2 id="auth-title">` (WCAG 4.1.2).
+- **Auth errors — live region** (A4): all four error spans gain `role="alert"` and
+  `aria-live="assertive"` so screen readers announce errors on appearance; submit buttons
+  reference the error via `aria-describedby` when one is present (WCAG 4.1.3).
+- **Upgrade modal — dialog semantics + focus trap** (A10): `UpgradePrompt.tsx` gains
+  `role="dialog"`, `aria-modal="true"`, `aria-labelledby="upgrade-title"`, `<h2>`
+  title, and the same `useFocusTrap` hook (WCAG 4.1.2).
+- **Dark-theme `--tx3` contrast** (A8): `tokens.ts` dark-palette `tx3` changed from
+  `#5b626c` (~3.0:1 on `--card` `#14171c`) to `#7a8290` (~4.57:1 on `#14171c`,
+  ~4.88:1 on `--bg` `#0a0b0d`) — both clear the 4.5:1 AA threshold. Light-theme
+  `tx3` (`#8b93a0`) unchanged (WCAG 1.4.3).
+- **Signal chips — keyboard/touch accessible detail** (A9): `SignalChips.tsx` converts
+  each chip from a `<span title="…">` to a `<button>` with `aria-describedby` pointing
+  to a `role="tooltip"` span; tooltip is visible on hover and keyboard focus; chips gain
+  `data-testid="signal-chip-{key}"` (WCAG 1.3.1 / 2.5.3).
+
+## [1.18.6] — 2026-06-30
+
+> **Mobile nav parity + Alerts empty-state CTA.** Closes two IA findings from the
+> hf-engineer deepscan: mobile hamburger now reaches the same mounted views as
+> desktop, and the Alerts empty state gives authenticated users a direct path to
+> set their first alert.
+
+### Added
+
+- **Alerts in mobile hamburger** (F6): the hamburger menu now includes an "Alerts"
+  entry when the user is signed in, matching the mounted view set available on
+  desktop. `data-testid="mobile-nav-alerts"` added for e2e targeting.
+- **Alerts empty-state CTA** (F7): authenticated users with no alerts now see a
+  "Manage watchlist" button (`data-testid="alerts-empty-cta"`) that navigates
+  directly to the Manage Watchlist view where alert price targets are configured.
+  Previously the empty state was a dead-end text message.
+
+### Changed
+
+- **Mobile current-view label** now correctly displays "Alerts" and "Portfolio"
+  when those views are active (previously fell back to "Ticker Tracker").
+
+## [1.18.5] — 2026-06-30
+
+### Added
+
+- **F4 — Market-status pill + quote-age on StockHeader** (`StockHeader.tsx`): The 32px
+  price now renders inside an `aria-live="polite" aria-atomic="true"` region so screen
+  readers announce price updates on each poll cycle (WCAG A7). A market-status pill
+  (OPEN / PRE-MARKET / AFTER-HOURS / CLOSED) appears inline near the price — sourced
+  from the real backend `get_market_status()` computation (US Eastern time, via
+  `pollQuotes → /api/quotes`), conveyed via text + color to satisfy WCAG 1.4.1. An
+  "as of HH:MM" freshness label also renders whenever `quotesFetchedAt` is set. The
+  pill is hidden (null config) while status is still `'Unknown'` (pre-first-poll).
+  Known limitation: market holidays are not accounted for — the backend has no holiday
+  calendar, so the pill shows OPEN on NYSE holidays.
+
+- **F13 — Per-symbol `fetchedAt` on Quote objects** (`types.ts`, `store.ts`,
+  `KeyStats.tsx`): Each `Quote` entry in the store is stamped with the batch
+  `fetchedAt` timestamp from the poll round that produced it. `KeyStats` now reads
+  `q.fetchedAt` (falling back to the global `quotesFetchedAt`) so the staleness label
+  is accurate per-symbol if polling behavior ever diverges across symbols. All symbols
+  in a single `pollQuotes` batch share the same timestamp (honest — they are fetched
+  together).
+
+### Changed
+
+- **F16 — Holdings broker copy** (`Holdings.tsx`): "synced from {broker}" changed to
+  "via {broker}" — the holdings API returns no sync timestamp, so the previous wording
+  falsely implied a known recency. No time is invented or hardcoded.
+
+## [1.18.4] — 2026-06-30
+
+### Fixed
+
+- **P1 data-integrity: Strategy KPI cards were hardcoded fiction** (`Strategy.tsx`): The KPI
+  banner (Sharpe ratio, Max Drawdown, Win Rate, Risk/Reward, Trend Strength) and the
+  algo-health sidebar (Circuit Breakers, System Health, Execution Quality) displayed static
+  seed numbers alongside a live positions table, giving users the false impression these were
+  real metrics. No algo backend or portfolio-performance endpoint exists in the store or API.
+  All fabricated values replaced with `—`. Page subtitle updated to "Portfolio overview —
+  positions use live prices; algo metrics require a connected trading backend." A "Simulated
+  metrics" disclosure note added below the KPI group and inside the Execution Quality card.
+
+- **P1 data-integrity: Market Overview index cards and sector bars showed seed data as live**
+  (`MarketViews.tsx`): Index cards (SPX, NDX, DJI, RUT, VIX) and sector performance bars
+  in the Overview and Sectors sub-tabs rendered static values from `market.ts` (hardcoded
+  numbers and a `hashStr`-based fake `sectorPerf()`) with no indication they were not live.
+  No real-time index or sector endpoint exists in the API or store. All prices, change
+  percentages, bar fills, and heatmap cells replaced with `—`/empty bars. A "Simulated
+  data — live market index quotes coming soon" disclosure note added after the index card
+  group and within each sector section. Removed unused `sectorPerf` and `heatColor` imports.
+
+## [1.18.3] — 2026-06-29
+
+### Fixed
+
+- **P0 data-integrity: Deep Dive fabricated ratios** (`AtAGlance.tsx`): The Fundamentals
+  sub-tab was computing P/S, P/B, PEG, EBITDA, FCF Yield, ROIC, Gross Margin, and
+  Net Debt/EBITDA by ad-hoc arithmetic on unrelated fields (`beta`, `market_cap`,
+  `dividend_yield`, `pe`), presenting invented numbers as real financial ratios. All eight
+  fabricated columns now render `—` (the project-standard "no data" state). P/E remains,
+  as it is a genuine backend field. A disclosure note — "Extended ratios require a premium
+  data feed — coming soon." — is shown in the table footer.
+
+- **P0 UX: Alert direction had no UI control** (`ManageWatchlist.tsx`): The watchlist
+  alert section had an `alert_price` input and an ON/OFF toggle, but no way to set
+  `alert_dir` (above/below). Users could only create stop-loss/downside alerts by editing
+  the DB directly. Added an accessible "↑ Above / ↓ Below" segmented control using
+  `<button>` elements with `aria-pressed` and `data-testid` attributes. Direction is
+  persisted immediately via the existing `updateListWatch` optimistic update path. The
+  Alerts view already reads `alert_dir` correctly and required no change.
+
+## [1.18.2] — 2026-06-30
+
+> **Market Map drill-down perf.** Three targeted fixes eliminate redundant O(n log n)
+> treemap layout recalculations on hover and on every 60s quote poll.
+
+### Performance
+
+- **Memoize squarify layout** (`Treemap.tsx`): `squarify` is now wrapped in `useMemo`
+  keyed on `[items, width, height]`. Previously the full layout ran on every hover
+  event (`setTip` state change) — now it runs only when tile geometry actually changes.
+- **Stop quote poll from rebuilding the map** (`MarketViews.tsx`): `mapItems` is now
+  `useMemo`'d keyed on `[universe, sector, exchange, crypto]`. The previous
+  `useStore((s) => s.quotes)` subscription caused a full rebuild of the 96-tile array
+  and a cascading re-layout on every 60s poll. `stockTip` now reads the live price
+  lazily via `useStore.getState()` at hover time — satisfying the accurate-numbers rule
+  (price visible once a real quote loads) without triggering re-renders.
+- **React.memo boundary** (`Treemap.tsx`, `MarketViews.tsx`): `Treemap` is wrapped in
+  `React.memo`; `stockTip` and `cryptoTip` are wrapped in `useCallback` with correct
+  dep arrays so the memo'd child isn't defeated by new closure identities on unrelated
+  renders (e.g. `secTf` timeframe toggle, container resize).
+
 ## [1.18.1] — 2026-06-30
 
-> **Pulse, in plain language.** Makes the Pulse dial self-explanatory at a glance
-> and adds a "What is Pulse?" explainer, so the score can't be mistaken for a
-> data-quality or stock-quality verdict.
+> **Discoverable on the open web + Pulse in plain language.** Adds real per-page SEO
+> metadata, a public Fear & Greed page search engines and social cards can surface,
+> and a proper share image — so links to Ticker Tracker render and rank — and makes
+> the Pulse dial self-explanatory with a "What is Pulse?" explainer.
+
+### Added
+
+- **Per-page meta injection** (`backend/app.py`): the Flask SPA shell now rewrites
+  `<title>`, meta description, canonical, and Open Graph / Twitter tags per route
+  for `/` (home), `/dashboard`, `/market`, and `/crypto` — no Node SSR introduced.
+- **Public `/crypto/fear-and-greed` page** (`frontend/src/views/FearAndGreed.tsx`,
+  `backend/app.py`): a standalone, indexable page showing the live crypto Fear &
+  Greed reading with `Dataset` JSON-LD and honest alternative.me attribution; the
+  page title carries the live value (e.g. *"72 (Greed)"*).
+- **1200×630 Open Graph share card** (`frontend/public/brand/og-card.png`): a real
+  rasterized share image (was a 512px square icon); `twitter:card` upgraded to
+  `summary_large_image`.
+- Site-wide `WebSite` + `Organization` JSON-LD; `robots.txt` now disallows `/api/`;
+  `sitemap.xml` covers the public routes.
+- **"What is Pulse?" explainer modal** (`frontend/src/components/PulseAbout.tsx`):
+  an ⓘ info chip on the dial opens an accessible dialog (`role="dialog"`,
+  `aria-modal`, Escape/backdrop close, focus returns to the chip) describing the
+  five signals and their weights (momentum 22% · trend 22% · analyst 20% ·
+  52-week positioning 18% · news sentiment 18%), how missing signals are omitted
+  and reweighted, and the not-investment-advice disclaimer.
 
 ### Changed
 
@@ -43,6 +444,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   five signals and their weights (momentum 22% · trend 22% · analyst 20% ·
   52-week positioning 18% · news sentiment 18%), how missing signals are omitted
   and reweighted, and the not-investment-advice disclaimer.
+### Removed
+
+- **`/earnings` SEO surface**: removed the `/earnings` entry from per-page meta and
+  the sitemap. The standalone earnings page was intentionally retired (its data now
+  lives in the per-stock Due Diligence card), so advertising a crawlable URL that
+  redirects to `/dashboard` was incorrect.
 
 ## [1.18.0] — 2026-06-29
 
