@@ -11,7 +11,7 @@ export const COLORS = {
   line2: 'rgba(255,255,255,.12)',
   tx: '#e9ebee',
   tx2: '#9aa1ab',
-  tx3: '#5b626c',
+  tx3: '#7a8290', // was #5b626c (~3.0:1 on --card); #7a8290 ≈ 4.57:1 on #14171c — WCAG AA pass
   up: '#3ddc84',
   down: '#ff5d73',
   accent: '#3ddc84',

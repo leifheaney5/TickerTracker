@@ -37,7 +37,11 @@ export function KeyStats() {
     <div style={{ flex: 1, minWidth: 300, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
         <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-.01em', color: 'var(--tx)' }}>Key Statistics</span>
-        {quotesFetchedAt && <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>{asOf(quotesFetchedAt)}</span>}
+        {/* Prefer the per-symbol fetchedAt (stamped in pollQuotes); fall back to the  */}
+        {/* global batch timestamp. Both are honest values — never fabricated.          */}
+        {(q?.fetchedAt ?? quotesFetchedAt) && (
+          <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>{asOf(q?.fetchedAt ?? quotesFetchedAt)}</span>
+        )}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--line)', borderRadius: 10, overflow: 'hidden' }}>
         {stats.map(([label, value]) => (

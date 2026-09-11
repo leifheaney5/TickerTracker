@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../state/store'
 import { api } from '../api/client'
 import { FONT_SANS } from '../theme/tokens'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 // Reusable upgrade modal shown when a Free user hits a plan limit. Annual is the
 // primary CTA per the commercial offer; both CTAs redirect to Stripe Checkout.
@@ -9,6 +10,7 @@ export function UpgradePrompt() {
   const prompt = useStore((s) => s.upgradePrompt)
   const close = useStore((s) => s.closeUpgrade)
   const [busy, setBusy] = useState<'monthly' | 'annual' | null>(null)
+  const modalRef = useFocusTrap(!!prompt, close)
 
   if (!prompt) return null
 
@@ -28,10 +30,14 @@ export function UpgradePrompt() {
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
     >
       <div
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="upgrade-title"
         style={{ width: '100%', maxWidth: 420, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '26px 26px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}
       >
-        <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--tx)' }}>Upgrade to Ticker Tracker Pro</span>
+        <h2 id="upgrade-title" style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--tx)' }}>Upgrade to Ticker Tracker Pro</h2>
         <span style={{ fontSize: '13.5px', color: 'var(--tx2)', lineHeight: 1.5 }}>
           {prompt.message || 'Unlock more watchlist tickers, price alerts, saved screeners, and the weekly digest.'}
         </span>

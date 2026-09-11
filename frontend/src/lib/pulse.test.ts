@@ -63,7 +63,6 @@ describe('pulseTrend', () => {
     expect(pulseTrend([{ date: 'bad', score: 40 }, { date: '2026-09-01', score: 50 }])).toBeNull()
   })
 })
-
 describe('pulseArc (0..100 -> sweep fraction of a 270° gauge)', () => {
   it('0 score sweeps nothing, 100 sweeps the full arc', () => {
     expect(pulseArc(0)).toBeCloseTo(0, 5)

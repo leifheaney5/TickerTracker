@@ -1,0 +1,32 @@
+name: Production Health
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check TickerTracker production site
+        run: |
+          set -euo pipefail
+          url='https://tickertracker.info/'
+          ok=0
+          for attempt in 1 2 3 4; do
+            code=$(curl -L -sS -o /tmp/body -w '%{http_code}' --max-time 25 "$url" || true)
+            echo "attempt $attempt -> HTTP $code"
+            if [ "$code" = '200' ] && grep -qi 'ticker' /tmp/body; then ok=1; break; fi
+            sleep 15
+          done
+          if [ "$ok" != '1' ]; then
+            head -c 1000 /tmp/body || true
+            exit 1
+          fi

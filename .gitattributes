@@ -1,0 +1,4 @@
+# Keep Claude Code config + hook scripts LF (shebang scripts, clean diffs).
+# Scoped intentionally — not repo-wide — to avoid renormalizing unrelated files.
+.claude/** text eol=lf
+/CLAUDE.md text eol=lf
