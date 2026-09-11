@@ -28,6 +28,7 @@ class WatchlistItem(Base):
     watchlist_id = Column(Integer, ForeignKey("watchlists.id"), nullable=True, index=True)
     symbol = Column(String, nullable=False)
     position = Column(Integer, default=0)
+    buy_target = Column(Float, default=0.0)
     target = Column(Float, default=0.0)
     alert_price = Column(Float, default=0.0)
     alert_dir = Column(String, default="above")

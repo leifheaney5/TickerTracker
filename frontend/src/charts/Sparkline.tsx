@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useStore } from '../state/store'
 import { Skeleton } from '../components/Skeleton'
 
@@ -16,13 +15,6 @@ export function Sparkline({ symbol, width = 80, height = 30 }: SparkProps) {
   const chg = useStore((s) => s.chg(symbol))
   // Prefer a loaded 1M/3M history tail.
   const hist = useStore((s) => s.history[`${symbol}:1M`] || s.history[`${symbol}:3M`])
-  const loadHistory = useStore((s) => s.loadHistory)
-
-  // Ensure real history is fetched even on views that don't otherwise load it
-  // (e.g. At-a-Glance). No-op if already cached.
-  useEffect(() => {
-    if (!hist || !hist.length) loadHistory(symbol, '1M')
-  }, [symbol, hist, loadHistory])
 
   if (!hist || !hist.length) {
     return <Skeleton width={width} height={height} radius={4} />

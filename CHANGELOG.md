@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Independent buy and sell targets with directional reached states, target-distance sorting, and explicit editing across saved and shared watchlists.
+- One ticker finder for browsing, tracking, list additions, and stock comparisons.
+- Publisher marks and a diversified article mix for company and market news.
+
+### Changed
+
+- Made Compare, measured Pulse trends, Contact us, the Ticker Tracker mark, and watchlist movers easier to find.
+- Standardized the app on dark mode and added the official Google identity mark to sign-in.
+- Reduced cold-load request duplication with correct initial-route selection, frontend request coalescing, deferred sparkline loading, backend cache single-flight, and parallel Pulse inputs.
+
 > **Platform expansion (in progress).** A multi-batch buildout across core data, portfolio,
 > engagement, and security. Batch A below; subsequent batches follow.
 
@@ -424,6 +436,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drives the arc color, the `Why Pulse` breakdown, and the meter's `aria-label`
   (which now announces both, e.g. *"Pulse 57 of 100, Building — signals rising"*).
 
+### Added
+
+- **"What is Pulse?" explainer modal** (`frontend/src/components/PulseAbout.tsx`):
+  an ⓘ info chip on the dial opens an accessible dialog (`role="dialog"`,
+  `aria-modal`, Escape/backdrop close, focus returns to the chip) describing the
+  five signals and their weights (momentum 22% · trend 22% · analyst 20% ·
+  52-week positioning 18% · news sentiment 18%), how missing signals are omitted
+  and reweighted, and the not-investment-advice disclaimer.
 ### Removed
 
 - **`/earnings` SEO surface**: removed the `/earnings` entry from per-page meta and
