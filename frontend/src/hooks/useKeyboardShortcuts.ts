@@ -58,8 +58,7 @@ export function useKeyboardShortcuts() {
       // /: open search and focus the input
       if (key === '/') {
         e.preventDefault()
-        const { setSearchOpen } = useStore.getState()
-        setSearchOpen(true)
+        useStore.getState().openTickerFinder({ kind: 'browse' })
         // Defer focus so the input is rendered before we try to focus it
         setTimeout(() => {
           const input = document.querySelector<HTMLInputElement>(

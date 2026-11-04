@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { VIEW_TO_PATH, PATH_TO_VIEW, pathForView, viewForPath, tickerForPath } from './routes'
+import { VIEW_TO_PATH, PATH_TO_VIEW, pathForView, viewForPath, tickerForPath, initialViewForLocation } from './routes'
 
 describe('routes', () => {
   it('VIEW_TO_PATH and PATH_TO_VIEW are inverse for every view', () => {
@@ -12,6 +12,13 @@ describe('routes', () => {
 
   it('pathForView falls back to /dashboard for unknown views', () => {
     expect(pathForView('nonsense')).toBe('/dashboard')
+  })
+
+  it('selects a known initial route before the first render', () => {
+    expect(initialViewForLocation('/market')).toBe('market')
+    expect(initialViewForLocation('/crypto')).toBe('crypto')
+    expect(initialViewForLocation('/ticker/NVDA')).toBe('dashboard')
+    expect(initialViewForLocation('/unknown')).toBe('dashboard')
   })
 
   it('viewForPath returns null for non-view paths', () => {

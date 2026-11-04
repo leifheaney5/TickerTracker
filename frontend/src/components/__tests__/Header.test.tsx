@@ -6,7 +6,6 @@ import { useStore } from '../../state/store'
 beforeEach(() => {
   useStore.setState({
     view: 'dashboard',
-    theme: 'dark',
     searchOpen: false,
     search: '',
     settings: null,
@@ -14,7 +13,6 @@ beforeEach(() => {
     watchlist: [],
     holdings: [],
     setView: vi.fn(),
-    setTheme: vi.fn(),
     setSearchOpen: vi.fn(),
     setSearch: vi.fn(),
     setSelected: vi.fn(),
@@ -25,10 +23,10 @@ beforeEach(() => {
 })
 
 describe('Header', () => {
-  it('renders the theme toggle button', () => {
+  it('uses the canonical large mark and has no theme toggle', () => {
     render(<Header />)
-    const btn = screen.getByRole('button', { name: /switch to (light|dark) theme/i })
-    expect(btn).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Ticker Tracker' })).toHaveAttribute('src', '/favicon.svg')
+    expect(screen.queryByRole('button', { name: /theme/i })).not.toBeInTheDocument()
   })
 
   it('renders navigation', () => {

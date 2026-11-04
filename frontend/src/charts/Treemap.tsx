@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { FONT_SANS } from '../theme/tokens'
 
 // Squarified treemap — ported from the prototype's _treemap. Tiles sized by
@@ -67,12 +67,22 @@ interface TreemapProps {
   tipFor?: (sym: string) => string
 }
 
-export function Treemap({ items, width, height, onTileClick, highlight, tipFor }: TreemapProps) {
-  const tiles = squarify(items, 1, 1, width - 2, height - 2)
+// Wrap in memo so unrelated parent re-renders (e.g. secTf, resize) don't
+// propagate into the SVG subtree. Props must be referentially stable:
+//   items   → useMemo'd in callers keyed on the universe/sector/exchange/crypto
+//   tipFor  → useCallback'd in callers with matching deps
+//   highlight → useMemo or stable Set in callers
+// The Crypto-map caller (Crypto.tsx) passes no tipFor; memo is safe there too.
+function TreemapView({ items, width, height, onTileClick, highlight, tipFor }: TreemapProps) {
+  // Memoize layout: squarify is O(n log n) over ~96 tiles. Without this, every
+  // hover (setTip) re-runs the full layout. Keys are the only inputs that affect
+  // geometry — live quote updates never touch items/width/height.
+  const tiles = useMemo(() => squarify(items, 1, 1, width - 2, height - 2), [items, width, height])
   const [tip, setTip] = useState<{ sym: string; x: number; y: number } | null>(null)
   return (
     <div style={{ position: 'relative', width, height }}>
       <svg
+        data-testid="treemap-svg"
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
@@ -85,6 +95,7 @@ export function Treemap({ items, width, height, onTileClick, highlight, tipFor }
           return (
             <g
               key={t.sym}
+              data-testid={`treemap-tile-${t.sym}`}
               onClick={() => onTileClick?.(t.sym)}
               onMouseEnter={tipFor ? () => setTip({ sym: t.sym, x: t.x + t.w / 2, y: t.y }) : undefined}
               style={{ cursor: onTileClick ? 'pointer' : 'default' }}
@@ -130,3 +141,5 @@ export function Treemap({ items, width, height, onTileClick, highlight, tipFor }
     </div>
   )
 }
+
+export const Treemap = memo(TreemapView)

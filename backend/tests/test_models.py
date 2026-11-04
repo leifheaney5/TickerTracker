@@ -17,8 +17,13 @@ def test_singleton_user_seeded(seed_user):
 
 def test_watchlist_item_roundtrip(seed_user):
     with db.get_session() as s:
-        s.add(models.WatchlistItem(user_id=1, symbol="AAPL", position=0, target=230.0))
+        s.add(models.WatchlistItem(
+            user_id=1, symbol="AAPL", position=0,
+            buy_target=185.0, target=230.0,
+        ))
         s.commit()
     with db.get_session() as s:
         items = s.query(models.WatchlistItem).filter_by(user_id=1).all()
         assert len(items) == 1 and items[0].symbol == "AAPL"
+        assert items[0].buy_target == 185.0
+        assert items[0].target == 230.0

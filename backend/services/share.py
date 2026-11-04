@@ -29,4 +29,8 @@ def resolve_share(token: str) -> dict | None:
                  .order_by(models.WatchlistItem.position).all())
         owner_name = (user.name if user else "") or "A Ticker Tracker user"
         return {"owner_name": owner_name, "list_name": wl.name,
-                "items": [{"symbol": w.symbol} for w in items]}
+                "items": [{"symbol": w.symbol,
+                           "buy_target": w.buy_target or 0,
+                           "sell_target": w.target or 0,
+                           "target": w.target or 0}
+                          for w in items]}

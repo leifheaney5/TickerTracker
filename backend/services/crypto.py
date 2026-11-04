@@ -38,7 +38,7 @@ def get_crypto_prices(ids):
 
 def get_fng():
     try:
-        val, _ = cache.cached("fng", 300, lambda: fetch_fng())
+        val, _ = cache.cached("fng", 21600, lambda: fetch_fng())
         return val, "alternative.me"
     except Exception as e:
         logger.warning("fng fallback to mock: %s", e)

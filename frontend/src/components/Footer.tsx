@@ -18,6 +18,9 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--panel)', border: '1px solid var(--line2)', borderRadius: 14,
@@ -127,6 +130,7 @@ export function Footer() {
   return (
     <>
       <footer
+        className="app-footer"
         style={{
           flex: '0 0 auto', height: 34, display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', gap: 14, padding: '0 16px',
@@ -137,12 +141,12 @@ export function Footer() {
         <span style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 9 }}>
           © {YEAR} Ticker Tracker™
           <span style={{ color: 'var(--line2)' }}>·</span>
-          <span style={{ color: 'var(--tx2)', fontWeight: 600 }}>Signal, not noise.</span>
+          <span className="footer-brand-detail" style={{ color: 'var(--tx2)', fontWeight: 600 }}>Signal, not noise.</span>
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button style={linkStyle} onClick={() => setOpen('help')}>Help</button>
-          <button style={linkStyle} onClick={() => setOpen('contact')}>Contact</button>
-          <span style={{ color: 'var(--tx3)', fontSize: '11px' }}>Informational only — not financial advice.</span>
+          <button style={{ ...linkStyle, height: 28, padding: '0 12px', border: '1px solid var(--accent)', borderRadius: 8, color: 'var(--accent)', fontWeight: 700, whiteSpace: 'nowrap' }} onClick={() => setOpen('contact')}>Contact us</button>
+          <span className="footer-disclaimer" style={{ color: 'var(--tx3)', fontSize: '11px' }}>Informational only — not financial advice.</span>
         </span>
       </footer>
 

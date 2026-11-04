@@ -70,6 +70,7 @@ class TestEnsureColumns:
                 before = _column_names(conn, "watchlist_items")
             assert "alert_active" not in before
             assert "alert_last_fired_at" not in before
+            assert "buy_target" not in before
 
             with bare_engine.begin() as conn:
                 db_module._ensure_columns(conn)
@@ -78,6 +79,7 @@ class TestEnsureColumns:
                 after = _column_names(conn, "watchlist_items")
             assert "alert_active" in after, "alert_active must be present after ensure"
             assert "alert_last_fired_at" in after, "alert_last_fired_at must be present after ensure"
+            assert "buy_target" in after, "buy_target must be present after ensure"
         finally:
             db_module.engine = original_engine
             db_module._is_sqlite = original_sqlite
@@ -101,6 +103,7 @@ class TestEnsureColumns:
                 cols = _column_names(conn, "watchlist_items")
             assert "alert_active" in cols
             assert "alert_last_fired_at" in cols
+            assert "buy_target" in cols
         finally:
             db_module.engine = original_engine
             db_module._is_sqlite = original_sqlite
@@ -113,3 +116,4 @@ class TestEnsureColumns:
             cols = _column_names(conn, "watchlist_items")
         assert "alert_active" in cols, "full schema should have alert_active"
         assert "alert_last_fired_at" in cols, "full schema should have alert_last_fired_at"
+        assert "buy_target" in cols, "full schema should have buy_target"

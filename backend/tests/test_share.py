@@ -26,7 +26,7 @@ def _fresh_premium():
 def test_create_and_resolve_share():
     uid = _fresh_user()
     lid = watchlists.get_or_create_primary_list(uid)
-    watchlists.add_item(uid, lid, "AAPL")
+    watchlists.add_item(uid, lid, "AAPL", buy_target=185, sell_target=240)
     watchlists.add_item(uid, lid, "NVDA")
     token = share.create_share(user_id=uid)
     assert token and len(token) >= 16
@@ -34,6 +34,10 @@ def test_create_and_resolve_share():
     assert res["owner_name"] == "Owner"
     assert res["list_name"] == "My Watchlist"
     assert sorted(i["symbol"] for i in res["items"]) == ["AAPL", "NVDA"]
+    aapl = next(i for i in res["items"] if i["symbol"] == "AAPL")
+    assert aapl["buy_target"] == 185
+    assert aapl["sell_target"] == 240
+    assert aapl["target"] == 240
 
 
 def test_resolve_unknown_token_is_none():

@@ -32,7 +32,7 @@ export function pulseColor(band: PulseBand): string {
 const BAND_CAPTIONS: Record<PulseBand, string> = {
   Cooling: 'signals quiet',
   Neutral: 'signals mixed',
-  Building: 'signals rising',
+  Building: 'signals positive',
   Hot: 'signals strong',
 }
 
@@ -44,4 +44,22 @@ export function pulseCaption(band: PulseBand): string {
 export function pulseArc(score: number): number {
   const s = Math.max(0, Math.min(100, score))
   return s / 100
+}
+
+export interface PulseTrendResult { direction: 'up' | 'down' | 'steady'; delta: number; days: number }
+
+export function pulseTrend(points: Array<{ date: string; score: number }>): PulseTrendResult | null {
+  const valid = points
+    .filter((point) => Number.isFinite(point.score) && !Number.isNaN(Date.parse(point.date)))
+    .slice()
+    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+  if (valid.length < 2) return null
+  const latest = valid[valid.length - 1]
+  const latestTime = Date.parse(latest.date)
+  const windowed = valid.filter((point) => latestTime - Date.parse(point.date) <= 8 * 86400000)
+  if (windowed.length < 2) return null
+  const first = windowed[0]
+  const delta = latest.score - first.score
+  const days = Math.max(1, Math.round((latestTime - Date.parse(first.date)) / 86400000))
+  return { direction: delta > .5 ? 'up' : delta < -.5 ? 'down' : 'steady', delta, days }
 }

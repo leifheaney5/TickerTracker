@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useStore } from '../state/store'
 import { Watchlist } from '../components/Watchlist'
-import { MoversRibbon } from '../components/MoversRibbon'
 import { StockHeader } from '../components/StockHeader'
 import { PulseWhy } from '../components/PulseWhy'
 import { ChartControls } from '../components/ChartControls'
@@ -19,16 +18,12 @@ export function Dashboard() {
   const timeframe = useStore((s) => s.timeframe)
   const loadHistory = useStore((s) => s.loadHistory)
   const loadFundamentals = useStore((s) => s.loadFundamentals)
-  const pollQuotes = useStore((s) => s.pollQuotes)
   const isMobile = useIsMobile()
 
   useEffect(() => {
     loadHistory(selected, timeframe)
     loadFundamentals(selected)
-    // Fetch a fresh quote for the newly selected symbol immediately rather than
-    // waiting for the next 60s poll tick (otherwise stats briefly show seed/—).
-    pollQuotes()
-  }, [selected, timeframe, loadHistory, loadFundamentals, pollQuotes])
+  }, [selected, timeframe, loadHistory, loadFundamentals])
 
   return (
     // On mobile: stack vertically (Watchlist collapses, main goes full-width).
@@ -36,7 +31,6 @@ export function Dashboard() {
     <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: 0, overflow: isMobile ? 'auto' : undefined }}>
       <Watchlist />
       <main style={{ flex: 1, minWidth: 0, overflowY: isMobile ? undefined : 'auto', padding: isMobile ? '14px 14px' : 'var(--mpad,22px 26px)', display: 'flex', flexDirection: 'column', gap: 'var(--gap,16px)' }}>
-        <MoversRibbon />
         <StockHeader />
         <PulseWhy />
         <ChartControls />

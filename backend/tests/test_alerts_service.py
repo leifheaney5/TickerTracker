@@ -29,9 +29,7 @@ def test_check_alerts_fires_and_stamps(monkeypatch):
     assert fired2 == 0
 
 
-def test_check_alerts_fires_on_target_hit(monkeypatch):
-    # A watchlist item with ONLY a target (no armed alert) should email when the
-    # price reaches/passes the target.
+def test_check_alerts_fires_on_sell_target_hit(monkeypatch):
     sent = []
     def fake_quote(syms): return ({s: {"price": 205.0} for s in syms}, "test")
     def fake_send(to, subject, html):
@@ -42,15 +40,45 @@ def test_check_alerts_fires_on_target_hit(monkeypatch):
     assert fired == 1
     to, subject, html = sent[0]
     assert to == "t@e.com"
-    assert "price target" in subject          # labeled as a target hit
+    assert "sell target" in subject
+    assert "sell target" in html
     assert "MSFT" in html and "Ticker Tracker" in html  # branded email
 
 
-def test_target_not_hit_does_not_fire(monkeypatch):
+def test_sell_target_not_hit_does_not_fire(monkeypatch):
     def fake_quote(syms): return ({s: {"price": 150.0} for s in syms}, "test")
     al._seed_for_test(user_email="n@e.com", symbol="NVDA", target=200)
     fired = al.check_alerts(quote_fn=fake_quote, send_fn=lambda *a: True)
     assert fired == 0
+
+
+def test_check_alerts_fires_on_buy_target_hit():
+    sent = []
+    al._seed_for_test(user_email="buy@e.com", symbol="AAPL", buy_target=185)
+    fired = al.check_alerts(
+        quote_fn=lambda syms: ({s: {"price": 180.0} for s in syms}, "test"),
+        send_fn=lambda to, subject, html: sent.append((subject, html)) or True,
+    )
+    assert fired == 1
+    assert "buy target" in sent[0][0]
+    assert "buy target" in sent[0][1]
+
+
+def test_buy_target_not_hit_does_not_fire():
+    al._seed_for_test(user_email="buy-no@e.com", symbol="AAPL", buy_target=185)
+    fired = al.check_alerts(
+        quote_fn=lambda syms: ({s: {"price": 190.0} for s in syms}, "test"),
+        send_fn=lambda *args: True,
+    )
+    assert fired == 0
+
+
+def test_explicit_alert_retains_priority_over_reached_targets():
+    w = models.WatchlistItem(
+        symbol="AAPL", alert_active=True, alert_price=190,
+        alert_dir="below", buy_target=185, target=200,
+    )
+    assert al._evaluate(w, 180) == (190, "below", "alert")
 
 
 def test_locked_items_excluded_from_due_alerts(monkeypatch):

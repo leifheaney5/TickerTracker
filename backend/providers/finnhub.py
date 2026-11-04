@@ -136,7 +136,9 @@ def fetch_news(sym=None) -> list:
     else:
         r = requests.get(f"{_BASE}/news", params={"category": "general", "token": key}, timeout=10)
     r.raise_for_status()
-    rows = r.json()[:12]
+    # Pull a wider candidate pool so the service can select a genuinely mixed
+    # publisher set instead of whatever source dominates the first page.
+    rows = r.json()[:60]
     out = []
     for a in rows:
         url = a.get("url", "") or ""

@@ -36,4 +36,46 @@ describe('MarketViews · map', () => {
     fireEvent.click(getByText('Crypto'))
     expect(queryByText('Technology')).toBeNull()
   })
+
+  // ── A: tooltip never shows a seed price (accurate-numbers rule) ───────────
+  it('omits the price in the tooltip when no live quote has loaded', () => {
+    useStore.setState({ quotes: {} })
+    const { getByText, container } = render(<MarketViews sub="map" />)
+    fireEvent.mouseEnter(getByText('AAPL').closest('g') as SVGGElement)
+    const tip = container.querySelector('[data-treemap-tip]') as HTMLElement
+    expect(tip).toBeTruthy()
+    expect(tip.textContent).toContain('AAPL')
+    expect(tip.textContent).not.toContain('$')  // no seed/placeholder price
+  })
+
+  it('shows the price in the tooltip once a real quote is present', () => {
+    useStore.setState({ quotes: { AAPL: { price: 215.5, change_pct: 1.2 } } as never })
+    const { getByText, container } = render(<MarketViews sub="map" />)
+    fireEvent.mouseEnter(getByText('AAPL').closest('g') as SVGGElement)
+    const tip = container.querySelector('[data-treemap-tip]') as HTMLElement
+    expect(tip.textContent).toContain('$215.50')
+  })
+
+  // ── C: crypto tile click opens the Crypto view ───────────────────────────
+  it('clicking a crypto tile navigates to the Crypto view', () => {
+    const setView = vi.fn()
+    useStore.setState({
+      setView,
+      crypto: { coins: [{ id: 'btc', symbol: 'BTC', name: 'Bitcoin', price: 60000, market_cap: 1e12, change_pct: 2 }], total_market_cap: 1e12, btc_dominance: 50 } as never,
+    })
+    const { getByText } = render(<MarketViews sub="map" />)
+    fireEvent.click(getByText('Crypto'))      // switch universe to crypto
+    fireEvent.click(getByText('BTC'))          // click the BTC tile
+    expect(setView).toHaveBeenCalledWith('crypto')
+  })
+
+  // ── D: exchange filter (honest listing-venue facts) ──────────────────────
+  it('filters by exchange — NASDAQ keeps AAPL, drops NYSE-listed XOM', () => {
+    const { getByText, queryByText } = render(<MarketViews sub="map" />)
+    expect(getByText('AAPL')).toBeTruthy()
+    expect(getByText('XOM')).toBeTruthy()
+    fireEvent.click(getByText('NASDAQ'))
+    expect(getByText('AAPL')).toBeTruthy()     // AAPL lists on NASDAQ
+    expect(queryByText('XOM')).toBeNull()       // XOM lists on NYSE → filtered out
+  })
 })
