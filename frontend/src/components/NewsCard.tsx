@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
 import { FONT_SANS } from '../theme/tokens'
 import type { Sentiment } from '../api/types'
+import { NewsSourceLogo } from './NewsSourceLogo'
 
 // News card — ported from the prototype template (lines 371-392). Per-symbol /
 // Market toggle; each item shows source · timestamp, a sentiment pill, and the
@@ -67,7 +68,7 @@ export function NewsCard() {
               style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '13px 4px', borderTop: '1px solid var(--line)', cursor: 'pointer', textDecoration: 'none' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                <span style={{ fontSize: '11px', color: 'var(--tx3)' }}>{n.source} · {n.datetime}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '11px', color: 'var(--tx3)' }}><NewsSourceLogo source={n.source} url={n.url} /><span>{n.source} · {n.datetime}</span></span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '10.5px', fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: ss.bg, color: ss.color }}>{n.sentiment}</span>
               </div>
               <span style={{ fontSize: '13px', lineHeight: 1.4, color: 'var(--tx)', textWrap: 'pretty' } as React.CSSProperties}>{n.headline}</span>

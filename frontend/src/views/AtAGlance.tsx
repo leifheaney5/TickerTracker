@@ -4,6 +4,7 @@ import { FONT_SANS, FONT_MONO } from '../theme/tokens'
 import { GROUPS, UNIVERSE } from '../data/universe'
 import { Logo } from '../components/Logo'
 import { Sparkline } from '../charts/Sparkline'
+import { Skeleton } from '../components/Skeleton'
 import { money, pct, capStr, volStr } from '../lib/format'
 import { api } from '../api/client'
 import type { WatchlistSentiment } from '../api/types'
@@ -22,7 +23,8 @@ const OV_COLS: Col[] = [
   { key: 'chg', label: '24H', num: true }, { key: 'cap', label: 'Mkt Cap', num: true },
   { key: 'pe', label: 'P/E', num: true }, { key: 'vol', label: 'Vol', num: true },
   { key: 'sector', label: 'Sector', num: false }, { key: 'industry', label: 'Industry', num: false },
-  { key: 'trend', label: '30D Trend', num: false }, { key: 'target', label: 'Target', num: true },
+  { key: 'trend', label: '30D Trend', num: false }, { key: 'buy_target', label: 'Buy target', num: true },
+  { key: 'sell_target', label: 'Sell target', num: true },
 ]
 
 export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
@@ -33,8 +35,10 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
   const price = useStore((s) => s.price)
   const quotes = useStore((s) => s.quotes)
   const chg = useStore((s) => s.chg)
+  const hasQuote = useStore((s) => s.hasQuote)
   const fundamentals = useStore((s) => s.fundamentals)
   const loadFundamentals = useStore((s) => s.loadFundamentals)
+  const loadHistory = useStore((s) => s.loadHistory)
   const setSelected = useStore((s) => s.setSelected)
   const setView = useStore((s) => s.setView)
 
@@ -45,7 +49,11 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
 
   const symbols = watchSymbols().filter((s) => group === 'All' || UNIVERSE[s]?.group === group)
 
-  useEffect(() => { symbols.forEach((s) => loadFundamentals(s)) }, [symbols.join(','), loadFundamentals])
+  useEffect(() => {
+    symbols.forEach((s) => loadFundamentals(s))
+    const timer = window.setTimeout(() => symbols.slice(0, 12).forEach((s) => void loadHistory(s, '1M')), 250)
+    return () => window.clearTimeout(timer)
+  }, [symbols.join(','), loadFundamentals, loadHistory])
 
   useEffect(() => {
     if (symbols.length === 0) return
@@ -53,7 +61,10 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
   }, [symbols.join(',')])
 
   const fundOf = (sym: string) => fundamentals[sym]
-  const targetOf = (sym: string) => watchlist.find((w) => w.symbol === sym)?.target ?? 0
+  const targetsOf = (sym: string) => {
+    const item = watchlist.find((w) => w.symbol === sym)
+    return { buy: item?.buy_target ?? 0, sell: item?.sell_target ?? 0 }
+  }
 
   const sortVal = (sym: string, key: string): number | string => {
     const u = UNIVERSE[sym] || ({} as typeof UNIVERSE[string])
@@ -67,7 +78,8 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
       case 'vol': return quotes[sym]?.volume ?? 0
       case 'sector': return (f?.sector && f.sector !== '—' ? f.sector : u.sector) || ''
       case 'industry': return u.industry || ''
-      case 'target': return targetOf(sym)
+      case 'buy_target': return targetsOf(sym).buy
+      case 'sell_target': return targetsOf(sym).sell
       default: return sym
     }
   }
@@ -129,8 +141,8 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
       <div style={{ border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden', background: 'var(--card)', flex: '0 0 auto' }}>
         <div style={{ overflowX: 'auto' }}>
           {!isDeep ? (
-            <div style={{ minWidth: 1180 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
+            <div style={{ minWidth: 1300 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px 120px', background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
                 {OV_COLS.map((c) => (
                   <div key={c.key} onClick={() => onSort(c.key)} style={{ padding: '12px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '.04em', color: sortKey === c.key ? 'var(--tx2)' : 'var(--tx3)', cursor: 'pointer', userSelect: 'none' }}>
                     {c.label}{sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
@@ -145,12 +157,14 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
               {sorted.map((sym) => {
                 const u = UNIVERSE[sym] || ({ name: sym, sector: '—', industry: '—' } as typeof UNIVERSE[string])
                 const f = fundOf(sym)
+                const live = hasQuote(sym)
+                const q = quotes[sym]
                 const c = chg(sym)
                 const up = c >= 0
                 const sector = f?.sector && f.sector !== '—' ? f.sector : u.sector
-                const target = targetOf(sym)
+                const targets = targetsOf(sym)
                 return (
-                  <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px', alignItems: 'center', borderTop: '1px solid var(--line)' }}>
+                  <div key={sym} style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,1.4fr) 110px 92px 120px 70px 120px 150px 160px 130px 120px 120px', alignItems: 'center', borderTop: '1px solid var(--line)' }}>
                     <div onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 14px', cursor: 'pointer', minWidth: 0 }}>
                       <Logo symbol={sym} size={28} />
                       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -158,15 +172,16 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
                         <span style={{ fontSize: '11px', color: 'var(--tx3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
                       </div>
                     </div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '13.5px', fontWeight: 500, color: 'var(--tx)' }}>{money(price(sym))}</div>
-                    <div style={{ padding: '13px 12px' }}><span style={{ fontFamily: FONT_MONO, fontSize: '11.5px', fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span></div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{f ? capStr(f.market_cap) : u.cap}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{f && f.pe ? f.pe : u.pe}</div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{volStr(quotes[sym]?.volume ?? 0)}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '13.5px', fontWeight: 500, color: 'var(--tx)' }}>{live ? money(price(sym)) : <Skeleton inline width={60} height={13} />}</div>
+                    <div style={{ padding: '13px 12px' }}>{live ? <span style={{ fontFamily: FONT_MONO, fontSize: '11.5px', fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: up ? 'rgba(61,220,132,.12)' : 'rgba(255,93,115,.12)', color: up ? 'var(--up)' : 'var(--down)' }}>{pct(c)}</span> : <Skeleton inline width={44} height={16} />}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx)' }}>{f ? capStr(f.market_cap) : <Skeleton inline width={52} height={12} />}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{f ? (f.pe ? f.pe : '—') : <Skeleton inline width={34} height={12} />}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{q ? (q.volume ? volStr(q.volume) : '—') : <Skeleton inline width={44} height={12} />}</div>
                     <div style={{ padding: '13px 12px', fontSize: '12px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sector}</div>
                     <div style={{ padding: '13px 12px', fontSize: '12px', color: 'var(--tx2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.industry || '—'}</div>
                     <div style={{ padding: '13px 12px' }}><Sparkline symbol={sym} /></div>
-                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: target ? 'var(--tx)' : 'var(--tx3)' }}>{target ? money(target) : '—'}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: targets.buy ? 'var(--tx)' : 'var(--tx3)' }}>{targets.buy ? money(targets.buy) : '—'}</div>
+                    <div style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: targets.sell ? 'var(--tx)' : 'var(--tx3)' }}>{targets.sell ? money(targets.sell) : '—'}</div>
                   </div>
                 )
               })}
@@ -183,30 +198,38 @@ export function AtAGlance({ initialSub = 'overview' }: { initialSub?: Sub }) {
               )}
               {sorted.map((sym) => {
                 const f = fundOf(sym)
-                const u = UNIVERSE[sym] || ({ name: sym } as typeof UNIVERSE[string])
-                // derive remaining ratios deterministically where the API lacks them
-                const pe = f && f.pe ? String(f.pe) : u.pe || '—'
-                const cells = [
-                  pe,
-                  f ? (f.market_cap / 1e11).toFixed(2) : '—',
-                  f ? (f.beta * 4).toFixed(2) : '—',
-                  f && f.pe ? (f.pe / 20).toFixed(2) : '—',
-                  f ? '$' + (f.market_cap / 1e10).toFixed(1) + 'B' : '—',
-                  f ? (f.dividend_yield + 1).toFixed(2) + '%' : '—',
-                  f ? (f.beta * 12).toFixed(1) + '%' : '—',
-                  f ? (40 + f.beta * 10).toFixed(1) + '%' : '—',
-                  f ? (f.beta).toFixed(2) + 'x' : '—',
-                ]
+                // Only P/E has a real backend source in the Fundamentals payload.
+                // All other ratio columns (P/S, P/B, PEG, EBITDA, FCF Yld, ROIC,
+                // Gr. Margin, Net Debt/EBITDA) have no backend field — render '—'
+                // rather than fabricating values from unrelated fields like beta or
+                // market_cap. Extended ratios will populate when a premium data
+                // feed is integrated.
+                const cells: React.ReactNode[] = f
+                  ? [
+                      f.pe ? String(f.pe) : '—',  // P/E — real backend field
+                      '—',                          // P/S — no backend source
+                      '—',                          // P/B — no backend source
+                      '—',                          // PEG — no backend source
+                      '—',                          // EBITDA — no backend source
+                      '—',                          // FCF Yld — no backend source
+                      '—',                          // ROIC — no backend source
+                      '—',                          // Gr. Margin — no backend source
+                      '—',                          // Net Debt/EBITDA — no backend source
+                    ]
+                  : Array.from({ length: DEEP_COLS.length - 1 }, (_, i) => <Skeleton key={i} inline width={40} height={12} />)
                 return (
-                  <div key={sym} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, alignItems: 'center', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
+                  <div key={sym} data-testid={`deep-dive-row-${sym}`} onClick={() => { setSelected(sym); setView('dashboard') }} style={{ display: 'grid', gridTemplateColumns: `minmax(160px,1.4fr) repeat(${DEEP_COLS.length - 1}, 1fr)`, alignItems: 'center', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 12px', minWidth: 0 }}>
                       <Logo symbol={sym} size={26} />
                       <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--tx)' }}>{sym}</span>
                     </div>
-                    {cells.map((cell, i) => <div key={i} style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{cell}</div>)}
+                    {cells.map((cell, i) => <div key={i} data-testid={i === 0 ? `deep-dive-cell-pe-${sym}` : undefined} style={{ padding: '13px 12px', fontFamily: FONT_MONO, fontSize: '12.5px', color: 'var(--tx2)' }}>{cell}</div>)}
                   </div>
                 )
               })}
+              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--line)', fontSize: '11.5px', color: 'var(--tx3)', fontFamily: FONT_SANS, fontStyle: 'italic' }}>
+                Extended ratios require a premium data feed — coming soon.
+              </div>
             </div>
           )}
         </div>

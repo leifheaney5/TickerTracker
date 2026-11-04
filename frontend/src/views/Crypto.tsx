@@ -3,6 +3,7 @@ import { useStore } from '../state/store'
 import { FONT_MONO } from '../theme/tokens'
 import { Logo } from '../components/Logo'
 import { Treemap } from '../charts/Treemap'
+import { Skeleton } from '../components/Skeleton'
 import { cmoney, capStr, pct } from '../lib/format'
 import type { Coin, CryptoSearchResult } from '../api/types'
 import { api } from '../api/client'
@@ -67,12 +68,16 @@ export function Crypto() {
     return () => ro.disconnect()
   }, [crypto])
 
+  const cryptoReady = crypto != null
   const coins = crypto?.coins || []
   const totalCap = crypto?.total_market_cap || 0
   const btcDom = crypto?.btc_dominance ?? 0
-  const fgVal = fng?.value ?? 50
-  const fgLabel = fng?.label ?? 'Neutral'
-  const fgColor = fgVal < 45 ? 'var(--down)' : fgVal < 55 ? 'var(--warn)' : 'var(--up)'
+  // Fear & Greed: live-only. Until /api/fng responds, show a skeleton — never
+  // the misleading "50 / Neutral" midpoint that used to flash before load.
+  const fgReady = fng != null
+  const fgVal = fng?.value ?? 0
+  const fgLabel = fng?.label ?? ''
+  const fgColor = !fgReady ? 'var(--tx3)' : fgVal < 45 ? 'var(--down)' : fgVal < 55 ? 'var(--warn)' : 'var(--up)'
 
   const statCard = (label: string, content: React.ReactNode, extra?: React.ReactNode) => (
     <div style={{ flex: '1 1 0', minWidth: 190, padding: '15px 17px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -103,19 +108,25 @@ export function Crypto() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flex: '0 0 auto' }}>
-        {statCard('TOTAL MARKET CAP', <span style={{ fontFamily: FONT_MONO, fontSize: '21px', fontWeight: 600, color: 'var(--tx)' }}>{capStr(totalCap)}</span>)}
+        {statCard('TOTAL MARKET CAP', cryptoReady
+          ? <span style={{ fontFamily: FONT_MONO, fontSize: '21px', fontWeight: 600, color: 'var(--tx)' }}>{capStr(totalCap)}</span>
+          : <Skeleton width={120} height={21} />)}
         {statCard('COINS TRACKED', <span style={{ fontFamily: FONT_MONO, fontSize: '21px', fontWeight: 600, color: 'var(--tx)' }}>{cryptoLimit}</span>)}
         {statCard('BTC DOMINANCE',
-          <span style={{ fontFamily: FONT_MONO, fontSize: '21px', fontWeight: 600, color: 'var(--tx)' }}>{btcDom.toFixed(1)}%</span>,
-          <div style={{ height: 6, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${btcDom}%`, background: 'var(--accent)' }} /></div>
+          cryptoReady
+            ? <span style={{ fontFamily: FONT_MONO, fontSize: '21px', fontWeight: 600, color: 'var(--tx)' }}>{btcDom.toFixed(1)}%</span>
+            : <Skeleton width={70} height={21} />,
+          <div style={{ height: 6, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${cryptoReady ? btcDom : 0}%`, background: 'var(--accent)' }} /></div>
         )}
         {statCard('FEAR & GREED',
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
-            <span style={{ fontFamily: FONT_MONO, fontSize: '21px', fontWeight: 600, color: fgColor }}>{fgVal}</span>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: fgColor }}>{fgLabel}</span>
-          </div>,
-          <div style={{ position: 'relative', height: 6, borderRadius: 3, background: 'linear-gradient(90deg,#ff5d73,#ffb347,#3ddc84)' }}>
-            <div style={{ position: 'absolute', top: -3, bottom: -3, left: `${fgVal}%`, width: 2, background: '#fff' }} />
+          fgReady ? (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+              <span style={{ fontFamily: FONT_MONO, fontSize: '21px', fontWeight: 600, color: fgColor }}>{fgVal}</span>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: fgColor }}>{fgLabel}</span>
+            </div>
+          ) : <Skeleton width={90} height={21} />,
+          <div style={{ position: 'relative', height: 6, borderRadius: 3, background: 'linear-gradient(90deg,#ff5d73,#ffb347,#3ddc84)', opacity: fgReady ? 1 : 0.35 }}>
+            {fgReady && <div style={{ position: 'absolute', top: -3, bottom: -3, left: `${fgVal}%`, width: 2, background: '#fff' }} />}
           </div>
         )}
       </div>

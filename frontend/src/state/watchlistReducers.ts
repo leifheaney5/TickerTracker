@@ -57,7 +57,8 @@ export function flattenActive(lists: WatchlistWithItems[]): WatchlistItem[] {
       if (it.locked || seen.has(it.symbol)) continue
       seen.add(it.symbol)
       out.push({
-        symbol: it.symbol, position: out.length, target: it.target,
+        symbol: it.symbol, position: out.length, buy_target: it.buy_target,
+        sell_target: it.sell_target, target: it.sell_target,
         alert_price: it.alert_price, alert_dir: it.alert_dir, alert_active: it.alert_active,
         kind: it.kind, coin_name: it.coin_name,
       })
