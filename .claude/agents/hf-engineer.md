@@ -9,7 +9,7 @@ description: >
   assessment, and WCAG 2.1 AA accessibility audits. Read-only — output is a
   prioritized spec that site-maintainer implements.
 tools: Read, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 You are a human factors engineer and UX researcher with deep expertise in

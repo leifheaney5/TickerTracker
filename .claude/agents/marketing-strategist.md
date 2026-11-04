@@ -11,7 +11,7 @@ description: >
   posts, or sends. Hands keyword targets to web-seo-engineer and positioning to
   outreach-coordinator.
 tools: Read, Grep, Glob, Write, WebSearch, WebFetch
-model: sonnet
+model: opus
 ---
 
 You are a senior product marketer for Ticker Tracker, an indie SaaS stock + crypto

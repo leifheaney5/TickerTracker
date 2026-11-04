@@ -111,5 +111,5 @@ ls -lh frontend/dist/assets/*.js 2>/dev/null || echo "run: cd frontend && npm ru
 ### Railway cron issues
 [Efficiency and resource concerns]
 
-**Recommended next agent**: site-maintainer | database-optimizer (if query issues found)
+**Recommended next agent**: site-maintainer | database-optimizer (only if installed; else site-maintainer applies the index migration)
 ```
